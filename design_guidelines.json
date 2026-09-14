@@ -1,0 +1,192 @@
+{
+  "app_name": "Pinkberry Drc",
+  "personality": "4 Tactile / Playful LIGHT (Customized with user palette)",
+  "personality_one_liner": "Une expérience gourmande, épurée et moderne avec des formes arrondies et des teintes roses douces.",
+  "color": {
+    "surface": "#FFFFFF",
+    "onSurface": "#2A1721",
+    "surfaceSecondary": "#FBF6F9",
+    "onSurfaceSecondary": "#2A1721",
+    "surfaceTertiary": "#FCE4EF",
+    "onSurfaceTertiary": "#E6156F",
+    "surfaceInverse": "#2A1721",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#E6156F",
+    "onBrand": "#FFFFFF",
+    "brandPrimary": "#E6156F",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#B60E56",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#FCE4EF",
+    "onBrandTertiary": "#E6156F",
+    "success": "#8DC63F",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F5A623",
+    "onWarning": "#FFFFFF",
+    "error": "#D0021B",
+    "onError": "#FFFFFF",
+    "info": "#8DC63F",
+    "onInfo": "#FFFFFF",
+    "border": "#F0E6EB",
+    "borderStrong": "#E6156F",
+    "divider": "#F0E6EB",
+    "muted": "#9A8E94"
+  },
+  "typography": {
+    "displayFontFamily": "Fredoka",
+    "textFontFamily": "Nunito",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous spacing. Use safe area contexts. Keep the layout breathable with lots of white space.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 8,
+    "md": 16,
+    "lg": 20,
+    "xl": 24,
+    "pill": 999
+  },
+  "shadow_tier": 2,
+  "navigation": "bottom_tabs",
+  "icon_set": "Feather",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Use blur on bottom tabs",
+      "Use blur on the floating cart button",
+      "Use blur on bottom-sheet headers"
+    ],
+    "dont's": [
+      "Do not blur cards or lists",
+      "Do not blur form inputs"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler",
+    "maps": "react-native-webview (with Leaflet/OSM as requested)"
+  },
+  "screens": [
+    {
+      "name": "Auth",
+      "purpose": "Inscription et Vérification OTP.",
+      "states": {
+        "loading": "Spinner rose centré",
+        "empty": "N/A",
+        "error": "Message d'erreur avec bouton 'Réessayer'"
+      },
+      "layout": "Grand logo 'pinkberry' centré en haut avec icône swirl. Formulaire de numéro de téléphone épuré, gros bouton plein arrondi '#E6156F' en bas."
+    },
+    {
+      "name": "Accueil Client",
+      "purpose": "Catalogue produits, chips catégories, et accès rapide au panier.",
+      "states": {
+        "loading": "Squelette de cartes arrondies",
+        "empty": "Illustration 'Aucun produit' + texte court",
+        "error": "Alerte de connexion + 'Recharger'"
+      },
+      "layout": "En-tête avec adresse (sélectionnable) et icône de profil. Barre de recherche avec coins arrondis. Rangée horizontale de catégories (Tous, Pots, Smoothies) sous forme de pills (brandTertiary pour sélectionné). Section 'Recommander' en défilement horizontal. Grille de produits en cartes arrondies (24px) avec ombres douces (couleur #FCE4EF). Barre flottante 'Panier' collée en bas."
+    },
+    {
+      "name": "Détail Produit",
+      "purpose": "Bottom sheet pour choisir les tailles et garnitures.",
+      "states": {
+        "loading": "Spinner centré dans la sheet",
+        "empty": "N/A",
+        "error": "Erreur de chargement des options"
+      },
+      "layout": "Image du produit en grand. Titre (Fredoka) et Prix. Liste de tailles avec Radio buttons. Liste de garnitures (Toppings) avec Checkboxes. Bouton 'Ajouter' ancré en bas de la sheet."
+    },
+    {
+      "name": "Localisation & Paiement",
+      "purpose": "Formulaire d'adresse avec contrôle de zone et résumé du panier.",
+      "states": {
+        "loading": "Spinner de validation de commande",
+        "empty": "Panier vide -> Illustration de panier + 'Retour au catalogue'",
+        "error": "Zone rouge (hors livraison) -> Message d'erreur clair"
+      },
+      "layout": "Résumé du panier (montant USD et FC). Formulaire avec dropdown de commune (validation vert/rouge). Champs: avenue, numéro, label, point de repère, téléphone. Badge 'Paiement à la livraison (cash)'. Bouton de confirmation 'Commander' flottant en bas."
+    },
+    {
+      "name": "Suivi de Commande",
+      "purpose": "Carte Leaflet temps réel, ETA et étapes.",
+      "states": {
+        "loading": "Chargement de la carte",
+        "empty": "N/A",
+        "error": "Erreur de localisation"
+      },
+      "layout": "Moitié haute : Carte avec marqueurs (client + livreur). Moitié basse (bottom sheet) : Fil d'étapes (Commande reçue -> En préparation -> Livreur en route (Vert #8DC63F) -> Livré). Carte livreur avec bouton d'appel et bouton 'Annuler'. Bouton 'J'ai payé le livreur' + notation à la fin."
+    },
+    {
+      "name": "Accueil Livreur",
+      "purpose": "Liste des courses assignées et suivi.",
+      "states": {
+        "loading": "Squelette de la liste des courses",
+        "empty": "Illustration 'Aucune course' + 'En attente'",
+        "error": "Erreur de chargement"
+      },
+      "layout": "Liste des courses avec statut actuel. Détail de la course avec carte et navigation. Boutons massifs pour changer de statut (Récupérée -> En route -> Livré)."
+    },
+    {
+      "name": "Dashboard Admin",
+      "purpose": "Gestion globale de l'app (Catalogue, Commandes, Livreurs).",
+      "states": {
+        "loading": "Spinner de données",
+        "empty": "N/A",
+        "error": "Erreur de connexion serveur"
+      },
+      "layout": "Navigation par onglets (Dashboard, Catalogue, Zones, Livreurs). Listes avec CRUD, design fonctionnel (Brutalist léger) mais gardant la charte Pinkberry."
+    }
+  ],
+  "images": {
+    "product_frozen_yogurt": {
+      "url": "https://images.unsplash.com/photo-1669127045641-0ae683639570?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwxfHxmcm96ZW4lMjB5b2d1cnQlMjBjdXB8ZW58MHx8fHwxNzg5NDA5NDkyfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Cup of frozen yogurt with toppings"
+    },
+    "product_sundae": {
+      "url": "https://images.unsplash.com/photo-1556909044-5c0e1da96641?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwzfHxmcm96ZW4lMjB5b2d1cnQlMjBjdXB8ZW58MHx8fHwxNzg5NDA5NDkyfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Sundae in clear cup"
+    },
+    "product_ice_cream_cone": {
+      "url": "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwxfHxpY2UlMjBjcmVhbXxlbnwwfHx8fDE3ODk0MDk1MDl8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Strawberry ice cream cone"
+    },
+    "driver_scooter_map": {
+      "url": "https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwxfHxkZWxpdmVyeSUyMHNjb290ZXIlMjBtYXB8ZW58MHx8fHwxNzg5NDA5NDkyfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Delivery driver on a scooter"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictement respecter la charte de couleurs: #E6156F (Primaire), #B60E56 (Pressé), #FCE4EF (Fonds/Cartes), #8DC63F (Succès/En route), #2A1721 (Texte primaire), #9A8E94 (Texte secondaire), #F0E6EB (Bordures), #FBF6F9 (Fond global).",
+    "Utiliser Fredoka (font-weight 500-600) pour tous les titres, le logo, et les prix.",
+    "Utiliser Nunito (font-weight 600-800) pour tout le texte courant.",
+    "Les cartes doivent avoir un border-radius très arrondi (entre 18 et 24px, utilisez xl: 24px) avec une légère ombre de couleur #FCE4EF pour un aspect 'gourmand'.",
+    "Tous les prix doivent s'afficher en USD et Francs Congolais (FC) côte à côte ou sous forme de toggle selon l'écran.",
+    "Pour le logo, affichez le mot 'pinkberry' en minuscules et de couleur rose, précédé d'une petite icône SVG (Feather icon, ou SVG custom) représentant un swirl (spirale).",
+    "Le bottom-sheet des détails produits (tailles, toppings) doit avoir un bouton primaire collé en bas (sticky CTA).",
+    "L'intégration cartographique doit utiliser react-native-webview couplé avec Leaflet/OpenStreetMap pour ne pas dépendre de Google Maps, comme recommandé.",
+    "L'application inclut les interfaces Client, Livreur, et Admin dans le même projet. Prévoyez un Stack Navigator avec des routes dédiées pour chaque rôle."
+  ]
+}

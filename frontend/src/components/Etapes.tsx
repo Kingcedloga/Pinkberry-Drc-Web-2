@@ -1,0 +1,66 @@
+import Feather from "@react-native-vector-icons/feather";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+
+import { colors, fonts, spacing } from "@/src/theme";
+
+export const ETAPES = [
+  { cle: "recue", label: "Commande reçue", icone: "check" },
+  { cle: "en_preparation", label: "En préparation", icone: "coffee" },
+  { cle: "en_route", label: "Livreur en route", icone: "navigation" },
+  { cle: "livree", label: "Livré", icone: "gift" },
+];
+
+export function indexEtape(statut: string) {
+  if (statut === "recue") return 0;
+  if (statut === "en_preparation" || statut === "recuperee") return 1;
+  if (statut === "en_route") return 2;
+  if (statut === "livree") return 3;
+  return -1;
+}
+
+export function Etapes({ statut }: { statut: string }) {
+  const actuel = indexEtape(statut);
+  return (
+    <View testID="fil-etapes" style={styles.wrap}>
+      {ETAPES.map((e, i) => {
+        const fait = i <= actuel;
+        const encours = i === actuel;
+        return (
+          <View key={e.cle} style={styles.ligne}>
+            <View style={styles.colonne}>
+              <View
+                testID={`etape-${e.cle}`}
+                style={[styles.rond, { backgroundColor: fait ? colors.success : colors.surfaceTertiary }]}
+              >
+                <Feather
+                  name={e.icone as any}
+                  size={15}
+                  color={fait ? colors.onSuccess : colors.brandPrimary}
+                />
+              </View>
+              {i < ETAPES.length - 1 ? (
+                <View style={[styles.trait, { backgroundColor: i < actuel ? colors.success : colors.border }]} />
+              ) : null}
+            </View>
+            <View style={styles.texteBloc}>
+              <Text style={[styles.label, { color: fait ? colors.onSurface : colors.muted }]}>{e.label}</Text>
+              {encours ? <Text style={styles.encours}>En cours…</Text> : null}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: 0 },
+  ligne: { flexDirection: "row", gap: spacing.md },
+  colonne: { alignItems: "center", width: 30 },
+  rond: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  trait: { width: 2, flex: 1, minHeight: 22 },
+  texteBloc: { flex: 1, paddingBottom: spacing.lg },
+  label: { fontFamily: fonts.text, fontSize: 15, fontWeight: "700", marginTop: 5 },
+  encours: { fontFamily: fonts.text, fontSize: 12, color: colors.success, fontWeight: "700" },
+});
