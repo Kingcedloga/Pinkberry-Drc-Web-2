@@ -10,8 +10,8 @@ import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { Etapes } from "@/src/components/Etapes";
 import { Etoiles } from "@/src/components/Etoiles";
-import { fc, usd } from "@/src/money";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 export default function SuiviCommande() {
@@ -19,6 +19,7 @@ export default function SuiviCommande() {
   const router = useRouter();
   const toast = useToast();
   const qc = useQueryClient();
+  const { usd, fc } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [confirmAnnuler, setConfirmAnnuler] = useState(false);
@@ -78,7 +79,7 @@ export default function SuiviCommande() {
         </Pressable>
         <View>
           <Text style={styles.titre}>Suivi {cmd.numero}</Text>
-          <Text style={styles.sousTitre}>{usd(cmd.total)} à régler en cash</Text>
+          <Text style={styles.sousTitre}>{usd(cmd.total)} ≈ {fc(cmd.total)} à régler en cash</Text>
         </View>
         <View style={styles.iconeBtn} />
       </View>
@@ -105,7 +106,9 @@ export default function SuiviCommande() {
             <Text testID="montant-cash" style={styles.montant}>
               {usd(cmd.total)}
             </Text>
-            <Text style={styles.montantFc}>{fc(cmd.total)}</Text>
+            <Text testID="montant-cash-fc" style={styles.montantFc}>
+              ≈ {fc(cmd.total)}
+            </Text>
             <Bouton
               testID="btn-jai-paye"
               label="J'ai payé le livreur"

@@ -9,8 +9,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
-import { fc, usd } from "@/src/money";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 export default function DetailCourse() {
@@ -18,6 +18,7 @@ export default function DetailCourse() {
   const router = useRouter();
   const toast = useToast();
   const qc = useQueryClient();
+  const { usd, fc } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [partageGps, setPartageGps] = useState(false);
@@ -169,7 +170,7 @@ export default function DetailCourse() {
           <Text testID="montant-a-encaisser" style={styles.montant}>
             {usd(cmd.total)}
           </Text>
-          <Text style={styles.montantFc}>{fc(cmd.total)}</Text>
+          <Text style={styles.montantFc}>≈ {fc(cmd.total)}</Text>
           {cmd.items.map((i: any, idx: number) => (
             <Text key={idx} style={styles.ligne}>
               {i.quantite}× {i.nom} {i.taille ? `(${i.taille})` : ""}

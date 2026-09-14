@@ -5,9 +5,9 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
-import { fc, usd } from "@/src/money";
 import { ArticlePanier, Garniture } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { useMontant } from "@/src/taux";
 
 export type Produit = {
   id: string;
@@ -34,6 +34,7 @@ export function FeuilleProduit({
   onAjouter: (a: Omit<ArticlePanier, "cle">) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { usd, fc } = useMontant();
   const [tailleIndex, setTailleIndex] = useState(0);
   const [garnituresChoisies, setGarnitures] = useState<string[]>([]);
   const [quantite, setQuantite] = useState(1);
@@ -91,7 +92,7 @@ export function FeuilleProduit({
                 </Text>
                 <Text style={styles.desc}>{produit.description ?? produit.categorie}</Text>
                 <Text style={styles.prixBase}>
-                  {usd(produit.prix)} · {fc(produit.prix)}
+                  {usd(produit.prix)} ≈ {fc(produit.prix)}
                 </Text>
               </View>
             </View>
@@ -170,7 +171,7 @@ export function FeuilleProduit({
               icone="shopping-bag"
               onPress={ajouter}
             />
-            <Text style={styles.ctaFc}>{fc(prixUnitaire * quantite)}</Text>
+            <Text style={styles.ctaFc}>≈ {fc(prixUnitaire * quantite)}</Text>
           </View>
         </View>
       </View>

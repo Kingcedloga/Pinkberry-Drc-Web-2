@@ -20,9 +20,9 @@ import { useAuth } from "@/src/auth";
 import { Chips } from "@/src/components/Chips";
 import { FeuilleProduit, Produit } from "@/src/components/FeuilleProduit";
 import { Logo } from "@/src/components/Logo";
-import { fc, usd } from "@/src/money";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 const CATEGORIES = ["Tous", "Pots de crème", "Smoothies", "Toppings", "Boissons"];
@@ -32,6 +32,7 @@ export default function Accueil() {
   const router = useRouter();
   const { user } = useAuth();
   const toast = useToast();
+  const { usd, fc } = useMontant();
   const { ajouter, nbArticles, sousTotal } = usePanier();
 
   const [recherche, setRecherche] = useState("");
@@ -171,7 +172,7 @@ export default function Accueil() {
                 </Text>
                 <Text style={styles.produitCat}>{item.categorie}</Text>
                 <Text style={styles.produitPrix}>
-                  {usd(item.prix)} <Text style={styles.produitFc}>· {fc(item.prix)}</Text>
+                  {usd(item.prix)} <Text style={styles.produitFc}>≈ {fc(item.prix)}</Text>
                 </Text>
                 {!item.disponible ? <Text style={styles.rupture}>En rupture</Text> : null}
               </View>

@@ -325,6 +325,10 @@ class ZoneIn(BaseModel):
     active: bool
 
 
+class ConfigIn(BaseModel):
+    tauxFC: float
+
+
 class AssignIn(BaseModel):
     livreurId: str
 
@@ -722,7 +726,23 @@ async def livreur_position(body: PositionIn, user=Depends(require_livreur)):
 
 @api_router.get("/config")
 async def config():
-    return {"tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON}
+    doc = await db.parametres.find_one({"cle": "global"}, {"_id": 0})
+    return {
+        "tauxFC": (doc or {}).get("tauxFC", TAUX_FC),
+        "fraisLivraison": (doc or {}).get("fraisLivraison", FRAIS_LIVRAISON),
+    }
+
+
+@api_router.put("/admin/config")
+async def modifier_config(body: ConfigIn, _=Depends(require_admin)):
+    if body.tauxFC <= 0:
+        raise HTTPException(status_code=400, detail="Le taux doit être supérieur à zéro")
+    await db.parametres.update_one(
+        {"cle": "global"},
+        {"$set": {"tauxFC": body.tauxFC, "majLe": iso(now_utc())}},
+        upsert=True,
+    )
+    return await config()
 
 
 @api_router.get("/")
@@ -777,6 +797,11 @@ PRODUITS_DEMO = [
 
 async def seed():
     await db.users.create_index("telephone", unique=True)
+    await db.parametres.update_one(
+        {"cle": "global"},
+        {"$setOnInsert": {"cle": "global", "tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON}},
+        upsert=True,
+    )
     for commune, active in COMMUNES:
         await db.zones.update_one(
             {"commune": commune},

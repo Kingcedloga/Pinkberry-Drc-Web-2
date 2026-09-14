@@ -6,13 +6,14 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
-import { fc, usd } from "@/src/money";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { useMontant } from "@/src/taux";
 
 export default function Panier() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { usd, fc } = useMontant();
   const { articles, changerQuantite, retirer, sousTotal, nbArticles } = usePanier();
 
   return (
@@ -56,7 +57,7 @@ export default function Panier() {
                     {[a.taille, ...a.garnitures.map((g) => g.nom)].filter(Boolean).join(" · ") || "Sans option"}
                   </Text>
                   <Text style={styles.prix}>
-                    {usd(a.prixUnitaire * a.quantite)} <Text style={styles.prixFc}>· {fc(a.prixUnitaire * a.quantite)}</Text>
+                    {usd(a.prixUnitaire * a.quantite)} <Text style={styles.prixFc}>≈ {fc(a.prixUnitaire * a.quantite)}</Text>
                   </Text>
                 </View>
                 <View style={styles.actions}>
@@ -92,7 +93,7 @@ export default function Panier() {
                 <Text testID="panier-sous-total" style={styles.sousTotalValeur}>
                   {usd(sousTotal)}
                 </Text>
-                <Text style={styles.sousTotalFc}>{fc(sousTotal)}</Text>
+                <Text style={styles.sousTotalFc}>≈ {fc(sousTotal)}</Text>
               </View>
             </View>
             <Bouton

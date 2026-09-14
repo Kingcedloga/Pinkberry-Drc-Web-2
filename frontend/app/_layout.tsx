@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/src/components/error-boundary";
 import { PanierProvider } from "@/src/panier";
 import { queryClient } from "@/src/query-client";
 import { colors } from "@/src/theme";
+import { TauxProvider } from "@/src/taux";
 import { ToastProvider } from "@/src/toast";
 
 // Disable logbox errors etc so that users can see the app
@@ -43,7 +44,9 @@ export default function RootLayout() {
               <AuthProvider>
                 <PanierProvider>
                   <ToastProvider>
-                    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceSecondary } }} />
+                    <TauxProvider>
+                      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceSecondary } }} />
+                    </TauxProvider>
                   </ToastProvider>
                 </PanierProvider>
               </AuthProvider>

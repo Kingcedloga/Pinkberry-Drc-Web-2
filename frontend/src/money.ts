@@ -1,4 +1,15 @@
-export const TAUX_FC = 2800;
+export const TAUX_FC_DEFAUT = 2800;
+
+let tauxCourant = TAUX_FC_DEFAUT;
+
+/** Met à jour le taux USD → FC utilisé par tous les affichages. */
+export function setTauxFC(taux: number) {
+  if (taux > 0) tauxCourant = taux;
+}
+
+export function getTauxFC(): number {
+  return tauxCourant;
+}
 
 function groupe(n: number): string {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -9,9 +20,10 @@ export function usd(n: number): string {
 }
 
 export function fc(n: number): string {
-  return `${groupe(Math.round((n ?? 0) * TAUX_FC))} FC`;
+  return `${groupe(Math.round((n ?? 0) * tauxCourant))} FC`;
 }
 
+/** « $6.00 ≈ 16 800 FC » */
 export function prix(n: number): string {
-  return `${usd(n)} · ${fc(n)}`;
+  return `${usd(n)} ≈ ${fc(n)}`;
 }

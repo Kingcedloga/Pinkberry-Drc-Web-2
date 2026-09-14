@@ -7,18 +7,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
-import { fc, usd } from "@/src/money";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { useConfigApp, useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
-
-const FRAIS = 2.5;
 
 export default function Confirmation() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
   const qc = useQueryClient();
+  const { usd, fc } = useMontant();
+  const { fraisLivraison: FRAIS } = useConfigApp();
   const { articles, adresse, sousTotal, vider } = usePanier();
   const [loading, setLoading] = useState(false);
 
@@ -117,7 +117,7 @@ export default function Confirmation() {
               <Text testID="confirmation-total" style={styles.grandTotalValeur}>
                 {usd(total)}
               </Text>
-              <Text style={styles.grandTotalFc}>{fc(total)}</Text>
+              <Text style={styles.grandTotalFc}>≈ {fc(total)}</Text>
             </View>
           </View>
         </View>

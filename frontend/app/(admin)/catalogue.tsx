@@ -10,6 +10,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { usd } from "@/src/money";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 const CATEGORIES = ["Pots de crème", "Smoothies", "Toppings", "Boissons"];
@@ -31,6 +32,10 @@ export default function Catalogue() {
   const toast = useToast();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<any[]>("/produits") });
+  const { taux, fc } = useMontant();
+
+  const [tauxOuvert, setTauxOuvert] = useState(false);
+  const [tauxTexte, setTauxTexte] = useState("");
 
   const [edition, setEdition] = useState<any>(null);
   const [nom, setNom] = useState("");
@@ -82,6 +87,22 @@ export default function Catalogue() {
     }
   };
 
+  const enregistrerTaux = async () => {
+    const valeur = parseFloat(tauxTexte.replace(/\s/g, "").replace(",", "."));
+    if (isNaN(valeur) || valeur <= 0) {
+      toast.show("Entrez un taux valide (ex. 2800)", "erreur");
+      return;
+    }
+    try {
+      await apiFetch("/admin/config", { method: "PUT", body: { tauxFC: valeur } });
+      qc.invalidateQueries({ queryKey: ["config"] });
+      setTauxOuvert(false);
+      toast.show(`Taux mis à jour : 1 USD = ${valeur} FC`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
   const supprimer = async (id: string) => {
     try {
       await apiFetch(`/admin/produits/${id}`, { method: "DELETE" });
@@ -100,6 +121,24 @@ export default function Catalogue() {
           <Feather name="plus" size={20} color={colors.onBrandPrimary} />
         </Pressable>
       </View>
+
+      <Pressable
+        testID="banniere-taux"
+        onPress={() => {
+          setTauxTexte(String(taux));
+          setTauxOuvert(true);
+        }}
+        style={({ pressed }) => [styles.banniere, pressed && { backgroundColor: "#F7CFE1" }]}
+      >
+        <Feather name="repeat" size={18} color={colors.brandPrimary} />
+        <View style={styles.banniereTexte}>
+          <Text style={styles.banniereTitre}>Taux de change USD → FC</Text>
+          <Text testID="taux-actuel" style={styles.banniereValeur}>
+            1 USD = {fc(1)}
+          </Text>
+        </View>
+        <Text style={styles.banniereLien}>Modifier</Text>
+      </Pressable>
 
       {q.isLoading ? (
         <View style={styles.centre}>
@@ -192,6 +231,35 @@ export default function Catalogue() {
           </View>
         </View>
       </Modal>
+      <Modal visible={tauxOuvert} animationType="fade" transparent onRequestClose={() => setTauxOuvert(false)}>
+        <View style={styles.voileCentre}>
+          <View testID="modal-taux" style={styles.dialogue}>
+            <Text style={styles.feuilleTitre}>Taux de change</Text>
+            <Text style={styles.dialogueTexte}>
+              Combien de francs congolais vaut 1 dollar américain ? Le nouveau taux s&apos;applique
+              immédiatement à tous les prix affichés côté client.
+            </Text>
+            <Champ
+              label="1 USD = ... FC"
+              testID="input-taux"
+              value={tauxTexte}
+              onChangeText={setTauxTexte}
+              keyboardType="decimal-pad"
+              placeholder="2800"
+            />
+            <Text style={styles.apercu}>
+              Aperçu : $6.00 ≈{" "}
+              {String(Math.round(6 * (parseFloat(tauxTexte.replace(/\s/g, "").replace(",", ".")) || 0))).replace(
+                /\B(?=(\d{3})+(?!\d))/g,
+                " ",
+              )}{" "}
+              FC
+            </Text>
+            <Bouton testID="btn-enregistrer-taux" label="Enregistrer le taux" onPress={enregistrerTaux} />
+            <Bouton testID="btn-annuler-taux" label="Annuler" variant="contour" onPress={() => setTauxOuvert(false)} />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -235,6 +303,37 @@ const styles = StyleSheet.create({
   rupture: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.error },
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
+  voileCentre: {
+    flex: 1,
+    backgroundColor: "rgba(42,23,33,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  dialogue: {
+    width: "100%",
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  dialogueTexte: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+  apercu: { fontFamily: fonts.display, fontSize: 15, color: colors.brandPrimary },
+  banniere: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    backgroundColor: colors.brandTertiary,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    minHeight: 64,
+  },
+  banniereTexte: { flex: 1 },
+  banniereTitre: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.muted },
+  banniereValeur: { fontFamily: fonts.display, fontSize: 17, color: colors.brandPrimary },
+  banniereLien: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
   feuille: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,

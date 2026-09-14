@@ -72,6 +72,17 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 
 **Tests** : 22/22 tests backend + parcours frontend complets validés (itération 1).
 
+## Implémenté — ajout du 14/09/2026 (v1.1)
+- **Taux de change USD → FC géré par l'admin** : nouvelle collection `parametres` (doc `cle="global"`),
+  `GET /api/config` + `PUT /api/admin/config`. L'admin saisit le taux depuis l'onglet **Catalogue**
+  (bannière « Taux de change USD → FC » + modal avec aperçu live). Stocké en base, aucun redéploiement.
+- Côté client, tous les prix s'affichent `$6.00 ≈ 16 800 FC` avec le taux courant (catalogue, feuille
+  produit, panier, confirmation, suivi). L'écran de paiement à la livraison montre le montant cash dans
+  les deux devises, idem pour le montant à encaisser côté livreur.
+- Technique : `TauxProvider` + hook `useMontant()` (`src/taux.tsx`) — polling `/api/config` toutes les 20 s
+  et invalidation immédiate après une modification admin.
+- Tests : 30/30 backend (dont 8 nouveaux sur le taux) + parcours admin/client/livreur validés (itération 2).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

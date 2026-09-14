@@ -1,0 +1,32 @@
+{
+  "summary": "Itération 2 — Gestion admin du taux de change USD → FC. Backend: 30/30 pytest verts (22 régressions itération 1 + 8 nouveaux tests taux). GET /api/config renvoie tauxFC (2800) et fraisLivraison (2.5). PUT /api/admin/config accepte tauxFC>0 (200 + persistance vérifiée via GET), rejette 400 pour 0 ou négatif, exige un token (401), exige rôle admin (403 pour client et livreur). Persistance vérifiée après `supervisorctl restart backend` (le seed utilise bien $setOnInsert, il n'écrase pas la valeur admin). Frontend (390x844): admin (0810000000/admin123) → onglet Catalogue → bannière testID 'banniere-taux' visible avec 'Taux de change USD → FC' et 'taux-actuel' affiche '1 USD = 2 800 FC' (puis 3 100 FC après modification). Modal 'modal-taux' s'ouvre avec 'input-taux' pré-rempli à la valeur courante, aperçu '$6.00 ≈ 16 800 FC' se met à jour dynamiquement pendant la saisie, 'btn-enregistrer-taux' déclenche un toast succès et met à jour la bannière immédiatement (invalidation query 'config'). Client (0990000001/client123) avec taux 3100: accueil affiche 'Smoothie Fraise-Banane $6.00 ≈ 18 600 FC', feuille produit idem, panier sous-total '$6.00 ≈ 18 600 FC'. Écran de suivi client (taux 2800): sous-titre 'Suivi PB-XXXX' avec '$4.50 ≈ 12 600 FC à régler en cash', bloc-livraison affiche '$4.50' et '≈ 12 600 FC' quand le livreur est arrivé. Livreur (0820000001/livreur123): détail course affiche testID 'montant-a-encaisser'='$4.50' et juste en dessous '≈ 12 600 FC'. Non-régression: parcours de commande complet fonctionne (catalogue → feuille → panier → adresse → confirmation → suivi). Taux remis à 2800 en fin de tests (vérifié via GET /api/config). Aucun paquet Expo déprécié détecté. Aucun bug bloquant.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pinkberry_api.py",
+    "/app/backend/tests/test_taux_change.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/pytest_taux_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py: GET /api/config public expose {tauxFC, fraisLivraison} avec fallback env; PUT /api/admin/config valide tauxFC>0 (400 sinon), utilise $set upsert sur parametres.cle='global' — correct.",
+    "seed() utilise $setOnInsert sur la collection 'parametres' — le taux admin persiste bien après redémarrage (vérifié via supervisorctl restart backend).",
+    "src/taux.tsx: TauxProvider refetch /config toutes les 20s + hook useMontant() -> propagation ok, l'admin invalide 'config' pour reflet immédiat.",
+    "money.ts: format FC groupé par milliers (regex correcte), Math.round → arrondi entier — conforme aux exemples de l'énoncé (6*2800=16 800 FC)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_taux_change.py (nouveau)"
+  ],
+  "success_rate": {"backend": "100% (30/30)", "frontend": "100% des flux taux + non-régression commande"},
+  "seed_data_creation": "Aucun seed manuel; le taux a été modifié plusieurs fois (2800 → 3100 → 2800) pendant les tests et a été remis à 2800 à la fin (confirmé via GET /api/config).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Nouvel endpoint admin: PUT /api/admin/config {tauxFC:number}. Public: GET /api/config -> {tauxFC, fraisLivraison}. Sur le front, le hook useMontant() de src/taux.tsx expose usd()/fc()/prix(). Le TauxProvider fait refetch toutes les 20s; après une action admin, la query 'config' est invalidée pour un reflet immédiat. testIDs clés ajoutés: 'banniere-taux', 'taux-actuel', 'modal-taux', 'input-taux', 'btn-enregistrer-taux', 'btn-annuler-taux', 'montant-a-encaisser', 'montant-cash', 'montant-cash-fc', 'bloc-livraison'. En fin de test, TOUJOURS remettre le taux à 2800 (via UI admin ou curl PUT). Livreur = accéder à la course via texte /PB-[0-9]+/ (pas de testID sur la carte de course).",
+  "rca_of_issue": "N/A — aucun bug détecté sur cette itération."
+}
