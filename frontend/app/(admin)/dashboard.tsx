@@ -9,8 +9,8 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Logo } from "@/src/components/Logo";
-import { usd } from "@/src/money";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 const LIBELLES: Record<string, string> = {
@@ -35,6 +35,7 @@ export default function Dashboard() {
   const toast = useToast();
   const qc = useQueryClient();
   const { deconnexion } = useAuth();
+  const { usd, fc } = useMontant();
   const [ouverte, setOuverte] = useState<any>(null);
 
   const commandesQ = useQuery({
@@ -48,10 +49,16 @@ export default function Dashboard() {
     refetchInterval: 8000,
   });
   const livreursQ = useQuery({ queryKey: ["admin-livreurs"], queryFn: () => apiFetch<any[]>("/admin/livreurs") });
+  const ventesQ = useQuery({
+    queryKey: ["admin-ventes"],
+    queryFn: () => apiFetch<any>("/admin/ventes"),
+    refetchInterval: 15000,
+  });
 
   const rafraichir = () => {
     qc.invalidateQueries({ queryKey: ["admin-commandes"] });
     qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    qc.invalidateQueries({ queryKey: ["admin-ventes"] });
   };
 
   const assigner = async (livreurId: string) => {
@@ -83,6 +90,7 @@ export default function Dashboard() {
   };
 
   const stats = statsQ.data;
+  const ventes = ventesQ.data;
 
   return (
     <View testID="ecran-admin-dashboard" style={styles.ecran}>
@@ -116,17 +124,65 @@ export default function Dashboard() {
           refreshing={commandesQ.isRefetching}
           onRefresh={rafraichir}
           ListHeaderComponent={
-            <View style={styles.statsRow}>
-              {[
-                { l: "En cours", v: stats?.enCours ?? 0, c: colors.brandPrimary },
-                { l: "Livrées", v: stats?.livrees ?? 0, c: colors.success },
-                { l: "Revenus", v: usd(stats?.revenus ?? 0), c: colors.onSurface },
-              ].map((s) => (
-                <View key={s.l} testID={`stat-${s.l}`} style={styles.statCarte}>
-                  <Text style={[styles.statValeur, { color: s.c }]}>{s.v}</Text>
-                  <Text style={styles.statLabel}>{s.l}</Text>
+            <View style={styles.enteteListe}>
+              <View testID="carte-ventes-jour" style={styles.ventesCarte}>
+                <View style={styles.ventesHaut}>
+                  <View>
+                    <Text style={styles.ventesTitre}>Ventes du jour</Text>
+                    <Text style={styles.ventesDate}>{ventes?.date ?? "—"} · commandes livrées</Text>
+                  </View>
+                  <Icone name="dollar-sign" size={20} color={colors.brandPrimary} />
                 </View>
-              ))}
+
+                <Text testID="ventes-chiffre" style={styles.ventesChiffre}>
+                  {usd(ventes?.chiffre ?? 0)}
+                </Text>
+                <Text style={styles.ventesChiffreFc}>≈ {fc(ventes?.chiffre ?? 0)}</Text>
+
+                <View style={styles.ventesLigne}>
+                  <View style={styles.ventesMini}>
+                    <Text testID="ventes-nb-commandes" style={styles.ventesMiniValeur}>
+                      {ventes?.nbCommandes ?? 0}
+                    </Text>
+                    <Text style={styles.ventesMiniLabel}>commandes</Text>
+                  </View>
+                  <View style={styles.ventesMini}>
+                    <Text style={styles.ventesMiniValeur}>{usd(ventes?.panierMoyen ?? 0)}</Text>
+                    <Text style={styles.ventesMiniLabel}>panier moyen</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.topTitre}>Les plus commandés</Text>
+                {(ventes?.topProduits ?? []).length === 0 ? (
+                  <Text style={styles.topVide}>Aucune vente livrée aujourd&apos;hui</Text>
+                ) : (
+                  (ventes?.topProduits ?? []).map((p: any, i: number) => (
+                    <View key={p.nom} testID={`top-produit-${i}`} style={styles.topLigne}>
+                      <View style={styles.rang}>
+                        <Text style={styles.rangTexte}>{i + 1}</Text>
+                      </View>
+                      <Text style={styles.topNom} numberOfLines={1}>
+                        {p.nom}
+                      </Text>
+                      <Text style={styles.topQte}>×{p.quantite}</Text>
+                      <Text style={styles.topMontant}>{usd(p.montant)}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
+
+              <View style={styles.statsRow}>
+                {[
+                  { l: "En cours", v: stats?.enCours ?? 0, c: colors.brandPrimary },
+                  { l: "Livrées", v: stats?.livrees ?? 0, c: colors.success },
+                  { l: "Revenus", v: usd(stats?.revenus ?? 0), c: colors.onSurface },
+                ].map((s) => (
+                  <View key={s.l} testID={`stat-${s.l}`} style={styles.statCarte}>
+                    <Text style={[styles.statValeur, { color: s.c }]}>{s.v}</Text>
+                    <Text style={styles.statLabel}>{s.l}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           }
           ListEmptyComponent={
@@ -271,6 +327,46 @@ const styles = StyleSheet.create({
   vide: { fontFamily: fonts.text, fontSize: 14, color: colors.muted },
   liste: { padding: spacing.lg, gap: spacing.md },
   statsRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.xs },
+  enteteListe: { gap: spacing.md },
+  ventesCarte: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.xs,
+    ...softShadow,
+  },
+  ventesHaut: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  ventesTitre: { fontFamily: fonts.display, fontSize: 18, color: colors.onSurface },
+  ventesDate: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
+  ventesChiffre: { fontFamily: fonts.display, fontSize: 34, color: colors.brandPrimary, marginTop: spacing.sm },
+  ventesChiffreFc: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+  ventesLigne: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
+  ventesMini: {
+    flex: 1,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+  },
+  ventesMiniValeur: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
+  ventesMiniLabel: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
+  topTitre: { fontFamily: fonts.display, fontSize: 15, color: colors.onSurface, marginTop: spacing.lg },
+  topVide: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+  topLigne: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.sm },
+  rang: {
+    width: 24,
+    height: 24,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rangTexte: { fontFamily: fonts.display, fontSize: 12, color: colors.brandPrimary },
+  topNom: { flex: 1, fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.onSurface },
+  topQte: { fontFamily: fonts.text, fontSize: 12, color: colors.muted, fontWeight: "700" },
+  topMontant: { fontFamily: fonts.display, fontSize: 14, color: colors.onSurface, minWidth: 54, textAlign: "right" },
   statCarte: {
     flex: 1,
     backgroundColor: colors.surface,

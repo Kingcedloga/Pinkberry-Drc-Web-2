@@ -108,6 +108,25 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   `PUT /api/auth/telephone` valide l'unicité du numéro.
 - Tests : 43/43 backend + parcours icônes / notifications / upload / Google validés (itération 3).
 
+## Implémenté — ajout du 14/09/2026 (v1.3)
+- **Notifications push (Emergent managed / SuprSend)** :
+  - Backend : `POST /api/register-push` + helper `send_push()` (relais `X-Push-Key`), appels enveloppés
+    dans try/except pour ne jamais bloquer une commande. Évènements couverts : chaque changement de
+    statut → client (`/suivi/{id}`), nouvelle commande → tous les admins (`/dashboard`), assignation
+    d'une course → livreur concerné (`/course/{id}`).
+  - Frontend : handler et canal Android à portée module dans `app/_layout.tsx`, gestion du tap
+    (app ouverte et démarrage à froid), enregistrement du token natif (`getDevicePushTokenAsync`) à la
+    connexion et à chaque retour au premier plan, relance hebdomadaire vers les réglages si l'utilisateur
+    a refusé (`src/components/GestionPush.tsx`).
+  - `app.json` : plugin `expo-notifications`, `android.googleServicesFile`, permission POST_NOTIFICATIONS.
+  - **Ne fonctionne qu'après déploiement + build natif** (jamais dans Expo Go ni sur le web).
+    `google-services.json` doit être fourni par l'utilisateur ; `EMERGENT_PUSH_KEY` est injectée
+    automatiquement au déploiement (ne jamais l'éditer).
+- **Ventes du jour (admin)** : `GET /api/admin/ventes` calcule, sur le fuseau de Kinshasa (UTC+1) et
+  uniquement sur les commandes **livrées**, le chiffre du jour, le nombre de commandes, le panier moyen
+  et le top 5 des produits. Carte dédiée en tête du tableau de bord (USD + FC, classement des produits).
+- Tests : 49/49 backend + audit de conformité push + rendu mobile/desktop validés (itération 4).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

@@ -53,6 +53,11 @@ _storage_key: Optional[str] = None
 # --- Emergent Google Auth ---
 EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
 
+# --- Emergent Push Notifications ---
+PUSH_BASE_URL = "https://integrations.emergentagent.com"
+PUSH_KEY = os.environ.get("EMERGENT_PUSH_KEY", "placeholder")
+_push_client = httpx.AsyncClient(base_url=PUSH_BASE_URL, headers={"X-Push-Key": PUSH_KEY}, timeout=10.0)
+
 TAILLE_MAX_IMAGE = 5 * 1024 * 1024
 TYPES_IMAGE = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 
@@ -357,6 +362,12 @@ class TelephoneIn(BaseModel):
     telephone: str
 
 
+class RegisterPushBody(BaseModel):
+    user_id: str
+    platform: str
+    device_token: str
+
+
 class PaiementIn(BaseModel):
     note: Optional[int] = None
 
@@ -616,6 +627,111 @@ async def lire_fichier(fichier_id: str):
     return Response(content=contenu, media_type=ctype, headers={"Cache-Control": "public, max-age=604800"})
 
 
+# --------------------------------------------------- notifications push (relay)
+@api_router.post("/register-push", status_code=201)
+async def register_push(body: RegisterPushBody):
+    resp = await _push_client.post("/api/v1/push/users/register", json=body.model_dump())
+    if resp.status_code == 401:
+        raise HTTPException(status_code=500, detail="EMERGENT_PUSH_KEY manquante ou invalide")
+    if resp.status_code >= 500:
+        raise HTTPException(status_code=502, detail="Service de notifications indisponible")
+    resp.raise_for_status()
+    return {"status": "registered"}
+
+
+async def send_push(recipients: List[str], data: Dict[str, Any], idempotency_key: Optional[str] = None) -> None:
+    recipients = [r for r in recipients if r]
+    if not recipients:
+        return
+    if len(recipients) > 100:
+        raise ValueError("max 100 destinataires par appel")
+    if "title" not in data or "message" not in data:
+        raise ValueError("data doit contenir title et message")
+    payload: Dict[str, Any] = {"recipients": recipients, "data": data}
+    if idempotency_key:
+        payload["$idempotency_key"] = idempotency_key
+    resp = await _push_client.post("/api/v1/push/trigger", json=payload)
+    if resp.status_code == 401:
+        raise HTTPException(status_code=500, detail="EMERGENT_PUSH_KEY manquante ou invalide")
+    if resp.status_code >= 500:
+        raise HTTPException(status_code=502, detail="Service de notifications indisponible")
+    resp.raise_for_status()
+
+
+async def ids_admins() -> List[str]:
+    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(50)
+    return [a["id"] for a in admins]
+
+
+async def id_user_livreur(livreur_id: Optional[str]) -> Optional[str]:
+    if not livreur_id:
+        return None
+    u = await db.users.find_one({"livreurId": livreur_id}, {"_id": 0, "id": 1})
+    return u["id"] if u else None
+
+
+MESSAGES_PUSH = {
+    "recue": ("Commande reçue", "Nous avons bien reçu votre commande {numero}."),
+    "en_preparation": ("En préparation", "Votre commande {numero} est en préparation."),
+    "recuperee": ("Commande récupérée", "Le livreur a récupéré votre commande {numero}."),
+    "en_route": ("Livreur en route", "Votre livreur arrive, suivez-le sur la carte."),
+    "livree": ("Commande livrée", "Bon appétit ! Merci pour votre commande {numero}."),
+    "annulee": ("Commande annulée", "Votre commande {numero} a été annulée."),
+}
+
+
+async def notifier_client(cmd: Dict[str, Any], statut: str) -> None:
+    modele = MESSAGES_PUSH.get(statut)
+    if not modele:
+        return
+    titre, message = modele
+    try:
+        await send_push(
+            recipients=[cmd["userId"]],
+            data={
+                "title": titre,
+                "message": message.format(numero=cmd.get("numero", "")),
+                "action_url": f"/suivi/{cmd['id']}",
+            },
+            idempotency_key=f"{cmd['id']}-{statut}",
+        )
+    except Exception as e:
+        logger.warning(f"Push client non bloquant: {e}")
+
+
+async def notifier_admins(cmd: Dict[str, Any]) -> None:
+    try:
+        await send_push(
+            recipients=await ids_admins(),
+            data={
+                "title": "Nouvelle commande",
+                "message": f"{cmd.get('clientNom')} · {cmd.get('numero')} · ${cmd.get('total')}",
+                "action_url": "/dashboard",
+            },
+            idempotency_key=f"{cmd['id']}-admin",
+        )
+    except Exception as e:
+        logger.warning(f"Push admin non bloquant: {e}")
+
+
+async def notifier_livreur(cmd: Dict[str, Any]) -> None:
+    try:
+        cible = await id_user_livreur(cmd.get("livreurId"))
+        if not cible:
+            return
+        await send_push(
+            recipients=[cible],
+            data={
+                "title": "Nouvelle course",
+                "message": f"{cmd.get('numero')} · {cmd.get('adresse', {}).get('commune')} · ${cmd.get('total')} à encaisser",
+                "action_url": f"/course/{cmd['id']}",
+            },
+            idempotency_key=f"{cmd['id']}-livreur-{cmd.get('livreurId')}",
+        )
+    except Exception as e:
+        logger.warning(f"Push livreur non bloquant: {e}")
+
+
 # --------------------------------------------------------------------- catalogue
 @api_router.get("/produits")
 async def liste_produits():
@@ -774,6 +890,8 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
     }
     await db.commandes.insert_one(dict(cmd))
     cmd.pop("_id", None)
+    await notifier_client(cmd, "recue")
+    await notifier_admins(cmd)
     return await enrichir(cmd)
 
 
@@ -805,6 +923,7 @@ async def annuler_commande(cmd_id: str, user=Depends(get_current_user)):
         {"id": cmd_id},
         {"$set": {"statut": "annulee"}, "$push": {"historique": {"statut": "annulee", "at": iso(now_utc())}}},
     )
+    await notifier_client(cmd, "annulee")
     return await detail_commande(cmd_id, user)
 
 
@@ -849,6 +968,8 @@ async def assigner_livreur(cmd_id: str, body: AssignIn, user=Depends(require_adm
     res = await db.commandes.update_one({"id": cmd_id}, {"$set": {"livreurId": body.livreurId}})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Commande introuvable")
+    maj = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
+    await notifier_livreur(maj)
     return await detail_commande(cmd_id, user)
 
 
@@ -860,7 +981,39 @@ async def admin_statut(cmd_id: str, body: StatutIn, user=Depends(require_admin))
     )
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Commande introuvable")
+    maj = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
+    await notifier_client(maj, body.statut)
     return await detail_commande(cmd_id, user)
+
+
+@api_router.get("/admin/ventes")
+async def ventes_du_jour(_=Depends(require_admin)):
+    """Chiffre du jour (commandes livrées uniquement) + produits les plus commandés."""
+    maintenant = now_utc() + timedelta(hours=1)  # heure de Kinshasa (UTC+1)
+    jour = maintenant.strftime("%Y-%m-%d")
+    debut = iso(datetime.fromisoformat(f"{jour}T00:00:00+01:00").astimezone(timezone.utc))
+    fin = iso(datetime.fromisoformat(f"{jour}T23:59:59+01:00").astimezone(timezone.utc))
+
+    cmds = await db.commandes.find(
+        {"statut": "livree", "createdAt": {"$gte": debut, "$lte": fin}}, {"_id": 0}
+    ).to_list(1000)
+
+    chiffre = round(sum(c["total"] for c in cmds), 2)
+    articles: Dict[str, Dict[str, Any]] = {}
+    for c in cmds:
+        for i in c.get("items", []):
+            e = articles.setdefault(i["nom"], {"nom": i["nom"], "quantite": 0, "montant": 0.0, "image": i.get("image")})
+            e["quantite"] += i.get("quantite", 0)
+            e["montant"] = round(e["montant"] + i.get("prixUnitaire", 0) * i.get("quantite", 0), 2)
+
+    top = sorted(articles.values(), key=lambda a: (a["quantite"], a["montant"]), reverse=True)[:5]
+    return {
+        "date": jour,
+        "chiffre": chiffre,
+        "nbCommandes": len(cmds),
+        "panierMoyen": round(chiffre / len(cmds), 2) if cmds else 0,
+        "topProduits": top,
+    }
 
 
 # ---------------------------------------------------------------------- livreur
@@ -880,6 +1033,8 @@ async def livreur_statut(cmd_id: str, body: StatutIn, user=Depends(require_livre
         {"id": cmd_id},
         {"$set": {"statut": body.statut}, "$push": {"historique": {"statut": body.statut, "at": iso(now_utc())}}},
     )
+    maj = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
+    await notifier_client(maj, body.statut)
     return await detail_commande(cmd_id, user)
 
 
@@ -895,6 +1050,7 @@ async def livreur_encaisser(cmd_id: str, user=Depends(require_livreur)):
             "$push": {"historique": {"statut": "livree", "at": iso(now_utc())}},
         },
     )
+    await notifier_client(cmd, "livree")
     return await detail_commande(cmd_id, user)
 
 

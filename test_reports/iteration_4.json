@@ -1,0 +1,39 @@
+{
+  "summary": "Itération 4 (Ventes du jour + Push notifications) — 14/14 nouveaux tests pytest verts + 35/35 régressions (test_pinkberry_api + test_iteration3) = 49/49 backend. VENTES : GET /api/admin/ventes renvoie {date, chiffre, nbCommandes, panierMoyen, topProduits} — 403 client, 403 livreur, 401 sans token, shape OK, topProduits<=5 trié par quantité DESC, panierMoyen=chiffre/nbCommandes cohérent. Une commande en 'recue' NE change PAS chiffre/nbCommandes ; une commande passée à 'livree' via le flux complet (assigner livreur -> recuperee -> en_route -> encaisser) incrémente correctement chiffre, nbCommandes et fait apparaître le produit dans topProduits avec la bonne quantité. Fuseau Kinshasa UTC+1 respecté (date=2026-09-14). PUSH RELAY : POST /api/register-push existe (pas 404) ; corps vide -> 422, corps invalide -> 422 ; avec un body complet et EMERGENT_PUSH_KEY='placeholder', retour 500 'EMERGENT_PUSH_KEY manquante ou invalide' comme attendu (le code réel sera injecté au déploiement). NON-BLOQUANT : POST /api/commandes (200), PATCH /api/admin/commandes/{id}/statut (200), POST /api/admin/commandes/{id}/assigner (200), POST /api/commandes/{id}/annuler (200), POST /api/livreur/courses/{id}/encaisser (200) — tous OK malgré l'échec des push ; 19 warnings 'Push client/admin/livreur non bloquant: 500: EMERGENT_PUSH_KEY manquante ou invalide' présents dans backend.err.log. AUDIT CODE PUSH conforme au playbook : (a) _layout.tsx contient addNotificationResponseReceivedListener (ligne 58) + getLastNotificationResponseAsync (ligne 63) ; (b) setNotificationHandler et setNotificationChannelAsync sont à portée MODULE (hors composant, lignes 27 et 40, gardés par Platform.OS !== 'web' et 'android') ; (c) push.ts utilise bien getDevicePushTokenAsync (ligne 18) et PAS getExpoPushTokenAsync ; (d) GestionPush.tsx importe RNLinking et appelle RNLinking.openSettings() ; clé de throttle 'pushNudgeAt' présente ; (e) /api/register-push présent côté frontend (push.ts:19) et backend (server.py:631) ; (f) send_push est appelé dans try/except via notifier_client/admins/livreur (server.py:698,713,731) ; (g) plugin 'expo-notifications' et android.googleServicesFile='./google-services.json' dans app.json ; (h) aucun appel à integrations.emergentagent.com depuis /app/frontend (grep vide). FRONTEND : login admin (0810000000/admin123) -> /dashboard, la carte testID 'carte-ventes-jour' est bien en haut de l'onglet Commandes avec 'Ventes du jour', date 2026-09-14, mention 'commandes livrées', 'ventes-chiffre'=$39.50, équivalent ≈ 110 600 FC, 'ventes-nb-commandes'=9, panier moyen $4.39, section 'Les plus commandés' avec 'top-produit-0' (Eau minérale 50cl ×17 $17.00). Après le test livrée +$3.50 (2 tests), la carte s'est mise à jour correctement (le total livrées passe de 6 à 9). Rendu OK en 390x844 (aucun débordement, ne cache pas la barre d'onglets) ET en 1280x800 (cartes bien étalées). WEB : 0 erreur console fatale (dont 0 liée à expo-notifications) sur /bienvenue, /connexion, /accueil (client), /dashboard (admin) — les gardes Platform.OS !== 'web' court-circuitent bien les API natives. Régression : /accueil client charge normalement (Recommander + Notre carte visibles). Taux de change laissé à 2800 (config non modifiée pendant les tests).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration4.py",
+    "/app/test_reports/pytest/pytest_iter4.xml"
+  ],
+  "action_items": [
+    "(Info) Le fichier google-services.json n'est pas encore fourni par l'utilisateur (attendu). L'app.json y fait déjà référence ; le build EAS échouera tant qu'il n'est pas placé à /app/frontend/google-services.json — laisser tel quel jusqu'à ce que l'utilisateur le fournisse.",
+    "(Info) EMERGENT_PUSH_KEY='placeholder' en preview — les push échouent volontairement mais ne bloquent aucune opération métier. Le vrai code sera injecté au déploiement."
+  ],
+  "critical_code_review_comments": [
+    "server.py:631 /register-push et server.py:642 send_push relayent correctement vers _push_client (Emergent) avec gestion 401 -> 500 (clé manquante) et 5xx -> 502.",
+    "server.py:683-732 notifier_client/admins/livreur enveloppent send_push dans try/except avec logger.warning — parfaite isolation, aucune régression métier possible sur échec push.",
+    "server.py:989 GET /admin/ventes : fuseau Kinshasa UTC+1 correctement calculé via datetime.fromisoformat + astimezone(utc). Filtre {statut:'livree', createdAt:[debut,fin]} — conforme.",
+    "server.py:1009 topProduits trié par (quantite, montant) DESC et tronqué à 5 — conforme.",
+    "_layout.tsx:26-45 setNotificationHandler et setNotificationChannelAsync appelés hors composant (portée module) et gardés par Platform.OS !== 'web' / === 'android' — conforme au playbook.",
+    "_layout.tsx:58-66 addNotificationResponseReceivedListener + getLastNotificationResponseAsync couvrent app ouverte + démarrage à froid.",
+    "push.ts:18 utilise getDevicePushTokenAsync (correct pour builds natifs avec google-services.json), pas getExpoPushTokenAsync.",
+    "GestionPush.tsx:51 RNLinking.openSettings() pour ouvrir les réglages système ; clé de throttle 'pushNudgeAt' présente (ligne 13).",
+    "app.json:24 android.googleServicesFile='./google-services.json' + plugin expo-notifications présent — conforme.",
+    "Frontend: aucune référence directe à integrations.emergentagent.com (grep vide) — les push passent uniquement par /api/register-push côté backend, bonne architecture."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration4.py (nouveau, 14 tests)"
+  ],
+  "success_rate": {"backend": "100% (49/49 : 14 iter4 + 22 pinkberry + 13 iter3)", "frontend": "100% des flux critiques itération 4 vérifiés"},
+  "seed_data_creation": "Aucun seed persistant. Les tests créent des commandes puis les livrent ou les annulent ; le compteur admin est passé de 6 à 9 livraisons du jour durant le run. Le taux de change n'a pas été modifié (2800 conservé).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "testIDs itération 4 : 'carte-ventes-jour', 'ventes-chiffre', 'ventes-nb-commandes', 'top-produit-{0..4}'. Pour tester les push côté preview, garder à l'esprit que EMERGENT_PUSH_KEY='placeholder' -> POST /api/register-push retourne 500 'EMERGENT_PUSH_KEY manquante ou invalide' et les notifier_* loggent WARNING dans backend.err.log sans casser l'API. Le google-services.json n'est pas requis pour tester ici — il sera fourni par l'utilisateur avant EAS build. Pour tester Ventes du jour côté API, adresse valide requise : {label, commune (Gombe|Limete|Ngaliema|Lingwala), avenue, numero, repere, telephone, lat?, lng?} (voir AdresseIn dans server.py:299). Fuseau UTC+1 : à minuit heure Kinshasa la carte se remet à zéro.",
+  "rca_of_issue": "N/A — aucune anomalie. Le premier run pytest a échoué sur 4 tests car j'utilisais un mauvais schéma d'adresse (commune/quartier/coords) ; correction avec le vrai schéma AdresseIn (label, commune, avenue, numero, repere, telephone) puis 14/14 verts."
+}
