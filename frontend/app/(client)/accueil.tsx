@@ -1,6 +1,5 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQuery } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
@@ -20,6 +19,7 @@ import { useAuth } from "@/src/auth";
 import { Chips } from "@/src/components/Chips";
 import { FeuilleProduit, Produit } from "@/src/components/FeuilleProduit";
 import { Logo } from "@/src/components/Logo";
+import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
@@ -81,11 +81,11 @@ export default function Accueil() {
         <View style={styles.enteteHaut}>
           <Logo taille={24} />
           <Pressable testID="btn-profil" onPress={() => router.push("/compte")} style={styles.avatar}>
-            <Feather name="user" size={20} color={colors.brandPrimary} />
+            <Icone name="user" size={20} color={colors.brandPrimary} />
           </Pressable>
         </View>
         <View style={styles.rechercheWrap}>
-          <Feather name="search" size={18} color={colors.muted} />
+          <Icone name="search" size={18} color={colors.muted} />
           <TextInput
             testID="input-recherche"
             value={recherche}
@@ -134,7 +134,7 @@ export default function Accueil() {
                         onPress={() => recommander(c)}
                         style={styles.recoBtn}
                       >
-                        <Feather name="refresh-cw" size={13} color={colors.onBrandPrimary} />
+                        <Icone name="refresh-cw" size={13} color={colors.onBrandPrimary} />
                         <Text style={styles.recoBtnTexte}>Recommander</Text>
                       </Pressable>
                     </View>
@@ -148,7 +148,7 @@ export default function Accueil() {
           }
           ListEmptyComponent={
             <View style={styles.centre}>
-              <Text style={styles.videEmoji}>🍧</Text>
+              <Icone name="ice-cream" size={42} color={colors.brandTertiary} />
               <Text style={styles.vide}>Aucun produit dans cette catégorie</Text>
             </View>
           }
@@ -159,13 +159,7 @@ export default function Accueil() {
               onPress={() => setProduitOuvert(item)}
               style={({ pressed }) => [styles.carte, pressed && styles.cartePressee, !item.disponible && styles.carteIndispo]}
             >
-              {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.vignette} contentFit="cover" transition={200} />
-              ) : (
-                <View style={[styles.vignette, styles.vignetteVide]}>
-                  <Text style={styles.vignetteEmoji}>{item.emoji ?? "🍦"}</Text>
-                </View>
-              )}
+              <PhotoProduit image={item.image} taille={72} />
               <View style={styles.carteTexte}>
                 <Text style={styles.produitNom} numberOfLines={1}>
                   {item.nom}
@@ -177,7 +171,7 @@ export default function Accueil() {
                 {!item.disponible ? <Text style={styles.rupture}>En rupture</Text> : null}
               </View>
               <View style={styles.plus}>
-                <Feather name="plus" size={20} color={colors.onBrandPrimary} />
+                <Icone name="plus" size={20} color={colors.onBrandPrimary} />
               </View>
             </Pressable>
           )}

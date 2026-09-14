@@ -1,17 +1,33 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { apiFetch } from "@/src/api";
+import { apiFetch, apiUpload } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
+import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usd } from "@/src/money";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
+
+const TAILLE_MAX = 5 * 1024 * 1024;
+const FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const CATEGORIES = ["Pots de crème", "Smoothies", "Toppings", "Boissons"];
 const TAILLES = [
@@ -41,7 +57,9 @@ export default function Catalogue() {
   const [nom, setNom] = useState("");
   const [categorie, setCategorie] = useState(CATEGORIES[0]);
   const [prixTexte, setPrixTexte] = useState("");
-  const [emoji, setEmoji] = useState("🍦");
+  const [image, setImage] = useState<string | null>(null);
+  const [apercuLocal, setApercuLocal] = useState<string | null>(null);
+  const [envoiPhoto, setEnvoiPhoto] = useState(false);
   const [description, setDescription] = useState("");
   const [disponible, setDisponible] = useState(true);
   const [avecTailles, setAvecTailles] = useState(true);
@@ -52,11 +70,76 @@ export default function Catalogue() {
     setNom(p?.nom ?? "");
     setCategorie(p?.categorie ?? CATEGORIES[0]);
     setPrixTexte(p ? String(p.prix) : "");
-    setEmoji(p?.emoji ?? "🍦");
+    setImage(p?.image ?? null);
+    setApercuLocal(null);
     setDescription(p?.description ?? "");
     setDisponible(p?.disponible ?? true);
     setAvecTailles((p?.tailles?.length ?? 0) > 0 || !p);
     setAvecGarnitures((p?.garnitures?.length ?? 0) > 0 || !p);
+  };
+
+  const choisirPhoto = async () => {
+    const actuelle = await ImagePicker.getMediaLibraryPermissionsAsync();
+    let statut = actuelle.status;
+    if (statut !== "granted") {
+      if (actuelle.canAskAgain) {
+        const demande = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        statut = demande.status;
+        if (demande.status !== "granted" && !demande.canAskAgain) {
+          toast.show("Accès aux photos bloqué, ouvrez les réglages", "erreur");
+          if (Platform.OS !== "web") Linking.openSettings();
+          return;
+        }
+      } else {
+        toast.show("Accès aux photos bloqué, ouvrez les réglages", "erreur");
+        if (Platform.OS !== "web") Linking.openSettings();
+        return;
+      }
+    }
+    if (statut !== "granted") {
+      toast.show("Autorisation refusée", "erreur");
+      return;
+    }
+
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.9,
+      allowsMultipleSelection: false,
+    });
+    if (res.canceled || !res.assets?.length) return;
+
+    const asset = res.assets[0];
+    const type = (asset.mimeType ?? "image/jpeg").toLowerCase();
+    if (!FORMATS.includes(type)) {
+      toast.show("Formats acceptés : JPG, PNG ou WebP", "erreur");
+      return;
+    }
+    if ((asset.fileSize ?? 0) > TAILLE_MAX) {
+      toast.show("Image trop lourde (5 Mo maximum)", "erreur");
+      return;
+    }
+
+    setApercuLocal(asset.uri);
+    setEnvoiPhoto(true);
+    try {
+      const nomFichier = asset.fileName ?? `photo.${type.split("/")[1] ?? "jpg"}`;
+      const form = new FormData();
+      if (Platform.OS === "web") {
+        const blob = await (await fetch(asset.uri)).blob();
+        form.append("file", blob, nomFichier);
+      } else {
+        form.append("file", { uri: asset.uri, name: nomFichier, type } as any);
+      }
+      const r = await apiUpload<{ url: string }>("/admin/photos", form);
+      setImage(r.url);
+      setApercuLocal(null);
+      toast.show("Photo envoyée", "succes");
+    } catch (e: any) {
+      setApercuLocal(null);
+      toast.show(e.message, "erreur");
+    } finally {
+      setEnvoiPhoto(false);
+    }
   };
 
   const enregistrer = async () => {
@@ -69,8 +152,8 @@ export default function Catalogue() {
       nom,
       categorie,
       prix,
-      emoji,
-      image: edition?.image ?? null,
+      emoji: null,
+      image,
       description,
       disponible,
       tailles: avecTailles ? TAILLES : [],
@@ -118,7 +201,7 @@ export default function Catalogue() {
       <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
         <Text style={styles.titre}>Catalogue</Text>
         <Pressable testID="btn-ajouter-produit" onPress={() => ouvrir(null)} style={styles.ajouter}>
-          <Feather name="plus" size={20} color={colors.onBrandPrimary} />
+          <Icone name="plus" size={20} color={colors.onBrandPrimary} />
         </Pressable>
       </View>
 
@@ -130,7 +213,7 @@ export default function Catalogue() {
         }}
         style={({ pressed }) => [styles.banniere, pressed && { backgroundColor: "#F7CFE1" }]}
       >
-        <Feather name="repeat" size={18} color={colors.brandPrimary} />
+        <Icone name="repeat" size={18} color={colors.brandPrimary} />
         <View style={styles.banniereTexte}>
           <Text style={styles.banniereTitre}>Taux de change USD → FC</Text>
           <Text testID="taux-actuel" style={styles.banniereValeur}>
@@ -154,7 +237,7 @@ export default function Catalogue() {
           onRefresh={() => q.refetch()}
           renderItem={({ item }) => (
             <View testID={`admin-produit-${item.nom}`} style={styles.carte}>
-              <Text style={styles.emoji}>{item.emoji ?? "🍦"}</Text>
+              <PhotoProduit image={item.image} taille={56} rayon={radius.md} />
               <View style={styles.texte}>
                 <Text style={styles.nom}>{item.nom}</Text>
                 <Text style={styles.cat}>{item.categorie}</Text>
@@ -162,10 +245,10 @@ export default function Catalogue() {
                 {!item.disponible ? <Text style={styles.rupture}>En rupture</Text> : null}
               </View>
               <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
-                <Feather name="edit-2" size={17} color={colors.brandPrimary} />
+                <Icone name="edit-2" size={17} color={colors.brandPrimary} />
               </Pressable>
               <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
-                <Feather name="trash-2" size={17} color={colors.error} />
+                <Icone name="trash-2" size={17} color={colors.error} />
               </Pressable>
             </View>
           )}
@@ -178,9 +261,40 @@ export default function Catalogue() {
           <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
             <KeyboardAwareScrollView bottomOffset={60} contentContainerStyle={styles.feuilleContenu}>
               <Text style={styles.feuilleTitre}>{edition?.nouveau ? "Nouveau produit" : "Modifier le produit"}</Text>
+
+              <Text style={styles.label}>Photo du produit</Text>
+              <View style={styles.photoBloc}>
+                {apercuLocal ? (
+                  <PhotoProduit image={apercuLocal} taille={88} rayon={radius.lg} testID="apercu-photo-locale" />
+                ) : (
+                  <PhotoProduit image={image} taille={88} rayon={radius.lg} testID="apercu-photo" />
+                )}
+                <View style={styles.photoActions}>
+                  <Bouton
+                    testID="btn-choisir-photo"
+                    label={image || apercuLocal ? "Remplacer la photo" : "Choisir une photo"}
+                    icone="image-plus"
+                    variant="secondaire"
+                    petit
+                    loading={envoiPhoto}
+                    onPress={choisirPhoto}
+                  />
+                  {image ? (
+                    <Bouton
+                      testID="btn-retirer-photo"
+                      label="Retirer"
+                      icone="trash-2"
+                      variant="danger"
+                      petit
+                      onPress={() => setImage(null)}
+                    />
+                  ) : null}
+                  <Text style={styles.photoAide}>JPG, PNG ou WebP · 5 Mo maximum</Text>
+                </View>
+              </View>
+
               <Champ label="Nom" testID="input-produit-nom" value={nom} onChangeText={setNom} />
               <Champ label="Prix (USD)" testID="input-produit-prix" value={prixTexte} onChangeText={setPrixTexte} keyboardType="decimal-pad" />
-              <Champ label="Emoji" testID="input-produit-emoji" value={emoji} onChangeText={setEmoji} />
               <Champ label="Description" testID="input-produit-description" value={description} onChangeText={setDescription} multiline />
 
               <Text style={styles.label}>Catégorie</Text>
@@ -296,6 +410,9 @@ const styles = StyleSheet.create({
     ...softShadow,
   },
   emoji: { fontSize: 30 },
+  photoBloc: { flexDirection: "row", gap: spacing.lg, alignItems: "center" },
+  photoActions: { flex: 1, gap: spacing.sm },
+  photoAide: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
   texte: { flex: 1 },
   nom: { fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   cat: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },

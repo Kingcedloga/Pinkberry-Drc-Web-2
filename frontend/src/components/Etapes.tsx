@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -33,7 +33,7 @@ export function Etapes({ statut }: { statut: string }) {
                 testID={`etape-${e.cle}`}
                 style={[styles.rond, { backgroundColor: fait ? colors.success : colors.surfaceTertiary }]}
               >
-                <Feather
+                <Icone
                   name={e.icone as any}
                   size={15}
                   color={fait ? colors.onSuccess : colors.brandPrimary}

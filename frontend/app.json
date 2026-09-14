@@ -11,7 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.emergent.commanderose.bbj4fa",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Localiser votre adresse et suivre la livraison"
+        "NSLocationWhenInUseUsageDescription": "Localiser votre adresse et suivre la livraison",
+        "NSPhotoLibraryUsageDescription": "Ajouter les photos de vos produits au catalogue"
       }
     },
     "android": {
@@ -40,6 +41,12 @@
       ],
       "expo-font",
       "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ajouter les photos de vos produits au catalogue"
+        }
+      ],
       [
         "expo-location",
         {

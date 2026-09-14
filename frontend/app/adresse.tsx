@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
@@ -79,7 +79,7 @@ export default function FormulaireAdresse() {
     <View testID="ecran-adresse" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
         <Pressable testID="btn-retour-adresse" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
-          <Feather name="arrow-left" size={22} color={colors.onSurface} />
+          <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.titre}>Adresse de livraison</Text>
         <View style={styles.iconeBtn} />
@@ -116,14 +116,14 @@ export default function FormulaireAdresse() {
             <Text style={[styles.selectTexte, !commune && { color: colors.muted }]}>
               {commune || "Choisir votre commune"}
             </Text>
-            <Feather name="chevron-down" size={20} color={colors.muted} />
+            <Icone name="chevron-down" size={20} color={colors.muted} />
           </Pressable>
         </View>
 
         {commune ? (
           couverte ? (
             <View testID="zone-couverte" style={styles.alerteVerte}>
-              <Feather name="check-circle" size={18} color={colors.success} />
+              <Icone name="check-circle" size={18} color={colors.success} />
               <Text style={styles.alerteVerteTexte}>Super, on livre à {commune} !</Text>
             </View>
           ) : (

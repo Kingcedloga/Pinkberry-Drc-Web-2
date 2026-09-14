@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useRouter } from "expo-router";
 import React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -32,15 +32,15 @@ export default function Compte() {
 
         <View style={styles.carteInfo}>
           <View style={styles.ligneInfo}>
-            <Feather name="dollar-sign" size={18} color={colors.brandPrimary} />
+            <Icone name="dollar-sign" size={18} color={colors.brandPrimary} />
             <Text style={styles.infoTexte}>Paiement en espèces à la livraison</Text>
           </View>
           <View style={styles.ligneInfo}>
-            <Feather name="map-pin" size={18} color={colors.brandPrimary} />
+            <Icone name="map-pin" size={18} color={colors.brandPrimary} />
             <Text style={styles.infoTexte}>Zones : Gombe, Limete, Ngaliema, Lingwala</Text>
           </View>
           <View style={styles.ligneInfo}>
-            <Feather name="clock" size={18} color={colors.brandPrimary} />
+            <Icone name="clock" size={18} color={colors.brandPrimary} />
             <Text style={styles.infoTexte}>Livraison en 25 à 45 minutes</Text>
           </View>
         </View>

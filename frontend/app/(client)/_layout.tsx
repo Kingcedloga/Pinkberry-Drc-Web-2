@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { Tabs } from "expo-router";
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import React from "react";
@@ -46,18 +46,18 @@ export default function ClientLayout() {
     >
       <Tabs.Screen
         name="accueil"
-        options={{ title: "Accueil", tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} /> }}
+        options={{ title: "Accueil", tabBarIcon: ({ color }) => <Icone name="home" size={22} color={color} /> }}
       />
       <Tabs.Screen
         name="commandes"
         options={{
           title: "Commandes",
-          tabBarIcon: ({ color }) => <Feather name="shopping-bag" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Icone name="shopping-bag" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="compte"
-        options={{ title: "Compte", tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} /> }}
+        options={{ title: "Compte", tabBarIcon: ({ color }) => <Icone name="user" size={22} color={color} /> }}
       />
     </Tabs>
   );

@@ -1,14 +1,21 @@
 import { Redirect } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import { useAuth } from "@/src/auth";
+import { CLE_TEL_REPORTE } from "@/src/prefs";
 import { colors } from "@/src/theme";
+import { storage } from "@/src/utils/storage";
 
 export default function Index() {
   const { user, loading } = useAuth();
+  const [reporte, setReporte] = useState<boolean | null>(null);
 
-  if (loading) {
+  useEffect(() => {
+    (async () => setReporte(!!(await storage.getItem<string>(CLE_TEL_REPORTE, ""))))();
+  }, []);
+
+  if (loading || reporte === null) {
     return (
       <View
         testID="ecran-chargement"
@@ -22,5 +29,6 @@ export default function Index() {
   if (!user) return <Redirect href="/bienvenue" />;
   if (user.role === "admin") return <Redirect href="/dashboard" />;
   if (user.role === "livreur") return <Redirect href="/courses" />;
+  if (!user.telephone && !reporte) return <Redirect href="/telephone" />;
   return <Redirect href="/accueil" />;
 }

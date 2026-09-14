@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -24,10 +24,11 @@ export function Etoiles({
           hitSlop={8}
           style={styles.cible}
         >
-          <Feather
+          <Icone
             name="star"
             size={taille}
             color={n <= valeur ? colors.brandPrimary : colors.border}
+            fill={n <= valeur ? colors.brandPrimary : "none"}
           />
         </Pressable>
       ))}

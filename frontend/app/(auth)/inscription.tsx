@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
+import { BoutonGoogle } from "@/src/components/BoutonGoogle";
 import { Champ } from "@/src/components/Champ";
 import { Logo } from "@/src/components/Logo";
 import { colors, fonts, spacing } from "@/src/theme";
@@ -15,7 +16,7 @@ import { useToast } from "@/src/toast";
 export default function Inscription() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { inscription } = useAuth();
+  const { inscription, connexionGoogle } = useAuth();
   const toast = useToast();
 
   const [nom, setNom] = useState("");
@@ -51,7 +52,7 @@ export default function Inscription() {
         ]}
       >
         <Pressable testID="btn-retour" onPress={() => router.back()} style={styles.retour} hitSlop={10}>
-          <Feather name="arrow-left" size={22} color={colors.onSurface} />
+          <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
 
         <Logo taille={26} />
@@ -89,6 +90,25 @@ export default function Inscription() {
 
         <Bouton testID="btn-valider-inscription" label="Créer mon compte" loading={loading} onPress={valider} />
 
+        <View style={styles.separateurRow}>
+          <View style={styles.trait} />
+          <Text style={styles.ou}>ou</Text>
+          <View style={styles.trait} />
+        </View>
+
+        <BoutonGoogle
+          testID="btn-google-inscription"
+          label="S'inscrire avec Google"
+          onPress={async () => {
+            try {
+              await connexionGoogle();
+              router.replace("/");
+            } catch (e: any) {
+              toast.show(e.message ?? "Connexion Google impossible", "erreur");
+            }
+          }}
+        />
+
         <Pressable testID="lien-connexion" onPress={() => router.replace("/connexion")} style={styles.lien}>
           <Text style={styles.lienTexte}>J&apos;ai déjà un compte</Text>
         </Pressable>
@@ -104,6 +124,9 @@ const styles = StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 14, color: colors.muted, marginTop: -spacing.md },
   form: { gap: spacing.md },
+  separateurRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  trait: { flex: 1, height: 1, backgroundColor: colors.divider },
+  ou: { fontFamily: fonts.text, fontSize: 12, color: colors.muted, fontWeight: "700" },
   lien: { alignItems: "center", minHeight: 44, justifyContent: "center" },
   lienTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "700", color: colors.brandPrimary },
 });

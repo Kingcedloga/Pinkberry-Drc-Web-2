@@ -16,11 +16,14 @@ import bcrypt
 import httpx
 import jwt
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.responses import Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
+from PIL import Image
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
+import io
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -39,6 +42,19 @@ EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Pinkberry Drc")
 
 TAUX_FC = float(os.environ.get("TAUX_FC", "2800"))
 FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "2.5"))
+
+# --- Emergent Object Storage (photos de produits) ---
+STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
+STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+APP_NAME = "pinkberry-drc"
+_storage_key: Optional[str] = None
+
+# --- Emergent Google Auth ---
+EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+
+TAILLE_MAX_IMAGE = 5 * 1024 * 1024
+TYPES_IMAGE = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -218,7 +234,7 @@ def public_user(u: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": u["id"],
         "nom": u["nom"],
-        "telephone": u["telephone"],
+        "telephone": u.get("telephone"),
         "email": u.get("email"),
         "role": u.get("role", "client"),
         "verifie": u.get("verifie", False),
@@ -333,6 +349,14 @@ class AssignIn(BaseModel):
     livreurId: str
 
 
+class SessionIn(BaseModel):
+    session_id: str
+
+
+class TelephoneIn(BaseModel):
+    telephone: str
+
+
 class PaiementIn(BaseModel):
     note: Optional[int] = None
 
@@ -430,6 +454,166 @@ async def connexion(body: ConnexionIn):
 @api_router.get("/auth/moi")
 async def moi(user=Depends(get_current_user)):
     return public_user(user)
+
+
+# ------------------------------------------------------- Google Auth (Emergent)
+@api_router.post("/auth/session")
+async def auth_session(body: SessionIn):
+    try:
+        async with httpx.AsyncClient(timeout=30) as http:
+            resp = await http.get(EMERGENT_AUTH_URL, headers={"X-Session-ID": body.session_id})
+    except Exception as e:
+        logger.error(f"Google auth error: {e}")
+        raise HTTPException(status_code=401, detail="Connexion Google impossible")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="Session Google invalide ou deja utilisee")
+
+    data = resp.json()
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=401, detail="Email Google introuvable")
+    nom = (data.get("name") or email.split("@")[0]).strip()
+    session_token = data.get("session_token")
+
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user:
+        user = {
+            "id": str(uuid.uuid4()),
+            "nom": nom,
+            "email": email,
+            "motDePasseHash": "",
+            "role": "client",
+            "verifie": True,
+            "google": True,
+            "photo": data.get("picture"),
+            "createdAt": iso(now_utc()),
+        }
+        await db.users.insert_one(dict(user))
+    else:
+        await db.users.update_one({"id": user["id"]}, {"$set": {"verifie": True, "google": True}})
+        user["verifie"] = True
+
+    if session_token:
+        await db.user_sessions.replace_one(
+            {"session_token": session_token},
+            {
+                "session_token": session_token,
+                "user_id": user["id"],
+                "created_at": now_utc(),
+                "expires_at": now_utc() + timedelta(days=7),
+            },
+            upsert=True,
+        )
+
+    return {"token": make_token(user["id"]), "user": public_user(user)}
+
+
+@api_router.put("/auth/telephone")
+async def definir_telephone(body: TelephoneIn, user=Depends(get_current_user)):
+    tel = norm_tel(body.telephone)
+    if len(tel) < 9:
+        raise HTTPException(status_code=400, detail="Numero de telephone invalide")
+    autre = await db.users.find_one({"telephone": tel, "id": {"$ne": user["id"]}})
+    if autre:
+        raise HTTPException(status_code=400, detail="Ce numero est deja utilise par un autre compte")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"telephone": tel}})
+    maj = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return public_user(maj)
+
+
+# -------------------------------------------------- Photos produits (objstore)
+async def storage_key() -> str:
+    global _storage_key
+    if _storage_key:
+        return _storage_key
+    async with httpx.AsyncClient(timeout=30) as http:
+        resp = await http.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY})
+    if resp.status_code != 200:
+        raise HTTPException(status_code=503, detail="Stockage d'images indisponible")
+    _storage_key = resp.json()["storage_key"]
+    return _storage_key
+
+
+async def put_object(path: str, data: bytes, content_type: str) -> dict:
+    global _storage_key
+    for essai in range(2):
+        cle = await storage_key()
+        async with httpx.AsyncClient(timeout=120) as http:
+            resp = await http.put(
+                f"{STORAGE_URL}/objects/{path}",
+                headers={"X-Storage-Key": cle, "Content-Type": content_type},
+                content=data,
+            )
+        if resp.status_code == 503 and essai == 0:
+            _storage_key = None
+            continue
+        if resp.status_code == 402:
+            raise HTTPException(status_code=402, detail="Quota de stockage epuise")
+        if resp.status_code != 200:
+            raise HTTPException(status_code=503, detail="Echec de l'envoi de l'image")
+        return resp.json()
+    raise HTTPException(status_code=503, detail="Echec de l'envoi de l'image")
+
+
+async def get_object(path: str) -> tuple[bytes, str]:
+    global _storage_key
+    for essai in range(2):
+        cle = await storage_key()
+        async with httpx.AsyncClient(timeout=60) as http:
+            resp = await http.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": cle})
+        if resp.status_code == 503 and essai == 0:
+            _storage_key = None
+            continue
+        if resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="Image introuvable")
+        return resp.content, resp.headers.get("Content-Type", "image/jpeg")
+    raise HTTPException(status_code=404, detail="Image introuvable")
+
+
+def compresser(brut: bytes) -> bytes:
+    with Image.open(io.BytesIO(brut)) as img:
+        img = img.convert("RGB")
+        img.thumbnail((900, 900))
+        sortie = io.BytesIO()
+        img.save(sortie, format="JPEG", quality=82, optimize=True)
+        return sortie.getvalue()
+
+
+@api_router.post("/admin/photos")
+async def envoyer_photo(file: UploadFile = File(...), admin=Depends(require_admin)):
+    if (file.content_type or "").lower() not in TYPES_IMAGE:
+        raise HTTPException(status_code=400, detail="Formats acceptes : JPG, PNG ou WebP")
+    brut = await file.read()
+    if len(brut) > TAILLE_MAX_IMAGE:
+        raise HTTPException(status_code=400, detail="Image trop lourde (5 Mo maximum)")
+    try:
+        compressee = compresser(brut)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Fichier image illisible")
+
+    fichier_id = str(uuid.uuid4())
+    chemin = f"{APP_NAME}/uploads/{admin['id']}/{fichier_id}.jpg"
+    await put_object(chemin, compressee, "image/jpeg")
+    await db.fichiers.insert_one(
+        {
+            "id": fichier_id,
+            "path": chemin,
+            "contentType": "image/jpeg",
+            "ownerId": admin["id"],
+            "taille": len(compressee),
+            "createdAt": iso(now_utc()),
+        }
+    )
+    return {"id": fichier_id, "url": f"/api/fichiers/{fichier_id}"}
+
+
+@api_router.get("/fichiers/{fichier_id}")
+async def lire_fichier(fichier_id: str):
+    doc = await db.fichiers.find_one({"id": fichier_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Image introuvable")
+    contenu, ctype = await get_object(doc["path"])
+    return Response(content=contenu, media_type=ctype, headers={"Cache-Control": "public, max-age=604800"})
 
 
 # --------------------------------------------------------------------- catalogue
@@ -796,7 +980,18 @@ PRODUITS_DEMO = [
 
 
 async def seed():
-    await db.users.create_index("telephone", unique=True)
+    # Index unique mais partiel : les comptes Google n'ont pas encore de telephone.
+    try:
+        noms = await db.users.index_information()
+        if "telephone_1" in noms and not noms["telephone_1"].get("partialFilterExpression"):
+            await db.users.drop_index("telephone_1")
+    except Exception as e:
+        logger.warning(f"index telephone: {e}")
+    await db.users.create_index(
+        "telephone",
+        unique=True,
+        partialFilterExpression={"telephone": {"$type": "string"}},
+    )
     await db.parametres.update_one(
         {"cle": "global"},
         {"$setOnInsert": {"cle": "global", "tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON}},

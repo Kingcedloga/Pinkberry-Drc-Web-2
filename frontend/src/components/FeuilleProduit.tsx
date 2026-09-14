@@ -1,10 +1,10 @@
-import Feather from "@react-native-vector-icons/feather";
-import { Image } from "expo-image";
+import { Icone } from "@/src/components/Icone";
 import React, { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
+import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { ArticlePanier, Garniture } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
@@ -79,13 +79,7 @@ export function FeuilleProduit({
           <View style={styles.poignee} />
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.entete}>
-              {produit.image ? (
-                <Image source={{ uri: produit.image }} style={styles.image} contentFit="cover" transition={200} />
-              ) : (
-                <View style={[styles.image, styles.imageVide]}>
-                  <Text style={styles.emoji}>{produit.emoji ?? "🍦"}</Text>
-                </View>
-              )}
+              <PhotoProduit image={produit.image} taille={96} rayon={radius.lg} />
               <View style={styles.enteteTexte}>
                 <Text testID="feuille-nom-produit" style={styles.nom}>
                   {produit.nom}
@@ -134,7 +128,7 @@ export function FeuilleProduit({
                       style={[styles.option, coche && styles.optionActive]}
                     >
                       <View style={[styles.checkbox, coche && styles.checkboxActif]}>
-                        {coche ? <Feather name="check" size={14} color={colors.onBrandPrimary} /> : null}
+                        {coche ? <Icone name="check" size={14} color={colors.onBrandPrimary} /> : null}
                       </View>
                       <Text style={styles.optionNom}>{g.nom}</Text>
                       <Text style={styles.optionPrix}>+ {usd(g.prix)}</Text>
@@ -152,13 +146,13 @@ export function FeuilleProduit({
                   onPress={() => setQuantite((q) => Math.max(1, q - 1))}
                   style={styles.qBtn}
                 >
-                  <Feather name="minus" size={18} color={colors.brandPrimary} />
+                  <Icone name="minus" size={18} color={colors.brandPrimary} />
                 </Pressable>
                 <Text testID="valeur-quantite" style={styles.qValeur}>
                   {quantite}
                 </Text>
                 <Pressable testID="btn-quantite-plus" onPress={() => setQuantite((q) => q + 1)} style={styles.qBtn}>
-                  <Feather name="plus" size={18} color={colors.brandPrimary} />
+                  <Icone name="plus" size={18} color={colors.brandPrimary} />
                 </Pressable>
               </View>
             </View>

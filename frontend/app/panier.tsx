@@ -1,11 +1,11 @@
-import Feather from "@react-native-vector-icons/feather";
-import { Image } from "expo-image";
+import { Icone } from "@/src/components/Icone";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
+import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
@@ -20,7 +20,7 @@ export default function Panier() {
     <View testID="ecran-panier" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
         <Pressable testID="btn-retour-panier" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
-          <Feather name="arrow-left" size={22} color={colors.onSurface} />
+          <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.titre}>Mon panier</Text>
         <View style={styles.iconeBtn} />
@@ -28,7 +28,7 @@ export default function Panier() {
 
       {articles.length === 0 ? (
         <View style={styles.centre}>
-          <Text style={styles.videEmoji}>🛒</Text>
+          <Icone name="shopping-cart" size={46} color={colors.brandTertiary} />
           <Text style={styles.vide}>Votre panier est vide</Text>
           <Bouton
             testID="btn-retour-catalogue"
@@ -43,11 +43,9 @@ export default function Panier() {
             {articles.map((a) => (
               <View key={a.cle} testID={`panier-article-${a.produitId}`} style={styles.carte}>
                 {a.image ? (
-                  <Image source={{ uri: a.image }} style={styles.vignette} contentFit="cover" />
+                  <PhotoProduit image={a.image} taille={64} rayon={radius.md} />
                 ) : (
-                  <View style={[styles.vignette, styles.vignetteVide]}>
-                    <Text style={styles.vignetteEmoji}>{a.emoji ?? "🍦"}</Text>
-                  </View>
+                  <PhotoProduit taille={64} rayon={radius.md} />
                 )}
                 <View style={styles.texte}>
                   <Text style={styles.nom} numberOfLines={1}>
@@ -62,7 +60,7 @@ export default function Panier() {
                 </View>
                 <View style={styles.actions}>
                   <Pressable testID={`btn-retirer-${a.produitId}`} onPress={() => retirer(a.cle)} hitSlop={6} style={styles.suppr}>
-                    <Feather name="trash-2" size={16} color={colors.error} />
+                    <Icone name="trash-2" size={16} color={colors.error} />
                   </Pressable>
                   <View style={styles.qRow}>
                     <Pressable
@@ -70,7 +68,7 @@ export default function Panier() {
                       onPress={() => changerQuantite(a.cle, -1)}
                       style={styles.qBtn}
                     >
-                      <Feather name="minus" size={15} color={colors.brandPrimary} />
+                      <Icone name="minus" size={15} color={colors.brandPrimary} />
                     </Pressable>
                     <Text style={styles.qValeur}>{a.quantite}</Text>
                     <Pressable
@@ -78,7 +76,7 @@ export default function Panier() {
                       onPress={() => changerQuantite(a.cle, 1)}
                       style={styles.qBtn}
                     >
-                      <Feather name="plus" size={15} color={colors.brandPrimary} />
+                      <Icone name="plus" size={15} color={colors.brandPrimary} />
                     </Pressable>
                   </View>
                 </View>

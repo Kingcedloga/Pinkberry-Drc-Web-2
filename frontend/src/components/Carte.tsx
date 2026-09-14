@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import React, { useEffect, useRef } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import WebView from "react-native-webview";
@@ -13,7 +13,7 @@ function html(clientP: Point, livreurP: Point | null) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>html,body,#map{margin:0;padding:0;height:100%;width:100%;background:${colors.surfaceSecondary}}
-.pin{display:flex;align-items:center;justify-content:center;border-radius:50%;width:34px;height:34px;font-size:18px;box-shadow:0 4px 12px rgba(230,21,111,.35)}
+.pin{position:relative;border-radius:50% 50% 50% 0;transform:rotate(-45deg);width:26px;height:26px;border:3px solid #fff;box-shadow:0 4px 12px rgba(42,23,33,.35)}
 .pin-c{background:${colors.brandPrimary}}.pin-d{background:${colors.success}}</style>
 </head><body><div id="map"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -21,8 +21,8 @@ function html(clientP: Point, livreurP: Point | null) {
 var client=[${clientP.lat},${clientP.lng}];var driver=${driver};
 var map=L.map('map',{zoomControl:false,attributionControl:false}).setView(client,14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-var iconC=L.divIcon({html:'<div class="pin pin-c">\\uD83C\\uDFE0</div>',className:'',iconSize:[34,34],iconAnchor:[17,17]});
-var iconD=L.divIcon({html:'<div class="pin pin-d">\\uD83D\\uDEF5</div>',className:'',iconSize:[34,34],iconAnchor:[17,17]});
+var iconC=L.divIcon({html:'<div class="pin pin-c"></div>',className:'',iconSize:[26,26],iconAnchor:[13,26]});
+var iconD=L.divIcon({html:'<div class="pin pin-d"></div>',className:'',iconSize:[26,26],iconAnchor:[13,26]});
 L.marker(client,{icon:iconC}).addTo(map);
 var dm=null,line=null;
 function majLivreur(lat,lng){
@@ -60,7 +60,7 @@ export function Carte({
   if (Platform.OS === "web") {
     return (
       <View testID={testID} style={[styles.fallback, { height: hauteur }]}>
-        <Feather name="map" size={34} color={colors.brandPrimary} />
+        <Icone name="map" size={34} color={colors.brandPrimary} />
         <Text style={styles.fallbackTitre}>Carte en direct</Text>
         <Text style={styles.fallbackTexte}>
           Client : {clientP.lat.toFixed(4)}, {clientP.lng.toFixed(4)}

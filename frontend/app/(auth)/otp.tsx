@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -67,7 +67,7 @@ export default function VerificationOtp() {
         ]}
       >
         <Pressable testID="btn-retour-otp" onPress={() => router.back()} style={styles.retour} hitSlop={10}>
-          <Feather name="arrow-left" size={22} color={colors.onSurface} />
+          <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
 
         <Logo taille={26} />
@@ -95,7 +95,7 @@ export default function VerificationOtp() {
 
         {demo ? (
           <View testID="bloc-code-demo" style={styles.demo}>
-            <Feather name="info" size={16} color={colors.brandPrimary} />
+            <Icone name="info" size={16} color={colors.brandPrimary} />
             <Text style={styles.demoTexte}>Code de démonstration : {demo}</Text>
           </View>
         ) : null}

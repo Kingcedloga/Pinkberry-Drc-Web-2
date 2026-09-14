@@ -9,6 +9,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthProvider } from "@/src/auth";
 import { ErrorBoundary } from "@/src/components/error-boundary";
+import { SurveillanceCommandes } from "@/src/components/SurveillanceCommandes";
 import { PanierProvider } from "@/src/panier";
 import { queryClient } from "@/src/query-client";
 import { colors } from "@/src/theme";
@@ -45,6 +46,7 @@ export default function RootLayout() {
                 <PanierProvider>
                   <ToastProvider>
                     <TauxProvider>
+                      <SurveillanceCommandes />
                       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceSecondary } }} />
                     </TauxProvider>
                   </ToastProvider>

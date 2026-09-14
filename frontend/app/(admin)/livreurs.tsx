@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
@@ -66,7 +66,7 @@ export default function Livreurs() {
       <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
         <Text style={styles.titre}>Livreurs</Text>
         <Pressable testID="btn-ajouter-livreur" onPress={() => setOuvert(true)} style={styles.ajouter}>
-          <Feather name="plus" size={20} color={colors.onBrandPrimary} />
+          <Icone name="plus" size={20} color={colors.onBrandPrimary} />
         </Pressable>
       </View>
 
@@ -92,9 +92,14 @@ export default function Livreurs() {
                 <Text style={styles.detail}>
                   {item.telephone} · {item.vehicule} {item.plaque}
                 </Text>
-                <Text style={styles.pos}>
-                  {item.position ? `📍 ${item.position.lat.toFixed(3)}, ${item.position.lng.toFixed(3)}` : "Position inconnue"}
-                </Text>
+                <View style={styles.posRow}>
+                  <Icone name="map-pin" size={12} color={colors.brandPrimary} />
+                  <Text style={styles.pos}>
+                    {item.position
+                      ? `${item.position.lat.toFixed(3)}, ${item.position.lng.toFixed(3)}`
+                      : "Position inconnue"}
+                  </Text>
+                </View>
               </View>
               <Switch
                 testID={`switch-livreur-${item.nom}`}
@@ -171,6 +176,7 @@ const styles = StyleSheet.create({
   texte: { flex: 1, gap: 1 },
   nom: { fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   detail: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+  posRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   pos: { fontFamily: fonts.text, fontSize: 11, color: colors.brandPrimary },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {

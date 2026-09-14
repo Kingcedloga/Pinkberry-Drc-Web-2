@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -99,7 +99,7 @@ export default function Dashboard() {
           }}
           style={styles.iconeBtn}
         >
-          <Feather name="log-out" size={20} color={colors.brandPrimary} />
+          <Icone name="log-out" size={20} color={colors.brandPrimary} />
         </Pressable>
       </View>
 
@@ -158,9 +158,16 @@ export default function Dashboard() {
                 {item.adresse?.commune} — {item.adresse?.avenue} n° {item.adresse?.numero}
               </Text>
               <View style={styles.carteBas}>
-                <Text style={styles.livreurTag}>
-                  {item.livreur ? `🛵 ${item.livreur.nom}` : "Aucun livreur assigné"}
-                </Text>
+                <View style={styles.livreurTagRow}>
+                  <Icone
+                    name={item.livreur ? "scooter" : "user"}
+                    size={13}
+                    color={item.livreur ? colors.brandPrimary : colors.muted}
+                  />
+                  <Text style={[styles.livreurTag, !item.livreur && { color: colors.muted }]}>
+                    {item.livreur ? item.livreur.nom : "Aucun livreur assigné"}
+                  </Text>
+                </View>
                 <Text style={styles.total}>{usd(item.total)}</Text>
               </View>
             </Pressable>
@@ -291,6 +298,7 @@ const styles = StyleSheet.create({
   client: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.onSurface },
   adresse: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   carteBas: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.xs },
+  livreurTagRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, flex: 1 },
   livreurTag: { fontFamily: fonts.text, fontSize: 12, color: colors.brandPrimary, fontWeight: "700" },
   total: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },

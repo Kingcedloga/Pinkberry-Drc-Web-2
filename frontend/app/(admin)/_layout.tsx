@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
@@ -50,19 +50,19 @@ export default function AdminLayout() {
     >
       <Tabs.Screen
         name="dashboard"
-        options={{ title: "Commandes", tabBarIcon: ({ color }) => <Feather name="grid" size={22} color={color} /> }}
+        options={{ title: "Commandes", tabBarIcon: ({ color }) => <Icone name="grid" size={22} color={color} /> }}
       />
       <Tabs.Screen
         name="catalogue"
-        options={{ title: "Catalogue", tabBarIcon: ({ color }) => <Feather name="package" size={22} color={color} /> }}
+        options={{ title: "Catalogue", tabBarIcon: ({ color }) => <Icone name="package" size={22} color={color} /> }}
       />
       <Tabs.Screen
         name="zones"
-        options={{ title: "Zones", tabBarIcon: ({ color }) => <Feather name="map" size={22} color={color} /> }}
+        options={{ title: "Zones", tabBarIcon: ({ color }) => <Icone name="map" size={22} color={color} /> }}
       />
       <Tabs.Screen
         name="livreurs"
-        options={{ title: "Livreurs", tabBarIcon: ({ color }) => <Feather name="users" size={22} color={color} /> }}
+        options={{ title: "Livreurs", tabBarIcon: ({ color }) => <Icone name="users" size={22} color={color} /> }}
       />
     </Tabs>
   );

@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
+import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useConfigApp, useMontant } from "@/src/taux";
@@ -62,7 +63,7 @@ export default function Confirmation() {
     <View testID="ecran-confirmation" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
         <Pressable testID="btn-retour-confirmation" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
-          <Feather name="arrow-left" size={22} color={colors.onSurface} />
+          <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.titre}>Confirmer la commande</Text>
         <View style={styles.iconeBtn} />
@@ -71,7 +72,7 @@ export default function Confirmation() {
       <ScrollView contentContainerStyle={styles.contenu}>
         <View style={styles.carte}>
           <View style={styles.carteTitreRow}>
-            <Feather name="map-pin" size={16} color={colors.brandPrimary} />
+            <Icone name="map-pin" size={16} color={colors.brandPrimary} />
             <Text style={styles.carteTitre}>Livraison à {adresse?.label}</Text>
           </View>
           <Text style={styles.ligne}>
@@ -83,11 +84,12 @@ export default function Confirmation() {
 
         <View style={styles.carte}>
           <View style={styles.carteTitreRow}>
-            <Feather name="shopping-bag" size={16} color={colors.brandPrimary} />
+            <Icone name="shopping-bag" size={16} color={colors.brandPrimary} />
             <Text style={styles.carteTitre}>Vos articles</Text>
           </View>
           {articles.map((a) => (
             <View key={a.cle} style={styles.articleRow}>
+              <PhotoProduit image={a.image} taille={36} rayon={12} />
               <Text style={styles.articleNom}>
                 {a.quantite}× {a.nom}
               </Text>
@@ -97,7 +99,7 @@ export default function Confirmation() {
         </View>
 
         <View testID="badge-paiement-cash" style={styles.badgeCash}>
-          <Feather name="dollar-sign" size={18} color={colors.brandPrimary} />
+          <Icone name="dollar-sign" size={18} color={colors.brandPrimary} />
           <Text style={styles.badgeCashTexte}>Paiement à la livraison (cash)</Text>
         </View>
 
@@ -165,7 +167,7 @@ const styles = StyleSheet.create({
   carteTitre: { fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   ligne: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   repere: { fontFamily: fonts.text, fontSize: 13, color: colors.brandPrimary, fontWeight: "700" },
-  articleRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
+  articleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: 4 },
   articleNom: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   articlePrix: { fontFamily: fonts.display, fontSize: 14, color: colors.onSurface },
   badgeCash: {

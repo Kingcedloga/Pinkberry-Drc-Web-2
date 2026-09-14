@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -54,7 +54,7 @@ export default function Commandes() {
           onRefresh={() => q.refetch()}
           ListEmptyComponent={
             <View style={styles.centre}>
-              <Text style={styles.videEmoji}>🧾</Text>
+              <Icone name="receipt" size={42} color={colors.brandTertiary} />
               <Text style={styles.vide}>Aucune commande pour le moment</Text>
               <Pressable testID="btn-vers-catalogue" onPress={() => router.push("/accueil")} style={styles.lien}>
                 <Text style={styles.lienTexte}>Voir la carte</Text>
@@ -78,7 +78,7 @@ export default function Commandes() {
               </Text>
               <View style={styles.carteBas}>
                 <Text style={styles.adresse} numberOfLines={1}>
-                  <Feather name="map-pin" size={12} color={colors.muted} /> {item.adresse?.commune} ·{" "}
+                  <Icone name="map-pin" size={12} color={colors.muted} /> {item.adresse?.commune} ·{" "}
                   {item.adresse?.avenue}
                 </Text>
                 <Text style={styles.total}>{usd(item.total)}</Text>

@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -75,7 +75,7 @@ export default function SuiviCommande() {
     <View testID="ecran-suivi" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
         <Pressable testID="btn-retour-suivi" onPress={() => router.replace("/accueil")} style={styles.iconeBtn} hitSlop={8}>
-          <Feather name="arrow-left" size={22} color={colors.onSurface} />
+          <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
         <View>
           <Text style={styles.titre}>Suivi {cmd.numero}</Text>
@@ -93,7 +93,7 @@ export default function SuiviCommande() {
           />
           {cmd.statut === "en_route" ? (
             <View testID="pastille-eta" style={styles.eta}>
-              <Feather name="clock" size={14} color={colors.onSuccess} />
+              <Icone name="clock" size={14} color={colors.onSuccess} />
               <Text style={styles.etaTexte}>{cmd.etaMinutes ?? "—"} min</Text>
             </View>
           ) : null}
@@ -101,7 +101,7 @@ export default function SuiviCommande() {
 
         {arrive && peutPayer ? (
           <View testID="bloc-livraison" style={styles.blocLivraison}>
-            <Text style={styles.livraisonTitre}>Le livreur est arrivé 🎉</Text>
+            <Text style={styles.livraisonTitre}>Le livreur est arrivé</Text>
             <Text style={styles.livraisonLabel}>Montant à régler en espèces</Text>
             <Text testID="montant-cash" style={styles.montant}>
               {usd(cmd.total)}
@@ -123,7 +123,7 @@ export default function SuiviCommande() {
           <Text style={styles.carteTitre}>Progression</Text>
           {cmd.statut === "annulee" ? (
             <View style={styles.annulee}>
-              <Feather name="x-circle" size={18} color={colors.error} />
+              <Icone name="x-circle" size={18} color={colors.error} />
               <Text style={styles.annuleeTexte}>Commande annulée</Text>
             </View>
           ) : (
@@ -144,7 +144,7 @@ export default function SuiviCommande() {
                   {cmd.livreur.vehicule} · {cmd.livreur.plaque}
                 </Text>
                 <View style={styles.noteRow}>
-                  <Feather name="star" size={12} color={colors.brandPrimary} />
+                  <Icone name="star" size={12} color={colors.brandPrimary} />
                   <Text style={styles.noteTexte}>{cmd.livreur.note}</Text>
                 </View>
               </View>
@@ -153,7 +153,7 @@ export default function SuiviCommande() {
                 onPress={() => Linking.openURL(`tel:${cmd.livreur.telephone}`)}
                 style={styles.appelBtn}
               >
-                <Feather name="phone" size={20} color={colors.onSuccess} />
+                <Icone name="phone" size={20} color={colors.onSuccess} />
               </Pressable>
             </View>
           </View>

@@ -1,55 +1,87 @@
-import Feather from "@react-native-vector-icons/feather";
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icone } from "@/src/components/Icone";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 
 type Type = "succes" | "erreur" | "info";
-type ToastValue = { show: (message: string, type?: Type) => void };
+type Notification = { id: number; message: string; type: Type; titre?: string };
+type ToastValue = { show: (message: string, type?: Type, titre?: string) => void };
+
+const DUREE = 3000;
+const MAX_VISIBLES = 3;
 
 const ToastContext = createContext<ToastValue | null>(null);
 
+let compteur = 0;
+
+function Pastille({ notif, onFini }: { notif: Notification; onFini: (id: number) => void }) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 16, stiffness: 180 }).start();
+    const t = setTimeout(() => {
+      Animated.timing(anim, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => onFini(notif.id));
+    }, DUREE);
+    return () => clearTimeout(t);
+  }, [anim, notif.id, onFini]);
+
+  const fond = notif.type === "succes" ? colors.success : notif.type === "erreur" ? colors.error : colors.surfaceInverse;
+  const icone = notif.type === "erreur" ? "alert-circle" : notif.type === "succes" ? "check-circle" : "info";
+
+  return (
+    <Animated.View
+      testID="toast-message"
+      style={[
+        styles.toast,
+        {
+          backgroundColor: fond,
+          opacity: anim,
+          transform: [
+            { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-24, 0] }) },
+            { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) },
+          ],
+        },
+      ]}
+    >
+      <Icone name={icone} size={18} color={colors.onBrandPrimary} />
+      <View style={styles.bloc}>
+        {notif.titre ? <Text style={styles.titre}>{notif.titre}</Text> : null}
+        <Text style={styles.texte}>{notif.message}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toast, setToast] = useState<{ message: string; type: Type } | null>(null);
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [notifs, setNotifs] = useState<Notification[]>([]);
   const insets = useSafeAreaInsets();
 
-  const show = useCallback(
-    (message: string, type: Type = "info") => {
-      setToast({ message, type });
-      Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-      setTimeout(() => {
-        Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => setToast(null));
-      }, 2600);
-    },
-    [opacity],
-  );
+  const retirer = useCallback((id: number) => {
+    setNotifs((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
+  const show = useCallback((message: string, type: Type = "info", titre?: string) => {
+    compteur += 1;
+    const notif = { id: compteur, message, type, titre };
+    setNotifs((prev) => [...prev, notif].slice(-MAX_VISIBLES));
+  }, []);
 
   const value = useMemo(() => ({ show }), [show]);
-
-  const fond =
-    toast?.type === "succes" ? colors.success : toast?.type === "erreur" ? colors.error : colors.surfaceInverse;
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {toast ? (
-        <Animated.View
-          testID="toast-message"
-          pointerEvents="none"
-          style={[styles.wrap, { top: insets.top + spacing.sm, opacity }]}
-        >
-          <View style={[styles.toast, { backgroundColor: fond }]}>
-            <Feather
-              name={toast.type === "erreur" ? "alert-circle" : toast.type === "succes" ? "check-circle" : "info"}
-              size={18}
-              color={colors.onBrandPrimary}
-            />
-            <Text style={styles.texte}>{toast.message}</Text>
-          </View>
-        </Animated.View>
-      ) : null}
+      <View
+        testID="zone-notifications"
+        pointerEvents="none"
+        style={[styles.zone, { top: insets.top + spacing.sm }]}
+      >
+        {notifs.map((n) => (
+          <Pastille key={n.id} notif={n} onFini={retirer} />
+        ))}
+      </View>
     </ToastContext.Provider>
   );
 }
@@ -61,16 +93,25 @@ export function useToast(): ToastValue {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: "absolute", left: spacing.lg, right: spacing.lg, alignItems: "center" },
-  toast: {
-    flexDirection: "row",
+  zone: {
+    position: "absolute",
+    left: spacing.lg,
+    right: spacing.lg,
     alignItems: "center",
     gap: spacing.sm,
+    ...(Platform.OS === "web" ? { maxWidth: 420, marginHorizontal: "auto" } : null),
+  },
+  toast: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
-    maxWidth: "100%",
+    borderRadius: radius.lg,
     ...softShadow,
   },
-  texte: { color: colors.onBrandPrimary, fontFamily: fonts.text, fontSize: 14, flexShrink: 1 },
+  bloc: { flex: 1, gap: 1 },
+  titre: { color: colors.onBrandPrimary, fontFamily: fonts.display, fontSize: 14 },
+  texte: { color: colors.onBrandPrimary, fontFamily: fonts.text, fontSize: 13, fontWeight: "700" },
 });

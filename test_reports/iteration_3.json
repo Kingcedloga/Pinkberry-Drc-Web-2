@@ -1,0 +1,38 @@
+{
+  "summary": "Itération 3 — 5 fonctionnalités (icônes SVG, toasts empilés, upload photo produit, Google OAuth, écran téléphone). Backend: 43/43 pytest verts (22 iter1 + 8 iter2 + 13 nouveaux tests iter3 = photos + auth/session + auth/telephone). POST /api/admin/photos avec PNG 1600x1200 -> 200 {id, url:'/api/fichiers/<id>'}, GET /api/fichiers/<id> renvoie JPEG redimensionné à 800px (<=900) avec Cache-Control 'public, max-age=604800'. Refus 400 pour text/plain et application/pdf. Refus 400 pour fichier > 5 Mo (5 Mo + 1 Ko). 401 sans token, 403 avec token client. En base : collection `produits` -> aucun base64 dans `image` (10/10 produits OK, longueur < 300 chars) ; collection `fichiers` stocke uniquement {id, path, contentType, ownerId, taille, createdAt} — aucun octet dans Mongo. POST /api/auth/session avec session_id='faux' -> 401. Corps vide -> 422. PUT /api/auth/telephone : 401 sans token, 400 numéro <9 chars, 400 numéro appartenant à un autre compte (essai admin -> tel client), 200 sinon (nouveau tel puis restauration). Aucune référence à demobackend.emergentagent.com dans /app/frontend (grep vide). Non-régression config OK (tauxFC=2800 après remise à 2800 en début de tests — l'app avait été laissée à 3100 par le main agent, remise à 2800 via PUT /api/admin/config). Frontend (390x844) : (a) ICÔNES : barre d'onglets client (Accueil/Commandes/Compte) rend 2 SVG par tab avec stroke non vide (#E6156F actif, #9A8E94 idle), 25 SVGs sur accueil client, 51 SVGs sur catalogue admin, tous les SVG lucide ont stroke explicite ; les 2 SVG à stroke vide sur /connexion sont le logo Google 'G' (multi-fills, comportement attendu) ; aucun emoji-icône interdit (🍦🛒🧾🛵📍🎉) trouvé dans le DOM sur landing/accueil. (b) TOASTS : testID 'zone-notifications' présent avec position:absolute et pointerEvents:none (vérifié via getComputedStyle) ; polling client 5 s confirmé — après passage admin en_route sur la commande PB-5910, toast 'Le livreur est arrivé / PB-5910 · Préparez le montant à régler en cash.' apparu en <=1 s côté client, testID 'toast-message' ; après passage à 'livree', toast 'Commande livrée · Bon appétit !' apparu correctement, empilement OK, disparition auto vérifiée (compteur final = 1) ; en viewport desktop 1280x800, zone-notifications présente et toast bien positionné en haut, ne masque aucun bouton. (c) UPLOAD PHOTO ADMIN : bouton 'btn-ajouter-produit' ouvre le formulaire avec 'apercu-photo', 'btn-choisir-photo' et texte 'JPG, PNG ou WebP · 5 Mo maximum' ; expect_file_chooser fonctionne, upload d'un PNG rose 400x400 -> aperçu 'apercu-photo img' src='https://.../api/fichiers/<uuid>' (URL courte, pas de base64), toast 'Photo envoyée' affiché, 'btn-retirer-photo' apparu. (d) GOOGLE AUTH : 'btn-google-connexion' présent sur /connexion avec libellé 'Continuer avec Google' ; 'btn-google-inscription' présent sur /inscription avec libellé \"S'inscrire avec Google\". (e) TELEPHONE : navigation directe vers /telephone après connexion client -> testID 'ecran-telephone', 'input-telephone-compte', 'btn-valider-telephone' et 'btn-telephone-plus-tard' tous présents, écran 'Bienvenue Client !' avec info 'Utilisé uniquement pour vos livraisons'. Aucun bug bloquant détecté. Une observation mineure : sur l'écran client 'accueil', les vignettes produits sans photo n'exposent pas le testID 'photo-produit-defaut' (count=0 mesuré). Le visuel par défaut est bien rendu (icône de cône) mais le testID pourrait ne s'appliquer qu'au composant PhotoProduit en grand format (feuille produit/panier). À valider si le testID est requis partout par la spec.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/test_pinkberry_api.py",
+    "/app/backend/tests/test_taux_change.py",
+    "/app/test_reports/pytest/pytest_iter3.xml",
+    "/app/test_reports/pytest/pytest_all_iter3.xml"
+  ],
+  "action_items": [
+    "(Mineur, à confirmer) L'écran client 'accueil' pourrait exposer le testID 'photo-produit-defaut' sur les vignettes produits sans image, si la spec l'exige côté catalogue (actuellement count=0 sur /accueil, le visuel par défaut est bien affiché mais sans testID).",
+    "(Note) L'endpoint POST /api/admin/photos accepte le fichier même quand la Content-Length dépasse 5 Mo — la validation se fait après lecture complète du body. C'est fonctionnel (400 renvoyé) mais consomme de la bande passante ; envisager un contrôle en streaming pour rejeter plus tôt."
+  ],
+  "critical_code_review_comments": [
+    "src/toast.tsx: implémentation clean — MAX_VISIBLES=3, DUREE=3000ms, pointerEvents='none' sur la zone, useSafeAreaInsets pour éviter la notch, animations Animated.spring/timing correctes.",
+    "src/components/Icone.tsx: registre lucide-react-native complet (48 icônes), fallback sur Info si nom inconnu, absoluteStrokeWidth activé — plus aucun risque d'icône invisible sur iOS/Safari.",
+    "server.py: POST /admin/photos utilise Pillow (thumbnail 900 + JPEG q82 optimize) ; collection `fichiers` ne stocke que le chemin objet (metadata seulement) ; GET /fichiers/<id> public avec Cache-Control 604800 s — conforme.",
+    "server.py: POST /auth/session appelle bien https://demobackend.emergentagent.com côté BACKEND (comme prévu par l'énoncé), et non depuis le frontend ; retourne 401 sur session invalide et 422 sur corps manquant (Pydantic).",
+    "server.py: PUT /auth/telephone valide len(tel)>=9 et l'unicité, refuse 400 correctement — bien.",
+    "Frontend: aucune référence à demobackend.emergentagent.com (grep vide) — le frontend ne se rend pas directement sur ce domaine, il passe uniquement par /api/auth/session."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration3.py (nouveau, 13 tests)"
+  ],
+  "success_rate": {"backend": "100% (43/43)", "frontend": "100% des flux critiques itération 3 vérifiés"},
+  "seed_data_creation": "Aucun seed manuel persistant. Tests créent + suppriment leurs produits TEST_. Quelques commandes de test restent en base (Gombe, PB-XXXX). Le taux de change a été explicitement remis à 2800 en début de tests (il était à 3100 après les manipulations du main agent).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "testIDs itération 3: 'zone-notifications' (View parent), 'toast-message' (chaque pastille), 'btn-google-connexion' (/connexion), 'btn-google-inscription' (/inscription), 'ecran-telephone', 'input-telephone-compte', 'btn-valider-telephone', 'btn-telephone-plus-tard', 'btn-ajouter-produit', 'btn-modifier-<nom>', 'apercu-photo', 'btn-choisir-photo', 'btn-retirer-photo', 'btn-enregistrer-produit', 'photo-produit-defaut'. Pour l'upload photo sur le web, utiliser page.expect_file_chooser() puis fc.set_files(...) — l'input file est créé dynamiquement par expo-image-picker au moment du click sur btn-choisir-photo. Pour tester les notifications, agir depuis un contexte admin API (fetch()) pendant que le client est sur /accueil : le polling est de 5 s, donc attendre 6-10 s après le changement de statut. Le pseudo-statut 'arrive' est déclenché côté client quand statut=en_route et etaMinutes<=3 : très fréquent en tests car etaMinutes ~2 min avec la position par défaut (-4.32/15.32). Toujours remettre tauxFC=2800 en fin de session.",
+  "rca_of_issue": "N/A — aucun bug détecté."
+}

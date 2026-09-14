@@ -83,6 +83,31 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   et invalidation immédiate après une modification admin.
 - Tests : 30/30 backend (dont 8 nouveaux sur le taux) + parcours admin/client/livreur validés (itération 2).
 
+## Implémenté — ajout du 14/09/2026 (v1.2)
+- **Notifications pop-up fiables** : `src/toast.tsx` réécrit en pile (3 max), 3 s, positionnées en haut via
+  `useSafeAreaInsets`, `pointerEvents="none"` (ne masque aucun bouton), animation ressort.
+  `src/components/SurveillanceCommandes.tsx` (monté dans le layout racine) surveille les commandes du
+  client toutes les 5 s et déclenche une notification titrée à chaque changement de statut, y compris
+  le pseudo-statut « le livreur est arrivé » (ETA ≤ 3 min). Vérifié en mobile et desktop.
+- **Photos de produits (Emergent Object Storage)** : `POST /api/admin/photos` (JPG/PNG/WebP, 5 Mo max)
+  → Pillow redimensionne à 900 px et réencode en JPEG q82 → envoi dans le bucket (aucun base64 en base) ;
+  `GET /api/fichiers/{id}` sert l'image publiquement avec cache d'une semaine. Le champ produit `image`
+  contient `/api/fichiers/<id>`, préfixé côté app par `src/images.ts`.
+  Formulaire admin : aperçu immédiat, remplacement, retrait. Composant `PhotoProduit` (avec visuel par
+  défaut) utilisé dans le catalogue, la feuille produit, le panier, le récapitulatif et la liste admin.
+  L'emoji produit est abandonné.
+- **Icônes SVG inline (lucide)** : nouveau registre `src/components/Icone.tsx`, tous les `Feather`
+  (police d'icônes) supprimés, couleur toujours explicite. Plus aucun emoji comme icône d'interface
+  (états vides, pins de carte Leaflet, tags livreur inclus).
+- **Correctif iOS/Safari** : les icônes invisibles venaient de la police d'icônes non chargée par
+  WebKit ; le passage aux SVG inline avec `stroke` explicite corrige le problème.
+- **Connexion Google (Emergent Auth)** : `POST /api/auth/session` échange le `session_id` contre le JWT
+  maison, crée le compte client depuis le nom/email Google ou réutilise le compte existant.
+  Boutons « Continuer avec Google » sur connexion et inscription. Les comptes Google n'ont pas de
+  téléphone (index unique partiel) : l'écran `/telephone` le demande une seule fois, avec « Plus tard ».
+  `PUT /api/auth/telephone` valide l'unicité du numéro.
+- Tests : 43/43 backend + parcours icônes / notifications / upload / Google validés (itération 3).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

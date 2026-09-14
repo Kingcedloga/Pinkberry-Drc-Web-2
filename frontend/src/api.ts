@@ -29,3 +29,21 @@ export async function apiFetch<T = any>(path: string, opts: Opts = {}): Promise<
   }
   return data as T;
 }
+
+export async function apiUpload<T = any>(path: string, form: FormData): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const res = await fetch(`${BASE}/api${path}`, { method: "POST", headers, body: form });
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  if (!res.ok) {
+    const detail = typeof data?.detail === "string" ? data.detail : `Erreur ${res.status}`;
+    throw new Error(detail);
+  }
+  return data as T;
+}

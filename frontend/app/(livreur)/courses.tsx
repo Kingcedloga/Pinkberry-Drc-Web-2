@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -48,7 +48,7 @@ export default function Courses() {
           }}
           style={styles.iconeBtn}
         >
-          <Feather name="log-out" size={20} color={colors.brandPrimary} />
+          <Icone name="log-out" size={20} color={colors.brandPrimary} />
         </Pressable>
       </View>
 
@@ -66,7 +66,7 @@ export default function Courses() {
           onRefresh={() => q.refetch()}
           ListEmptyComponent={
             <View style={styles.centre}>
-              <Text style={styles.videEmoji}>🛵</Text>
+              <Icone name="scooter" size={46} color={colors.brandTertiary} />
               <Text style={styles.vide}>Aucune course assignée</Text>
               <Text style={styles.videSous}>En attente d&apos;une assignation de l&apos;administrateur</Text>
             </View>
@@ -101,9 +101,12 @@ export default function Courses() {
               <Text style={styles.adresse}>
                 {item.adresse?.commune} — {item.adresse?.avenue} n° {item.adresse?.numero}
               </Text>
-              <Text style={styles.repere} numberOfLines={2}>
-                📍 {item.adresse?.repere}
-              </Text>
+              <View style={styles.repereRow}>
+                <Icone name="map-pin" size={13} color={colors.brandPrimary} />
+                <Text style={styles.repere} numberOfLines={2}>
+                  {item.adresse?.repere}
+                </Text>
+              </View>
               <View style={styles.carteBas}>
                 <Text style={styles.items} numberOfLines={1}>
                   {item.items.map((i: any) => `${i.quantite}× ${i.nom}`).join(", ")}
@@ -154,7 +157,8 @@ const styles = StyleSheet.create({
   pastilleTexte: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.onBrandPrimary },
   client: { fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.onSurface },
   adresse: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
-  repere: { fontFamily: fonts.text, fontSize: 12, color: colors.brandPrimary, fontWeight: "700" },
+  repereRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  repere: { flex: 1, fontFamily: fonts.text, fontSize: 12, color: colors.brandPrimary, fontWeight: "700" },
   carteBas: {
     flexDirection: "row",
     alignItems: "center",

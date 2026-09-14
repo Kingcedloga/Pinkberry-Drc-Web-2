@@ -1,4 +1,4 @@
-import Feather from "@react-native-vector-icons/feather";
+import { Icone } from "@/src/components/Icone";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 
@@ -60,7 +60,7 @@ export function Bouton({
         <ActivityIndicator color={p.fg} />
       ) : (
         <View style={styles.contenu}>
-          {icone ? <Feather name={icone as any} size={petit ? 15 : 18} color={p.fg} /> : null}
+          {icone ? <Icone name={icone as any} size={petit ? 15 : 18} color={p.fg} /> : null}
           <Text style={[styles.label, petit && styles.labelPetit, { color: p.fg }]}>{label}</Text>
         </View>
       )}
