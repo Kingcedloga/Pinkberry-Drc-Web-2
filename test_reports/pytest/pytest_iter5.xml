@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="57" time="76.167" timestamp="2026-09-14T20:40:53.187223+00:00" hostname="agent-env-0fcb3ecd-4d74-41f0-b886-372e5a91ffd9"><testcase classname="tests.test_taux_change" name="test_config_public_has_taux_and_frais" time="0.302" /><testcase classname="tests.test_pinkberry_api" name="test_root" time="0.375" /><testcase classname="tests.test_taux_change" name="test_admin_update_taux_persists_via_get_config" time="1.278" /><testcase classname="tests.test_pinkberry_api" name="test_produits_10" time="0.136" /><testcase classname="tests.test_pinkberry_api" name="test_zones_actives" time="0.358" /><testcase classname="tests.test_pinkberry_api" name="test_config" time="0.230" /><testcase classname="tests.test_pinkberry_api" name="test_inscription_returns_code_demo" time="0.539" /><testcase classname="tests.test_taux_change" name="test_admin_reject_taux_zero_or_negative" time="1.058" /><testcase classname="tests.test_pinkberry_api" name="test_inscription_bad_password" time="0.376" /><testcase classname="tests.test_pinkberry_api" name="test_connexion_and_moi" time="0.567" /><testcase classname="tests.test_pinkberry_api" name="test_connexion_bad" time="0.679" /><testcase classname="tests.test_taux_change" name="test_admin_config_requires_auth" time="0.141" /><testcase classname="tests.test_taux_change" name="test_admin_config_forbidden_for_client" time="0.766" /><testcase classname="tests.test_pinkberry_api" name="test_renvoyer_otp" time="0.176" /><testcase classname="tests.test_taux_change" name="test_admin_config_forbidden_for_livreur" time="0.681" /><testcase classname="tests.test_pinkberry_api" name="test_commande_refus_zone_non_couverte" time="0.849" /><testcase classname="tests.test_taux_change" name="test_taux_seed_setoninsert_does_not_overwrite" time="0.983" /><testcase classname="tests.test_pinkberry_api" name="test_commande_gombe_success" time="0.470" /><testcase classname="tests.test_pinkberry_api" name="test_mes_commandes" time="0.154" /><testcase classname="tests.test_pinkberry_api" name="test_annuler_ok_then_forbidden" time="0.648" /><testcase classname="tests.test_taux_change" name="test_final_taux_is_2800" time="0.870" /><testcase classname="tests.test_pinkberry_api" name="test_admin_403_for_client" time="0.163" /><testcase classname="tests.test_pinkberry_api" name="test_admin_commandes_and_stats" time="0.637" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_401_sans_token" time="0.156" /><testcase classname="tests.test_pinkberry_api" name="test_admin_produit_crud" time="0.598" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_403_client" time="0.633" /><testcase classname="tests.test_pinkberry_api" name="test_admin_zone_toggle" time="0.549" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_403_livreur" time="0.530" /><testcase classname="tests.test_pinkberry_api" name="test_admin_livreurs_and_assign" time="0.858" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_shape_ventes" time="0.598" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_recue_ne_compte_pas" time="0.935" /><testcase classname="tests.test_pinkberry_api" name="test_admin_livreur_create_update" time="0.516" /><testcase classname="tests.test_pinkberry_api" name="test_livreur_flow_position_and_encaisser" time="1.289" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_livree_incremente" time="1.644"><failure message="assert 11 == (9 + 1)">backend/tests/test_iteration4.py:323: in test_livree_incremente
+    assert apres["nbCommandes"] == avant["nbCommandes"] + 1
+E   assert 11 == (9 + 1)</failure></testcase><testcase classname="tests.test_pinkberry_api" name="test_livreur_role_required" time="0.531" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_sans_token_401" time="0.165" /><testcase classname="tests.test_pinkberry_api" name="test_paiement_client_note" time="0.615" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_client_403" time="0.660" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_type_refuse" time="0.865" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_commande_creation_ok" time="0.867" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_trop_gros" time="0.469" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_admin_change_statut_ok" time="0.532" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_admin_assigner_livreur_ok" time="0.362" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_png_ok_et_lecture" time="21.005"><failure message="requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/admin/produits/159b5084-88e6-44f6-9b64-dd80cd5e321f (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf9fa60501110&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))">/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:204: in _new_conn
+    sock = connection.create_connection(
+/root/.venv/lib/python3.11/site-packages/urllib3/util/connection.py:85: in create_connection
+    raise err
+/root/.venv/lib/python3.11/site-packages/urllib3/util/connection.py:73: in create_connection
+    sock.connect(sa)
+E   TimeoutError: timed out
+
+The above exception was the direct cause of the following exception:
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:788: in urlopen
+    response = self._make_request(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:488: in _make_request
+    raise new_e
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:464: in _make_request
+    self._validate_conn(conn)
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:1106: in _validate_conn
+    conn.connect()
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:759: in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:213: in _new_conn
+    raise ConnectTimeoutError(
+E   urllib3.exceptions.ConnectTimeoutError: (&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf9fa60501110&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)')
+
+The above exception was the direct cause of the following exception:
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:696: in send
+    resp = conn.urlopen(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:842: in urlopen
+    retries = retries.increment(
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:543: in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/admin/produits/159b5084-88e6-44f6-9b64-dd80cd5e321f (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf9fa60501110&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_iteration3.py:111: in test_upload_png_ok_et_lecture
+    requests.delete(f"{API}/admin/produits/{prod['id']}", headers=_h(admin_tok), timeout=10)
+/root/.venv/lib/python3.11/site-packages/requests/api.py:180: in delete
+    return request("delete", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:71: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:651: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:784: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:717: in send
+    raise ConnectTimeout(e, request=request)
+E   requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/admin/produits/159b5084-88e6-44f6-9b64-dd80cd5e321f (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf9fa60501110&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))</failure></testcase><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_livreur_encaisser_ok" time="42.363" /><testcase classname="tests.test_iteration3.TestAuthTelephone" name="test_telephone_sans_token_401" time="15.765" /><testcase classname="tests.test_iteration3.TestAuthTelephone" name="test_telephone_trop_court_400" time="15.182" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_commande_annulee_ok" time="19.870" /><testcase classname="tests.test_iteration3.TestAuthTelephone" name="test_telephone_deja_pris_400" time="0.249" /><testcase classname="tests.test_iteration3.TestAuthTelephone" name="test_telephone_ok_puis_restauration" time="0.283" /><testcase classname="tests.test_iteration3.TestAuthSession" name="test_session_invalid_401" time="0.329" /><testcase classname="tests.test_iteration3.TestAuthSession" name="test_session_body_manquant_422" time="2.258" /><testcase classname="tests.test_iteration3" name="test_non_regression_config" time="0.217" /><testcase classname="tests.test_iteration3" name="test_non_regression_produits_sans_base64" time="0.161" /><testcase classname="tests.test_iteration4.TestRegisterPush" name="test_body_manquant_422" time="0.152" /><testcase classname="tests.test_iteration4.TestRegisterPush" name="test_body_invalide_422" time="0.178" /><testcase classname="tests.test_iteration4.TestRegisterPush" name="test_placeholder_key_500" time="0.161" /></testsuite></testsuites>

@@ -9,6 +9,7 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Logo } from "@/src/components/Logo";
+import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
@@ -120,7 +121,7 @@ export default function Dashboard() {
           testID="liste-admin-commandes"
           data={commandesQ.data ?? []}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={styles.liste}
+          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
           refreshing={commandesQ.isRefetching}
           onRefresh={rafraichir}
           ListHeaderComponent={

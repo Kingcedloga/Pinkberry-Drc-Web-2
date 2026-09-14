@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, StyleSheet, Switch, Text, View } from "rea
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
+import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useToast } from "@/src/toast";
 
@@ -39,7 +40,7 @@ export default function Zones() {
           testID="liste-zones"
           data={q.data ?? []}
           keyExtractor={(z) => z.id}
-          contentContainerStyle={styles.liste}
+          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           renderItem={({ item }) => (

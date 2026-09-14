@@ -1,31 +1,36 @@
-import { Icone } from "@/src/components/Icone";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
 import { Platform } from "react-native";
 
+import { Icone } from "@/src/components/Icone";
+import { ONGLETS_NATIFS } from "@/src/nav";
 import { colors, fonts } from "@/src/theme";
 
-const nativeTabs = Platform.OS === "ios" && parseInt(String(Platform.Version), 10) >= 26;
+const { Icon, Label } = NativeTabs.Trigger;
 
 export default function AdminLayout() {
-  if (nativeTabs) {
+  if (ONGLETS_NATIFS) {
     return (
-      <NativeTabs>
+      <NativeTabs
+        tintColor={colors.brandPrimary}
+        iconColor={colors.muted}
+        labelStyle={{ fontFamily: fonts.text, fontSize: 11, color: colors.muted }}
+      >
         <NativeTabs.Trigger name="dashboard">
-          <Icon sf="square.grid.2x2.fill" />
+          <Icon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} />
           <Label>Commandes</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="catalogue">
-          <Icon sf="cube.box.fill" />
+          <Icon sf={{ default: "cube.box", selected: "cube.box.fill" }} />
           <Label>Catalogue</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="zones">
-          <Icon sf="map.fill" />
+          <Icon sf={{ default: "map", selected: "map.fill" }} />
           <Label>Zones</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="livreurs">
-          <Icon sf="person.2.fill" />
+          <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
           <Label>Livreurs</Label>
         </NativeTabs.Trigger>
       </NativeTabs>

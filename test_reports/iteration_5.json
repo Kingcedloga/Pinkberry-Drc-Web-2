@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 5 (Heroicons + iOS 26 tab bar bug). Backend: 55/57 pytest passed in parallel (57/57 when re-run sequentially, 2 flaky). Frontend: exhaustive verification of the Heroicons migration and the iOS 26 NativeTabs fix. Code reads clean: `expo-router/unstable-native-tabs` only exports { NativeTabs }; both (client)/_layout.tsx and (admin)/_layout.tsx now destructure Icon/Label from `NativeTabs.Trigger` (not from the root import) and use SF Symbols with tintColor #E6156F. On the web (Chromium + mobile UA 390x844 and desktop 1280x800) both roles (client 0990000001 and admin 0810000000) render perfectly: 0 SVG with width/height=0, 0 SVG with stroke='currentColor'. Tab bar icons render with stroke #E6156F (active) / #9A8E94 (inactive) at 22x22. No lucide-react-native or @react-native-vector-icons/feather imports remain in app/ or src/. No UI emojis (heart cream/cart/receipt/scooter/pin/party/shave-ice) present in app/ or src/. hauteurOngletsNatifs offset is wired on all client and admin scroll containers plus the floating cart bar (accueil.tsx line 193). Taux de change already at 2 800 FC (unchanged). Note: web fallback uses <Tabs> so the NativeTabs iOS 26 fix is verified by code review only (as the review request expected).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "backend/tests/test_iteration4.py::TestVentesJour::test_livree_incremente", "issue": "Flaky under xdist parallel run (assert 11 == 9 + 1). Passes reliably when run sequentially. Root cause: sales counter is shared/global; parallel workers race on it. Consider serializing this test or using a per-test admin day snapshot."},
+      {"endpoint": "backend/tests/test_iteration3.py::TestPhotos::test_upload_png_ok_et_lecture", "issue": "Flaky under xdist parallel run: teardown DELETE times out (10s) intermittently. Passes on rerun. Likely network jitter to the public URL. Consider bumping timeout to 20s or moving cleanup to a session fixture."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/pytest_iter5.xml",
+    "/app/backend/tests/test_pinkberry_api.py",
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/test_iteration4.py",
+    "/app/backend/tests/test_taux_change.py"
+  ],
+  "action_items": [
+    "Optional cleanup: remove now-unused deps `lucide-react-native` and `@react-native-vector-icons/feather` from /app/frontend/package.json (no code imports them anymore).",
+    "Optional: reduce flakiness of the two parallel-sensitive backend tests (see backend_issues.minor)."
+  ],
+  "critical_code_review_comments": [
+    "Icone.tsx correctly enforces explicit stroke color and a fixed-size wrapper View, which is exactly the WebKit fix (Safari flex svg collapse + currentColor non-resolution). Verified 0 offenders in the DOM.",
+    "(client)/_layout.tsx and (admin)/_layout.tsx import only { NativeTabs } from 'expo-router/unstable-native-tabs' and destructure { Icon, Label } = NativeTabs.Trigger (the previously undefined named imports are gone), which fixes the iOS 26 bug (invisible icons + lowercased blue system labels).",
+    "src/nav.ts + hauteurOngletsNatifs are consumed by accueil.tsx (cart bar bottom + list paddingBottom), commandes.tsx, compte.tsx, and all admin screens: no overlap with the iOS 26 floating tab bar."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (57/57 sequential; 55/57 parallel due to 2 flakes)", "frontend": "100%"},
+  "seed_data_creation": "None. Used existing demo accounts.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend suite grew to 57 tests (49 baseline + Iter3 photos + Iter4 sales + taux). Two tests are parallel-flaky under xdist; run them sequentially to confirm green. Frontend web preview always renders the JS <Tabs> fallback (not NativeTabs), so the iOS 26 NativeTabs fix must be validated via code review on _layout.tsx files. Icone.tsx guards against Safari's SVG issues by (a) explicit stroke color and (b) fixed-size wrapper View — do not regress these.",
+  "rca_of_issue": "iOS 26 bug reproduced from code: destructuring `{ Icon, Label } from 'expo-router/unstable-native-tabs'` yielded undefined (module only exports NativeTabs + NativeTabTrigger). React Native rendered nothing for undefined children, and the OS-level iOS 26 tab bar then fell back to the raw route name in lowercase blue. Fix applied by main agent: `const { Icon, Label } = NativeTabs.Trigger;` plus tintColor #E6156F, SF Symbols {default/selected}, and non-native fallback via <Tabs> with <Icone/> tabBarIcon. Verified end-to-end on web that 0 icons collapse and 0 use currentColor."
+}

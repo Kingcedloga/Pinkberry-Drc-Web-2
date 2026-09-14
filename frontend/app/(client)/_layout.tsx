@@ -1,27 +1,32 @@
-import { Icone } from "@/src/components/Icone";
 import { Tabs } from "expo-router";
-import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
 import { Platform } from "react-native";
 
+import { Icone } from "@/src/components/Icone";
+import { ONGLETS_NATIFS } from "@/src/nav";
 import { colors, fonts } from "@/src/theme";
 
-const nativeTabs = Platform.OS === "ios" && parseInt(String(Platform.Version), 10) >= 26;
+const { Icon, Label } = NativeTabs.Trigger;
 
 export default function ClientLayout() {
-  if (nativeTabs) {
+  if (ONGLETS_NATIFS) {
     return (
-      <NativeTabs>
+      <NativeTabs
+        tintColor={colors.brandPrimary}
+        iconColor={colors.muted}
+        labelStyle={{ fontFamily: fonts.text, fontSize: 11, color: colors.muted }}
+      >
         <NativeTabs.Trigger name="accueil">
-          <Icon sf="house.fill" />
+          <Icon sf={{ default: "house", selected: "house.fill" }} />
           <Label>Accueil</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="commandes">
-          <Icon sf="bag.fill" />
+          <Icon sf={{ default: "bag", selected: "bag.fill" }} />
           <Label>Commandes</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="compte">
-          <Icon sf="person.fill" />
+          <Icon sf={{ default: "person", selected: "person.fill" }} />
           <Label>Compte</Label>
         </NativeTabs.Trigger>
       </NativeTabs>

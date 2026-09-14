@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Logo } from "@/src/components/Logo";
+import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 
 export default function Compte() {
@@ -16,7 +17,12 @@ export default function Compte() {
 
   return (
     <View testID="ecran-compte" style={styles.ecran}>
-      <ScrollView contentContainerStyle={[styles.contenu, { paddingTop: insets.top + spacing.lg }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.contenu,
+          { paddingTop: insets.top + spacing.lg, paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) },
+        ]}
+      >
         <Logo taille={24} />
 
         <View style={styles.carte}>

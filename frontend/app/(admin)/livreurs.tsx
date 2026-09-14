@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
+import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useToast } from "@/src/toast";
 
@@ -79,7 +80,7 @@ export default function Livreurs() {
           testID="liste-admin-livreurs"
           data={q.data ?? []}
           keyExtractor={(l) => l.id}
-          contentContainerStyle={styles.liste}
+          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           renderItem={({ item }) => (

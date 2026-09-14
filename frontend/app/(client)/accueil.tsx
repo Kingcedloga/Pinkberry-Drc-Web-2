@@ -21,6 +21,7 @@ import { FeuilleProduit, Produit } from "@/src/components/FeuilleProduit";
 import { Logo } from "@/src/components/Logo";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usePanier } from "@/src/panier";
+import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
@@ -38,6 +39,7 @@ export default function Accueil() {
   const [recherche, setRecherche] = useState("");
   const [categorie, setCategorie] = useState("Tous");
   const [produitOuvert, setProduitOuvert] = useState<Produit | null>(null);
+  const offsetOnglets = hauteurOngletsNatifs(insets.bottom);
 
   const produitsQ = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<Produit[]>("/produits") });
   const commandesQ = useQuery({
@@ -114,7 +116,10 @@ export default function Accueil() {
           testID="liste-produits"
           data={filtres}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={[styles.liste, { paddingBottom: nbArticles > 0 ? 110 : spacing.xl }]}
+          contentContainerStyle={[
+            styles.liste,
+            { paddingBottom: (nbArticles > 0 ? 110 : spacing.xl) + offsetOnglets },
+          ]}
           refreshing={produitsQ.isRefetching}
           onRefresh={() => produitsQ.refetch()}
           ListHeaderComponent={
@@ -184,7 +189,10 @@ export default function Accueil() {
           onPress={() => router.push("/panier")}
           style={({ pressed }) => [
             styles.barrePanier,
-            { bottom: spacing.lg, backgroundColor: pressed ? colors.brandSecondary : colors.brandPrimary },
+            {
+              bottom: offsetOnglets + spacing.lg,
+              backgroundColor: pressed ? colors.brandSecondary : colors.brandPrimary,
+            },
           ]}
         >
           <View style={styles.badge}>

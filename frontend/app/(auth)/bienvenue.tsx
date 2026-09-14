@@ -8,8 +8,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Logo } from "@/src/components/Logo";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 
-const HERO =
-  "https://images.unsplash.com/photo-1669127045641-0ae683639570?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwxfHxmcm96ZW4lMjB5b2d1cnQlMjBjdXB8ZW58MHx8fHwxNzg5NDA5NDkyfDA&ixlib=rb-4.1.0&q=85";
+const HERO = require("@/assets/images/livreur-pinkberry.jpg");
 
 export default function Bienvenue() {
   const router = useRouter();
@@ -20,8 +19,10 @@ export default function Bienvenue() {
       <View style={[styles.contenu, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }]}>
         <Logo taille={34} />
 
-        <View style={styles.heroWrap}>
-          <Image source={{ uri: HERO }} style={styles.hero} contentFit="cover" transition={300} />
+        <View style={styles.heroZone}>
+          <View style={styles.heroWrap}>
+            <Image source={HERO} style={styles.hero} contentFit="cover" transition={300} />
+          </View>
         </View>
 
         <View style={styles.bloc}>
@@ -53,8 +54,16 @@ export default function Bienvenue() {
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   contenu: { flex: 1, paddingHorizontal: spacing.xl, gap: spacing.xl },
-  heroWrap: { borderRadius: radius.xl, overflow: "hidden", ...softShadow, marginTop: spacing.sm },
-  hero: { width: "100%", height: 260, backgroundColor: colors.brandTertiary },
+  heroZone: { flex: 1, alignItems: "center", justifyContent: "center" },
+  heroWrap: {
+    borderRadius: radius.xl,
+    overflow: "hidden",
+    ...softShadow,
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 320,
+  },
+  hero: { width: "100%", aspectRatio: 1, backgroundColor: colors.brandTertiary },
   bloc: { gap: spacing.sm },
   titre: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 15, lineHeight: 22, color: colors.muted },

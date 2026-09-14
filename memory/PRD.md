@@ -127,6 +127,23 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   et le top 5 des produits. Carte dédiée en tête du tableau de bord (USD + FC, classement des produits).
 - Tests : 49/49 backend + audit de conformité push + rendu mobile/desktop validés (itération 4).
 
+## Implémenté — ajout du 14/09/2026 (v1.4)
+- **Heroicons partout** : `src/components/Icone.tsx` s'appuie désormais sur `react-native-heroicons`
+  (outline, tracés arrondis ; variante solid pour l'étoile pleine). Aucun import de `lucide-react-native`
+  ni de `@react-native-vector-icons/feather` ne subsiste, et aucun emoji ne sert d'icône d'interface.
+- **Correctif du bug « icônes du menu invisibles sur iOS »** : cause racine identifiée —
+  `expo-router/unstable-native-tabs` n'exporte pas `Icon` ni `Label` au niveau racine, mes imports
+  valaient donc `undefined` et la barre d'onglets iOS 26 s'affichait sans icône, avec le nom de route
+  brut en minuscules et la teinte bleue système. Correctif : `NativeTabs.Trigger.Icon` /
+  `NativeTabs.Trigger.Label`, SF Symbols `{default, selected}`, `tintColor` rose #E6156F, `iconColor`
+  et `labelStyle`. Double garde-fou anti-icône invisible côté web/WebKit : couleur passée
+  explicitement dans `stroke` (jamais `currentColor`) et enveloppe `View` de taille fixe.
+- **Chevauchement corrigé** : `src/nav.ts` (`ONGLETS_NATIFS`, `hauteurOngletsNatifs`) décale la barre de
+  panier flottante et le bas des listes (client + admin) quand la barre d'onglets native translucide
+  d'iOS 26 recouvre le contenu.
+- Tests : 57/57 backend + vérification runtime (0 SVG de taille nulle, 0 `currentColor`) en mobile et
+  desktop, client et admin (itération 5).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

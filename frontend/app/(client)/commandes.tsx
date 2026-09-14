@@ -6,6 +6,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
+import { hauteurOngletsNatifs } from "@/src/nav";
 import { usd } from "@/src/money";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 
@@ -49,7 +50,7 @@ export default function Commandes() {
           testID="liste-commandes"
           data={q.data ?? []}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={styles.liste}
+          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           ListEmptyComponent={
