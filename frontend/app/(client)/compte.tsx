@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
+import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Logo } from "@/src/components/Logo";
 import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
@@ -53,6 +54,8 @@ export default function Compte() {
           <Text style={styles.detail}>{user?.telephone}</Text>
           {user?.email ? <Text style={styles.detail}>{user.email}</Text> : null}
         </View>
+
+        <CarteNotifications texte="Activez-les pour savoir quand votre commande part et quand le livreur arrive, même app fermée." />
 
         <View style={styles.carteInfo}>
           <View style={styles.ligneInfo}>

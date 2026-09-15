@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
+import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { usd } from "@/src/money";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 
@@ -64,6 +65,9 @@ export default function Courses() {
           contentContainerStyle={styles.liste}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
+          ListHeaderComponent={
+            <CarteNotifications texte="Activez-les pour recevoir vos nouvelles courses, même app fermée." />
+          }
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="scooter" size={46} color={colors.brandTertiary} />

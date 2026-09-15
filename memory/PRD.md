@@ -183,6 +183,25 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   du catalogue client et du formulaire produit sont désormais alimentées par l'API.
 - Tests : 90/90 backend (17 nouveaux) + parcours frontend admin et client validés (itération 7).
 
+## Implémenté — ajout du 15/09/2026 (v1.7)
+- **Finalisation des notifications push** : plus aucune popup système au démarrage. Nouvelle carte
+  « Notifications » (`src/components/CarteNotifications.tsx`) qui explique le bénéfice AVANT la
+  demande d'autorisation, gère les états accordé / refusé / bloqué (bouton « Ouvrir les réglages »
+  via `Linking.openSettings()`), montée dans l'écran Compte client, le dashboard admin et l'écran
+  Courses du livreur. `src/push.ts` expose `etatPush`, `enregistrerToken` et `demanderPush` ;
+  `GestionPush` ne rafraîchit plus que le token, silencieusement, à chaque retour au premier plan.
+- Tests : 90/90 backend + non-régression web des 3 écrans concernés (itération 8). Rappel : la
+  réception réelle en arrière-plan n'est vérifiable qu'après Publish + build natif, avec la clé
+  `EMERGENT_PUSH_KEY` injectée au déploiement et le `google-services.json` Android fourni par
+  le propriétaire (package `com.emergent.commanderose.bbj4fa`).
+- **Android push prêt** : `frontend/google-services.json` (projet Firebase `pinkberry-drc`) fourni par
+  le propriétaire et redéclaré via `expo.android.googleServicesFile`. iOS passe par le push managé
+  Emergent (jetons natifs), aucun fichier Firebase iOS nécessaire.
+- **Durcissement déploiement** (health check) : seed non destructif (plus de `delete_one` au
+  démarrage), comptes de démo pilotés par `SEED_DEMO_ACCOUNTS` + mots de passe en variables
+  d'environnement (aucun mot de passe en clair dans le code), polices Fredoka et Nunito
+  désormais embarquées dans `assets/fonts` au lieu d'être téléchargées au lancement.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

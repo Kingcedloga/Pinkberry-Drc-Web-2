@@ -4,17 +4,26 @@ import { Platform } from "react-native";
 
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-/**
- * Demande l'autorisation puis enregistre le token natif du device auprès du
- * backend. À appeler après connexion et à chaque ouverture de l'app (les
- * tokens tournent). Ne bloque jamais le reste de l'app.
- */
-export async function enregistrerPush(userId: string): Promise<boolean> {
+export type EtatPush = {
+  /** Le device peut recevoir des push (jamais le cas sur le web ni en simulateur). */
+  supporte: boolean;
+  statut: Notifications.PermissionStatus | "non_supporte";
+  peutRedemander: boolean;
+};
+
+export async function etatPush(): Promise<EtatPush> {
+  if (Platform.OS === "web" || !Device.isDevice) {
+    return { supporte: false, statut: "non_supporte", peutRedemander: false };
+  }
+  const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+  return { supporte: true, statut: status, peutRedemander: canAskAgain };
+}
+
+/** Envoie le token natif du device au backend. Les tokens tournent : à rappeler
+ *  à chaque retour au premier plan. Ne bloque jamais le reste de l'app. */
+export async function enregistrerToken(userId: string): Promise<boolean> {
   if (Platform.OS === "web" || !Device.isDevice) return false;
   try {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== "granted") return false;
-
     const token = await Notifications.getDevicePushTokenAsync();
     const res = await fetch(`${BASE}/api/register-push`, {
       method: "POST",
@@ -25,4 +34,20 @@ export async function enregistrerPush(userId: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Demande l'autorisation (après une explication affichée par l'appelant) puis
+ *  enregistre le device. Renvoie l'état final des permissions. */
+export async function demanderPush(userId: string): Promise<EtatPush> {
+  const avant = await etatPush();
+  if (!avant.supporte) return avant;
+  if (avant.statut === "granted") {
+    await enregistrerToken(userId);
+    return avant;
+  }
+  if (!avant.peutRedemander) return avant;
+
+  const { status, canAskAgain } = await Notifications.requestPermissionsAsync();
+  if (status === "granted") await enregistrerToken(userId);
+  return { supporte: true, statut: status, peutRedemander: canAskAgain };
 }

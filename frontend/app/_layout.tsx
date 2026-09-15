@@ -47,8 +47,8 @@ if (Platform.OS === "android") {
 export default function RootLayout() {
   const router = useRouter();
   const [policesPretes, erreurPolices] = useFonts({
-    Fredoka: "https://raw.githubusercontent.com/google/fonts/main/ofl/fredoka/Fredoka%5Bwdth%2Cwght%5D.ttf",
-    Nunito: "https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/Nunito%5Bwght%5D.ttf",
+    Fredoka: require("@/assets/fonts/Fredoka.ttf"),
+    Nunito: require("@/assets/fonts/Nunito.ttf"),
   });
 
   useEffect(() => {

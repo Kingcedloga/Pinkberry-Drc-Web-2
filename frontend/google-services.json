@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1052134210791",
+    "project_id": "pinkberry-drc",
+    "storage_bucket": "pinkberry-drc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052134210791:android:54284ecacbb30cfbf3b642",
+        "android_client_info": {
+          "package_name": "com.emergent.commanderose.bbj4fa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMededGUVQFnGe2T0BTaZYRQRzYrFlVf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

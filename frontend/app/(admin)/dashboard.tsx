@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
+import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Logo } from "@/src/components/Logo";
 import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
@@ -126,6 +127,7 @@ export default function Dashboard() {
           onRefresh={rafraichir}
           ListHeaderComponent={
             <View style={styles.enteteListe}>
+              <CarteNotifications texte="Activez-les pour être alerté de chaque nouvelle commande, même app fermée." />
               <View testID="carte-ventes-jour" style={styles.ventesCarte}>
                 <View style={styles.ventesHaut}>
                   <View>

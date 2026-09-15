@@ -43,6 +43,12 @@ EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Pinkberry Drc")
 TAUX_FC = float(os.environ.get("TAUX_FC", "2800"))
 FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "2.5"))
 SUPERADMIN_EMAIL = (os.environ.get("SUPERADMIN_EMAIL") or "mecedloga@gmail.com").strip().lower()
+# Comptes de demonstration (admin / client / livreurs) : uniquement si les mots de
+# passe sont fournis par l'environnement, et desactivables d'un coup.
+SEED_DEMO = (os.environ.get("SEED_DEMO_ACCOUNTS") or "true").strip().lower() not in ("0", "false", "no")
+MDP_ADMIN = os.environ.get("DEMO_ADMIN_PASSWORD") or ""
+MDP_CLIENT = os.environ.get("DEMO_CLIENT_PASSWORD") or ""
+MDP_LIVREUR = os.environ.get("DEMO_LIVREUR_PASSWORD") or ""
 
 # --- Emergent Object Storage (photos de produits) ---
 STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
@@ -1363,7 +1369,6 @@ async def seed():
         )
 
     # super admin unique : le compte Google du proprietaire
-    await db.users.delete_one({"telephone": "0800000000", "role": "superadmin"})
     promu = await db.users.update_one(
         {"email": SUPERADMIN_EMAIL},
         {"$set": {"role": "superadmin", "actif": True, "verifie": True}},
@@ -1377,21 +1382,27 @@ async def seed():
     # comptes existants : actif par defaut
     await db.users.update_many({"actif": {"$exists": False}}, {"$set": {"actif": True}})
 
+    # comptes de demonstration : desactivables et mots de passe pilotes par l'environnement
+    if not SEED_DEMO:
+        return
+
     # admin
-    if not await db.users.find_one({"telephone": "0810000000"}):
+    if MDP_ADMIN and not await db.users.find_one({"telephone": "0810000000"}):
         await db.users.insert_one({
             "id": str(uuid.uuid4()), "nom": "Admin Pinkberry", "telephone": "0810000000",
-            "email": None, "motDePasseHash": hash_pwd("admin123"), "role": "admin",
+            "email": None, "motDePasseHash": hash_pwd(MDP_ADMIN), "role": "admin",
             "verifie": True, "createdAt": iso(now_utc()),
         })
     # client demo
-    if not await db.users.find_one({"telephone": "0990000001"}):
+    if MDP_CLIENT and not await db.users.find_one({"telephone": "0990000001"}):
         await db.users.insert_one({
             "id": str(uuid.uuid4()), "nom": "Client Demo", "telephone": "0990000001",
-            "email": None, "motDePasseHash": hash_pwd("client123"), "role": "client",
+            "email": None, "motDePasseHash": hash_pwd(MDP_CLIENT), "role": "client",
             "verifie": True, "createdAt": iso(now_utc()),
         })
     # livreurs demo
+    if not MDP_LIVREUR:
+        return
     demo_livreurs = [
         ("Jonas Mbala", "0820000001", "Moto Yamaha", "KIN 4521", 4.8),
         ("Patricia Luwawu", "0820000002", "Scooter", "KIN 8890", 4.9),
@@ -1405,7 +1416,7 @@ async def seed():
         if not await db.users.find_one({"telephone": tel}):
             await db.users.insert_one({
                 "id": str(uuid.uuid4()), "nom": nom, "telephone": tel, "email": None,
-                "motDePasseHash": hash_pwd("livreur123"), "role": "livreur", "livreurId": lv["id"],
+                "motDePasseHash": hash_pwd(MDP_LIVREUR), "role": "livreur", "livreurId": lv["id"],
                 "verifie": True, "createdAt": iso(now_utc()),
             })
         if not await db.positions_livreurs.find_one({"livreurId": lv["id"]}):
