@@ -17,7 +17,7 @@ import httpx
 import jwt
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
@@ -390,6 +390,11 @@ class MotDePasseIn(BaseModel):
 
 class CategorieIn(BaseModel):
     nom: str
+
+
+class ZoneCreationIn(BaseModel):
+    commune: str
+    active: bool = True
 
 
 class ZoneIn(BaseModel):
@@ -923,6 +928,26 @@ async def liste_zones():
     return sorted(zones, key=lambda z: z["commune"])
 
 
+@api_router.post("/admin/zones")
+async def creer_zone(body: ZoneCreationIn, _=Depends(require_admin)):
+    commune = body.commune.strip()
+    if len(commune) < 2:
+        raise HTTPException(status_code=400, detail="Nom de zone trop court")
+    if await db.zones.find_one({"commune": {"$regex": f"^{re.escape(commune)}$", "$options": "i"}}):
+        raise HTTPException(status_code=400, detail="Cette zone existe deja")
+    doc = {"id": str(uuid.uuid4()), "commune": commune, "active": body.active}
+    await db.zones.insert_one(dict(doc))
+    return doc
+
+
+@api_router.delete("/admin/zones/{zone_id}")
+async def supprimer_zone(zone_id: str, _=Depends(require_admin)):
+    res = await db.zones.delete_one({"id": zone_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Zone introuvable")
+    return {"ok": True}
+
+
 @api_router.put("/admin/zones/{zone_id}")
 async def modifier_zone(zone_id: str, body: ZoneIn, _=Depends(require_admin)):
     res = await db.zones.update_one({"id": zone_id}, {"$set": {"active": body.active}})
@@ -1157,7 +1182,10 @@ async def annuler_commande(cmd_id: str, user=Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Cette commande ne peut plus etre annulee")
     await db.commandes.update_one(
         {"id": cmd_id},
-        {"$set": {"statut": "annulee"}, "$push": {"historique": {"statut": "annulee", "at": iso(now_utc())}}},
+        {
+            "$set": {"statut": "annulee", "termineeAt": iso(now_utc())},
+            "$push": {"historique": {"statut": "annulee", "at": iso(now_utc())}},
+        },
     )
     await notifier_client(cmd, "annulee")
     return await detail_commande(cmd_id, user)
@@ -1176,8 +1204,41 @@ async def confirmer_paiement_client(cmd_id: str, body: PaiementIn, user=Depends(
 
 
 # ------------------------------------------------------------------- admin orders
+DELAI_ARCHIVAGE_JOURS = int(os.environ.get("ARCHIVAGE_AUTO_JOURS", "10"))
+
+LIBELLES_STATUT = {
+    "recue": "Reçue",
+    "en_preparation": "En préparation",
+    "recuperee": "Récupérée",
+    "en_route": "En route",
+    "arrivee": "Arrivée",
+    "livree": "Livrée",
+    "annulee": "Annulée",
+}
+
+
+async def archiver_anciennes() -> int:
+    """Archive automatiquement les commandes livrees depuis plus de N jours."""
+    limite = iso(now_utc() - timedelta(days=DELAI_ARCHIVAGE_JOURS))
+    res = await db.commandes.update_many(
+        {
+            "statut": "livree",
+            "archivee": {"$ne": True},
+            "$or": [
+                {"termineeAt": {"$lt": limite}},
+                {"termineeAt": {"$exists": False}, "createdAt": {"$lt": limite}},
+            ],
+        },
+        {"$set": {"archivee": True, "archiveeAt": iso(now_utc()), "archivageAuto": True}},
+    )
+    if res.modified_count:
+        logger.info(f"Archivage auto : {res.modified_count} commande(s) livree(s) depuis +{DELAI_ARCHIVAGE_JOURS}j")
+    return res.modified_count
+
+
 @api_router.get("/admin/commandes")
 async def admin_commandes(_=Depends(require_admin)):
+    await archiver_anciennes()
     cmds = await db.commandes.find({"archivee": {"$ne": True}}, {"_id": 0}).to_list(500)
     cmds.sort(key=lambda c: c["createdAt"], reverse=True)
     return [await enrichir(c) for c in cmds]
@@ -1224,6 +1285,190 @@ async def supprimer_commande(cmd_id: str, _=Depends(require_admin)):
     return {"ok": True}
 
 
+@api_router.get("/admin/rapport")
+async def rapport_commandes(
+    debut: str,
+    fin: str,
+    format: str = "xlsx",
+    _=Depends(require_admin),
+):
+    """Rapport des commandes d'une periode, archivees incluses, en .xlsx ou .pdf."""
+    if format not in ("xlsx", "pdf"):
+        raise HTTPException(status_code=400, detail="Format attendu : xlsx ou pdf")
+    try:
+        d_debut = datetime.strptime(debut, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        d_fin = datetime.strptime(fin, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Dates attendues au format AAAA-MM-JJ")
+    if d_fin < d_debut:
+        raise HTTPException(status_code=400, detail="La date de fin precede la date de debut")
+
+    borne_fin = iso(d_fin + timedelta(days=1))
+    cmds = await db.commandes.find(
+        {"createdAt": {"$gte": iso(d_debut), "$lt": borne_fin}}, {"_id": 0}
+    ).to_list(5000)
+    cmds.sort(key=lambda c: c["createdAt"])
+
+    livreurs = {lv["id"]: lv["nom"] for lv in await db.livreurs.find({}, {"_id": 0}).to_list(200)}
+    lignes = []
+    for c in cmds:
+        articles = ", ".join(
+            f"{a.get('quantite', 1)}x {a.get('nom', '')}"
+            + (f" ({a.get('taille')})" if a.get("taille") else "")
+            for a in c.get("items", [])
+        )
+        adr = c.get("adresse") or {}
+        lignes.append({
+            "numero": c.get("numero", ""),
+            "date": (c.get("createdAt") or "")[:16].replace("T", " "),
+            "client": c.get("clientNom") or "—",
+            "adresse": f"{adr.get('commune', '')} — {adr.get('avenue', '')} {adr.get('numero', '')}".strip(" —"),
+            "articles": articles,
+            "total": round(float(c.get("total", 0)), 2),
+            "statut": LIBELLES_STATUT.get(c.get("statut", ""), c.get("statut", "")),
+            "livreur": livreurs.get(c.get("livreurId") or "", "—"),
+        })
+
+    livrees = [c for c in cmds if c.get("statut") == "livree"]
+    annulees = [c for c in cmds if c.get("statut") == "annulee"]
+    resume = {
+        "nbCommandes": len(cmds),
+        "chiffre": round(sum(float(c.get("total", 0)) for c in livrees), 2),
+        "nbLivrees": len(livrees),
+        "nbAnnulees": len(annulees),
+    }
+    titre = f"Rapport des commandes du {debut} au {fin}"
+    nom_fichier = f"pinkberry-rapport-{debut}-{fin}.{format}"
+
+    contenu = (
+        construire_xlsx(titre, lignes, resume) if format == "xlsx" else construire_pdf(titre, lignes, resume)
+    )
+    media = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        if format == "xlsx"
+        else "application/pdf"
+    )
+    return StreamingResponse(
+        io.BytesIO(contenu),
+        media_type=media,
+        headers={"Content-Disposition": f'attachment; filename="{nom_fichier}"'},
+    )
+
+
+COLONNES_RAPPORT = [
+    ("numero", "N° commande", 14),
+    ("date", "Date", 17),
+    ("client", "Client", 20),
+    ("adresse", "Adresse / commune", 30),
+    ("articles", "Articles", 40),
+    ("total", "Total USD", 11),
+    ("statut", "Statut", 14),
+    ("livreur", "Livreur", 18),
+]
+
+
+def construire_xlsx(titre: str, lignes: List[Dict[str, Any]], resume: Dict[str, Any]) -> bytes:
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Commandes"
+
+    ws.append([titre])
+    ws["A1"].font = Font(bold=True, size=14, color="E6156F")
+    ws.append([])
+
+    entetes = [c[1] for c in COLONNES_RAPPORT]
+    ws.append(entetes)
+    for cell in ws[3]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="E6156F")
+        cell.alignment = Alignment(horizontal="center")
+
+    for lg in lignes:
+        ws.append([lg[c[0]] for c in COLONNES_RAPPORT])
+
+    for i, (_, __, largeur) in enumerate(COLONNES_RAPPORT, start=1):
+        ws.column_dimensions[ws.cell(row=3, column=i).column_letter].width = largeur
+
+    ws.append([])
+    ws.append(["Récapitulatif"])
+    ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=12)
+    for label, valeur in [
+        ("Nombre de commandes", resume["nbCommandes"]),
+        ("Chiffre d'affaires (commandes livrées)", f"$ {resume['chiffre']:.2f}"),
+        ("Livraisons réussies", resume["nbLivrees"]),
+        ("Commandes annulées", resume["nbAnnulees"]),
+    ]:
+        ws.append([label, valeur])
+
+    flux = io.BytesIO()
+    wb.save(flux)
+    return flux.getvalue()
+
+
+def construire_pdf(titre: str, lignes: List[Dict[str, Any]], resume: Dict[str, Any]) -> bytes:
+    from reportlab.lib import colors as pdfcolors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    flux = io.BytesIO()
+    doc = SimpleDocTemplate(
+        flux, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm,
+        topMargin=12 * mm, bottomMargin=12 * mm, title=titre,
+    )
+    styles = getSampleStyleSheet()
+    petit = styles["BodyText"].clone("petit")
+    petit.fontSize = 7
+    petit.leading = 9
+
+    rose = pdfcolors.HexColor("#E6156F")
+    elements: List[Any] = [
+        Paragraph(f"<font color='#E6156F'><b>Pinkberry Drc</b></font> — {titre}", styles["Title"]),
+        Spacer(1, 6),
+    ]
+
+    donnees = [[Paragraph(f"<b>{c[1]}</b>", petit) for c in COLONNES_RAPPORT]]
+    for lg in lignes:
+        donnees.append([
+            Paragraph(f"$ {lg[c[0]]:.2f}" if c[0] == "total" else str(lg[c[0]]), petit)
+            for c in COLONNES_RAPPORT
+        ])
+
+    largeurs = [22 * mm, 26 * mm, 30 * mm, 48 * mm, 62 * mm, 20 * mm, 24 * mm, 28 * mm]
+    table = Table(donnees, colWidths=largeurs, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), rose),
+        ("TEXTCOLOR", (0, 0), (-1, 0), pdfcolors.white),
+        ("GRID", (0, 0), (-1, -1), 0.3, pdfcolors.HexColor("#E8D7DE")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [pdfcolors.white, pdfcolors.HexColor("#FDF3F7")]),
+    ]))
+    elements += [table, Spacer(1, 10), Paragraph("<b>Récapitulatif</b>", styles["Heading3"])]
+
+    resume_table = Table(
+        [
+            ["Nombre de commandes", str(resume["nbCommandes"])],
+            ["Chiffre d'affaires (commandes livrées)", f"$ {resume['chiffre']:.2f}"],
+            ["Livraisons réussies", str(resume["nbLivrees"])],
+            ["Commandes annulées", str(resume["nbAnnulees"])],
+        ],
+        colWidths=[80 * mm, 40 * mm],
+    )
+    resume_table.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.3, pdfcolors.HexColor("#E8D7DE")),
+        ("BACKGROUND", (0, 0), (0, -1), pdfcolors.HexColor("#FDF3F7")),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+    ]))
+    elements.append(resume_table)
+
+    doc.build(elements)
+    return flux.getvalue()
+
+
 @api_router.get("/admin/stats")
 async def admin_stats(_=Depends(require_admin)):
     cmds = await db.commandes.find({}, {"_id": 0}).to_list(1000)
@@ -1254,7 +1499,13 @@ async def assigner_livreur(cmd_id: str, body: AssignIn, user=Depends(require_adm
 async def admin_statut(cmd_id: str, body: StatutIn, user=Depends(require_admin)):
     res = await db.commandes.update_one(
         {"id": cmd_id},
-        {"$set": {"statut": body.statut}, "$push": {"historique": {"statut": body.statut, "at": iso(now_utc())}}},
+        {
+            "$set": {
+                "statut": body.statut,
+                **({"termineeAt": iso(now_utc())} if body.statut in ("livree", "annulee") else {}),
+            },
+            "$push": {"historique": {"statut": body.statut, "at": iso(now_utc())}},
+        },
     )
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Commande introuvable")
@@ -1308,7 +1559,13 @@ async def livreur_statut(cmd_id: str, body: StatutIn, user=Depends(require_livre
         raise HTTPException(status_code=404, detail="Course introuvable")
     await db.commandes.update_one(
         {"id": cmd_id},
-        {"$set": {"statut": body.statut}, "$push": {"historique": {"statut": body.statut, "at": iso(now_utc())}}},
+        {
+            "$set": {
+                "statut": body.statut,
+                **({"termineeAt": iso(now_utc())} if body.statut in ("livree", "annulee") else {}),
+            },
+            "$push": {"historique": {"statut": body.statut, "at": iso(now_utc())}},
+        },
     )
     maj = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
     await notifier_client(maj, body.statut)
@@ -1323,7 +1580,7 @@ async def livreur_encaisser(cmd_id: str, user=Depends(require_livreur)):
     await db.commandes.update_one(
         {"id": cmd_id},
         {
-            "$set": {"cashEncaisse": True, "statut": "livree"},
+            "$set": {"cashEncaisse": True, "statut": "livree", "termineeAt": iso(now_utc())},
             "$push": {"historique": {"statut": "livree", "at": iso(now_utc())}},
         },
     )

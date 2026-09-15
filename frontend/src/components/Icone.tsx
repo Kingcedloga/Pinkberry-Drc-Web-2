@@ -6,6 +6,7 @@ import {
   ArrowRightStartOnRectangleIcon,
   ArrowsRightLeftIcon,
   ArrowUpTrayIcon,
+  ArrowDownTrayIcon,
   ArchiveBoxIcon,
   Cog6ToothIcon,
   CakeIcon,
@@ -64,6 +65,7 @@ import { colors } from "@/src/theme";
 const REGISTRE = {
   "alert-circle": ExclamationCircleIcon,
   archive: ArchiveBoxIcon,
+  download: ArrowDownTrayIcon,
   "arrow-left": ArrowLeftIcon,
   settings: Cog6ToothIcon,
   camera: CameraIcon,

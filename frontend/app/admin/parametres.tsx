@@ -192,6 +192,13 @@ export default function Parametres() {
 
             <Section titre="Commandes">
               <Ligne
+                testID="ligne-rapports"
+                icone="download"
+                label="Rapport des commandes"
+                valeur="Excel ou PDF par période"
+                onPress={() => router.push("/admin/rapports")}
+              />
+              <Ligne
                 testID="ligne-archives"
                 icone="package"
                 label="Archives des commandes"

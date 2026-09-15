@@ -2,6 +2,10 @@ const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 let authToken: string | null = null;
 
+export function obtenirToken() {
+  return authToken;
+}
+
 export function setAuthToken(t: string | null) {
   authToken = t;
 }

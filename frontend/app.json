@@ -22,7 +22,11 @@
       },
       "package": "com.emergent.commanderose.bbj4fa",
       "googleServicesFile": "./google-services.json",
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -63,7 +67,8 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-status-bar",
-      "@react-native-vector-icons/feather"
+      "@react-native-vector-icons/feather",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true
