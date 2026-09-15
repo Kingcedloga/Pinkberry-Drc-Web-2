@@ -260,10 +260,8 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   Cause racine complémentaire : d'anciens tests (`test_final_taux_is_2800`, `test_config`,
   `test_non_regression_config`) remettaient le taux à 2800 à chaque exécution — ils restaurent
   désormais la valeur initiale. **Ne jamais remettre 2800 en dur dans un test.**
-- **Page de bienvenue animée** : `src/components/HeroLivreur.tsx` remplace la photo
-  `livreur-pinkberry.png` par une scène emoji (🛵 + 🧑 + 🍦) animée avec `Animated` de react-native
-  (rebond, tressautement, route qui défile, étincelles), respect de « réduire les animations »,
-  charte rose/vert conservée avec logo et slogan.
+- **Page de bienvenue** : revenue à la photo `livreur-pinkberry.png` (choix utilisateur du 15/09/2026,
+  la scène emoji `HeroLivreur` a été supprimée).
 - Tests : 152 tests backend (itération 12) + parcours admin/bienvenue validés.
 
 ## Backlog priorisé
