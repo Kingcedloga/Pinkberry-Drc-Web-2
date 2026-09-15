@@ -6,6 +6,8 @@ import {
   ArrowRightStartOnRectangleIcon,
   ArrowsRightLeftIcon,
   ArrowUpTrayIcon,
+  ArchiveBoxIcon,
+  Cog6ToothIcon,
   CakeIcon,
   CameraIcon,
   CheckCircleIcon,
@@ -61,7 +63,9 @@ import { colors } from "@/src/theme";
  */
 const REGISTRE = {
   "alert-circle": ExclamationCircleIcon,
+  archive: ArchiveBoxIcon,
   "arrow-left": ArrowLeftIcon,
+  settings: Cog6ToothIcon,
   camera: CameraIcon,
   check: CheckIcon,
   "check-circle": CheckCircleIcon,

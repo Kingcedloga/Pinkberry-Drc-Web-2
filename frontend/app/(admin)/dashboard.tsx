@@ -6,7 +6,6 @@ import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
-import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Logo } from "@/src/components/Logo";
@@ -36,7 +35,6 @@ export default function Dashboard() {
   const router = useRouter();
   const toast = useToast();
   const qc = useQueryClient();
-  const { deconnexion } = useAuth();
   const { usd, fc } = useMontant();
   const [ouverte, setOuverte] = useState<any>(null);
 
@@ -91,6 +89,17 @@ export default function Dashboard() {
     }
   };
 
+  const archiver = async (cmd: any) => {
+    try {
+      await apiFetch(`/admin/commandes/${cmd.id}/archiver`, { method: "POST" });
+      rafraichir();
+      qc.invalidateQueries({ queryKey: ["admin-archives"] });
+      toast.show(`${cmd.numero} archivée`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
   const stats = statsQ.data;
   const ventes = ventesQ.data;
 
@@ -102,14 +111,11 @@ export default function Dashboard() {
           <Text style={styles.sousTitre}>Back office administrateur</Text>
         </View>
         <Pressable
-          testID="btn-admin-deconnexion"
-          onPress={async () => {
-            await deconnexion();
-            router.replace("/bienvenue");
-          }}
+          testID="btn-admin-parametres"
+          onPress={() => router.push("/parametres")}
           style={styles.iconeBtn}
         >
-          <Icone name="log-out" size={20} color={colors.brandPrimary} />
+          <Icone name="settings" size={20} color={colors.brandPrimary} />
         </Pressable>
       </View>
 
@@ -229,6 +235,16 @@ export default function Dashboard() {
                 </View>
                 <Text style={styles.total}>{usd(item.total)}</Text>
               </View>
+              {item.statut === "livree" || item.statut === "annulee" ? (
+                <Pressable
+                  testID={`btn-archiver-${item.numero}`}
+                  onPress={() => archiver(item)}
+                  style={({ pressed }) => [styles.archiver, pressed && { opacity: 0.7 }]}
+                >
+                  <Icone name="package" size={15} color={colors.brandPrimary} />
+                  <Text style={styles.archiverTexte}>Archiver</Text>
+                </Pressable>
+              ) : null}
             </Pressable>
           )}
         />
@@ -400,6 +416,17 @@ const styles = StyleSheet.create({
   livreurTagRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, flex: 1 },
   livreurTag: { fontFamily: fonts.text, fontSize: 12, color: colors.brandPrimary, fontWeight: "700" },
   total: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
+  archiver: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 44,
+    marginTop: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+  },
+  archiverTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.brandPrimary },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {
     backgroundColor: colors.surface,

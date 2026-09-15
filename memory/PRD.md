@@ -202,6 +202,23 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   d'environnement (aucun mot de passe en clair dans le code), polices Fredoka et Nunito
   désormais embarquées dans `assets/fonts` au lieu d'être téléchargées au lancement.
 
+## Implémenté — ajout du 15/09/2026 (v1.8)
+- **Page « Paramètres » de l'administration** (`app/(admin)/parametres.tsx`, hors barre d'onglets,
+  accessible par l'engrenage en haut du tableau de bord) : point d'entrée central structuré en
+  sections — Mon compte (Modifier le profil, Changer le mot de passe avec bascule œil), Commandes
+  (Archives), Boutique (taux de change / catalogue, zones, comptes du personnel pour le super admin)
+  et Se déconnecter. Ajouter un réglage = ajouter une `<Section>` ou une `<Ligne>`.
+- **Nouvelles routes compte** : `PUT /api/auth/profil` (nom, email, téléphone avec contrôle
+  d'unicité ; rôle et `actif` non modifiables) et `PUT /api/auth/motdepasse` (vérifie l'ancien mot de
+  passe, minimum 6 caractères, permet à un compte Google sans mot de passe d'en définir un).
+- **Archivage puis suppression des commandes** : `POST /api/admin/commandes/{id}/archiver`
+  (livrées ou annulées uniquement), `POST .../desarchiver`, `GET /api/admin/commandes/archives`,
+  `DELETE /api/admin/commandes/{id}` (refusé tant que la commande n'est pas archivée).
+  `GET /api/admin/commandes` exclut désormais les archivées, mais `/admin/stats` et `/admin/ventes`
+  continuent de les compter. UI : bouton « Archiver » sur les commandes livrées/annulées du tableau
+  de bord, écran Archives (`app/(admin)/archives.tsx`) avec Restaurer et Supprimer + confirmation.
+- Tests : 115/115 backend (25 nouveaux) + parcours frontend admin validés (itération 9).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

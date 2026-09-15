@@ -377,6 +377,17 @@ class ActifIn(BaseModel):
     actif: bool
 
 
+class ProfilIn(BaseModel):
+    nom: str
+    email: Optional[str] = None
+    telephone: str
+
+
+class MotDePasseIn(BaseModel):
+    actuel: Optional[str] = None
+    nouveau: str
+
+
 class CategorieIn(BaseModel):
     nom: str
 
@@ -508,6 +519,37 @@ async def connexion(body: ConnexionIn):
 @api_router.get("/auth/moi")
 async def moi(user=Depends(get_current_user)):
     return public_user(user)
+
+
+@api_router.put("/auth/profil")
+async def modifier_profil(body: ProfilIn, user=Depends(get_current_user)):
+    tel = norm_tel(body.telephone)
+    if len(tel) < 9:
+        raise HTTPException(status_code=400, detail="Numero de telephone invalide")
+    if len(body.nom.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Nom trop court")
+    email = (body.email or "").strip().lower() or None
+    if await db.users.find_one({"telephone": tel, "id": {"$ne": user["id"]}}):
+        raise HTTPException(status_code=400, detail="Ce numero est deja utilise")
+    if email and await db.users.find_one({"email": email, "id": {"$ne": user["id"]}}):
+        raise HTTPException(status_code=400, detail="Cet email est deja utilise")
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"nom": body.nom.strip(), "email": email, "telephone": tel}},
+    )
+    return public_user({**user, "nom": body.nom.strip(), "email": email, "telephone": tel})
+
+
+@api_router.put("/auth/motdepasse")
+async def changer_motdepasse(body: MotDePasseIn, user=Depends(get_current_user)):
+    if len(body.nouveau) < 6:
+        raise HTTPException(status_code=400, detail="Mot de passe : 6 caracteres minimum")
+    actuel_hash = user.get("motDePasseHash") or ""
+    # Un compte Google sans mot de passe peut en definir un sans ancien mot de passe.
+    if actuel_hash and not check_pwd(body.actuel or "", actuel_hash):
+        raise HTTPException(status_code=400, detail="Mot de passe actuel incorrect")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"motDePasseHash": hash_pwd(body.nouveau)}})
+    return {"ok": True}
 
 
 @api_router.delete("/auth/moi")
@@ -1136,9 +1178,50 @@ async def confirmer_paiement_client(cmd_id: str, body: PaiementIn, user=Depends(
 # ------------------------------------------------------------------- admin orders
 @api_router.get("/admin/commandes")
 async def admin_commandes(_=Depends(require_admin)):
-    cmds = await db.commandes.find({}, {"_id": 0}).to_list(500)
+    cmds = await db.commandes.find({"archivee": {"$ne": True}}, {"_id": 0}).to_list(500)
     cmds.sort(key=lambda c: c["createdAt"], reverse=True)
     return [await enrichir(c) for c in cmds]
+
+
+@api_router.get("/admin/commandes/archives")
+async def admin_commandes_archivees(_=Depends(require_admin)):
+    cmds = await db.commandes.find({"archivee": True}, {"_id": 0}).to_list(500)
+    cmds.sort(key=lambda c: c.get("archiveeAt") or c["createdAt"], reverse=True)
+    return [await enrichir(c) for c in cmds]
+
+
+@api_router.post("/admin/commandes/{cmd_id}/archiver")
+async def archiver_commande(cmd_id: str, _=Depends(require_admin)):
+    cmd = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+    if cmd.get("statut") not in ("livree", "annulee"):
+        raise HTTPException(status_code=400, detail="Seules les commandes livrees ou annulees peuvent etre archivees")
+    await db.commandes.update_one(
+        {"id": cmd_id}, {"$set": {"archivee": True, "archiveeAt": iso(now_utc())}}
+    )
+    return {"ok": True}
+
+
+@api_router.post("/admin/commandes/{cmd_id}/desarchiver")
+async def desarchiver_commande(cmd_id: str, _=Depends(require_admin)):
+    res = await db.commandes.update_one(
+        {"id": cmd_id, "archivee": True}, {"$set": {"archivee": False}, "$unset": {"archiveeAt": ""}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Commande archivee introuvable")
+    return {"ok": True}
+
+
+@api_router.delete("/admin/commandes/{cmd_id}")
+async def supprimer_commande(cmd_id: str, _=Depends(require_admin)):
+    cmd = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+    if not cmd.get("archivee"):
+        raise HTTPException(status_code=400, detail="Archivez la commande avant de la supprimer")
+    await db.commandes.delete_one({"id": cmd_id})
+    return {"ok": True}
 
 
 @api_router.get("/admin/stats")

@@ -1,0 +1,33 @@
+{
+  "summary": "Iteration 9 (Paramètres admin + Archivage/Suppression commandes) — GREEN. Backend: 25/25 nouveaux tests pytest passent (test_iteration9.py) + suite complète 115/115 (90 baseline iter1-8 + 25 iter9). PUT /api/auth/profil, PUT /api/auth/motdepasse, GET /admin/commandes/archives, POST /admin/commandes/{id}/archiver, POST /admin/commandes/{id}/desarchiver, DELETE /admin/commandes/{id} tous conformes : validation (nom<2 400, tel<9 400, tel/email doublon 400, mdp<6 400, mdp actuel faux 400), RBAC (401 sans jeton, 403 client/livreur, 200 admin ET superadmin JWT forgé), règles métier (archiver seulement livree/annulee, delete seulement si archivee, exclusion de /admin/commandes après archivage, comptée dans /admin/stats & /admin/ventes), cas Google sans mdp (motDePasseHash='' → peut définir sans 'actuel'), rôle/actif NON modifiables via /auth/profil. Frontend web (viewport 390x844) admin 0810000000/admin123 : bouton engrenage btn-admin-parametres → ecran-parametres avec les 5 lignes attendues (profil, motdepasse, archives, taux, zones) + btn-deconnexion-parametres ; ligne-personnel correctement CACHÉE pour l'admin (visible superadmin uniquement). Sous-vue Profil : 3 inputs + btn-enregistrer-profil, btn-retour-parametres OK. Sous-vue Mot de passe : 3 inputs masqués par défaut (type=password), bascule oeil fonctionnelle (type=password → sans attribut type = text), message d'erreur affiché quand nouveau≠confirme (mots-clés 'correspondent' et 'ne correspond' détectés dans le toast). Écran Archives : ecran-archives + liste-archives présents (FlatList vide dans la session de test → is_visible=false attendu, ListEmptyComponent 'Aucune commande archivée' rendu). Dashboard admin : 29 btn-archiver-<numero> présents sur les commandes livrées/annulées, aucun sur les commandes actives. Barre d'onglets admin : Commandes|Catalogue|Zones|Livreurs uniquement (Paramètres et Archives correctement HORS barre via href:null). Déconnexion depuis Paramètres → /bienvenue. Aucun changement dans les mots de passe des comptes de démo (les tests utilisent des comptes créés puis nettoyés). Aucune régression détectée. Test data: seuls des comptes/commandes TEST_ ont été créés puis supprimés en fin de test via cleanup dans les fixtures.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/pytest_iter9.xml",
+    "/app/test_reports/pytest/pytest_regression_iter9.xml",
+    "/app/backend/tests/test_iteration9.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py L524-540 : PUT /auth/profil ignore correctement role/actif (utilise uniquement les champs déclarés dans ProfilIn) — vérifié : mise à jour depuis body {role:'admin', actif:false} n'affecte pas la base.",
+    "server.py L544-552 : /auth/motdepasse gère bien le cas Google (actuel_hash vide → 'actuel' non requis). Longueur minimum 6 caractères correctement validée.",
+    "server.py L1181 : GET /admin/commandes filtre bien {archivee: {$ne: True}} — non-régression sur les listes.",
+    "server.py L1193-1224 : archiver/desarchiver/delete cohérents (400 si active, 404 si id inconnu, delete refuse tant que non archivée). RBAC via require_admin qui accepte admin ET superadmin — vérifié via JWT forgé.",
+    "parametres.tsx L44-51 & _layout.tsx L44-51 : NativeTabs.Trigger 'parametres' et 'archives' marqués hidden ; en fallback Tabs.Screen href:null. Correct — ne s'affichent pas dans la barre.",
+    "Champ.tsx : oeil implémenté avec state 'visible' local et testID {baseTestID}-oeil, secureTextEntry basculé correctement — confirmé via changement de type=password vers absence d'attribut type sur le web."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration9.py (nouveau)"
+  ],
+  "success_rate": {"backend": "100% (25/25 iter9 + 90/90 baseline = 115/115)", "frontend": "100% (Paramètres + Archives + Dashboard + Tab bar + Déconnexion)"},
+  "seed_data_creation": "Aucune donnée persistante. Comptes clients TEST_Iter9 créés à la volée dans les fixtures et supprimés en fin de test (fonction _cleanup_user). Commandes de test créées via l'API cliente en commune Gombe puis supprimées en fin de test (db.commandes.delete_one). Mots de passe des comptes de démo (0810000000/0990000001/0820000001) NON modifiés. Taux inchangé (2800 FC).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Suite backend: 115 tests pytest (73 baseline iter1-6 + 17 iter7 + 25 iter9). Pour tester une route archivage/suppression, TOUJOURS créer une commande via POST /api/commandes avec un client de test créé via _create_test_client (téléphone dynamique 0995<random>), la faire progresser vers 'livree' via /admin/commandes/{id}/assigner puis 4 PATCH /admin/commandes/{id}/statut successifs (en_preparation→recuperee→en_route→livree), puis archiver et enfin nettoyer via _mongo().commandes.delete_one({id:cmd_id}) et _cleanup_user(cuid). Ne JAMAIS supprimer une commande de démo existante. JWT forgé via jwt.encode({sub:super_id, exp:+1j}, JWT_SECRET, HS256) — JWT_SECRET='pinkberry-drc-secret-2026-kinshasa'. Sur le web (Platform.OS==='web'), la carte Notifications reste masquée et la carte Leaflet ne s'affiche pas — ce n'est PAS un bug (contrainte preview). L'écran archives peut renvoyer une liste vide → is_visible('liste-archives') peut être false (FlatList empty rendered as ListEmptyComponent), tester plutôt is_visible('ecran-archives').",
+  "rca_of_issue": "N/A. Un ajustement mineur d'assertion dans test_role_actif_non_modifiables (user.actif peut être absent dans la fiche seed, tester 'is not False' plutôt que 'is True')."
+}
