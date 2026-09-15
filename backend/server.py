@@ -42,6 +42,7 @@ EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Pinkberry Drc")
 
 TAUX_FC = float(os.environ.get("TAUX_FC", "2800"))
 FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "2.5"))
+SUPERADMIN_EMAIL = (os.environ.get("SUPERADMIN_EMAIL") or "mecedloga@gmail.com").strip().lower()
 
 # --- Emergent Object Storage (photos de produits) ---
 STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
@@ -370,6 +371,10 @@ class ActifIn(BaseModel):
     actif: bool
 
 
+class CategorieIn(BaseModel):
+    nom: str
+
+
 class ZoneIn(BaseModel):
     active: bool
 
@@ -497,6 +502,33 @@ async def connexion(body: ConnexionIn):
 @api_router.get("/auth/moi")
 async def moi(user=Depends(get_current_user)):
     return public_user(user)
+
+
+@api_router.delete("/auth/moi")
+async def supprimer_mon_compte(user=Depends(get_current_user)):
+    """Suppression du compte client. Les commandes sont conservees mais anonymisees
+    (comptabilite), toutes les donnees personnelles sont effacees."""
+    if user.get("role") != "client":
+        raise HTTPException(
+            status_code=403,
+            detail="Les comptes du personnel sont geres par le super admin",
+        )
+    await db.commandes.update_many(
+        {"userId": user["id"]},
+        {"$set": {
+            "userId": "anonyme",
+            "clientNom": "Client supprime",
+            "clientTelephone": None,
+            "adresse.telephone": None,
+            "adresse.repere": "",
+            "anonymisee": True,
+        }},
+    )
+    await db.adresses.delete_many({"userId": user["id"]})
+    await db.otps.delete_many({"telephone": user.get("telephone")})
+    await db.user_sessions.delete_many({"user_id": user["id"]})
+    await db.users.delete_one({"id": user["id"]})
+    return {"ok": True}
 
 
 # ------------------------------------------------------- Google Auth (Emergent)
@@ -775,7 +807,42 @@ async def liste_produits():
 
 @api_router.get("/categories")
 async def liste_categories():
-    return ["Tous", "Pots de crème", "Smoothies", "Toppings", "Boissons"]
+    cats = await db.categories.find({}, {"_id": 0}).to_list(100)
+    noms = sorted({c["nom"] for c in cats})
+    return ["Tous", *noms]
+
+
+@api_router.get("/admin/categories")
+async def admin_categories(_=Depends(require_admin)):
+    cats = await db.categories.find({}, {"_id": 0}).to_list(100)
+    for c in cats:
+        c["nbProduits"] = await db.produits.count_documents({"categorie": c["nom"]})
+    return sorted(cats, key=lambda c: c["nom"].lower())
+
+
+@api_router.post("/admin/categories")
+async def creer_categorie(body: CategorieIn, _=Depends(require_admin)):
+    nom = body.nom.strip()
+    if len(nom) < 2:
+        raise HTTPException(status_code=400, detail="Nom de categorie trop court")
+    if nom.lower() == "tous":
+        raise HTTPException(status_code=400, detail="« Tous » est un filtre reserve")
+    if await db.categories.find_one({"nom": {"$regex": f"^{re.escape(nom)}$", "$options": "i"}}):
+        raise HTTPException(status_code=400, detail="Cette categorie existe deja")
+    doc = {"id": str(uuid.uuid4()), "nom": nom}
+    await db.categories.insert_one(dict(doc))
+    doc["nbProduits"] = 0
+    return doc
+
+
+@api_router.delete("/admin/categories/{categorie_id}")
+async def supprimer_categorie(categorie_id: str, _=Depends(require_admin)):
+    cat = await db.categories.find_one({"id": categorie_id}, {"_id": 0})
+    if not cat:
+        raise HTTPException(status_code=404, detail="Categorie introuvable")
+    res = await db.produits.delete_many({"categorie": cat["nom"]})
+    await db.categories.delete_one({"id": categorie_id})
+    return {"ok": True, "produitsSupprimes": res.deleted_count}
 
 
 @api_router.post("/admin/produits")
@@ -1287,15 +1354,25 @@ async def seed():
             doc["disponible"] = True
             await db.produits.insert_one(doc)
 
-    # super admin (gere les comptes du personnel) - idempotent
-    await db.users.update_one(
-        {"telephone": "0800000000"},
-        {"$setOnInsert": {
-            "id": str(uuid.uuid4()), "nom": "Super Admin", "telephone": "0800000000",
-            "email": None, "motDePasseHash": hash_pwd("super123"), "role": "superadmin",
-            "verifie": True, "actif": True, "createdAt": iso(now_utc()),
-        }},
-        upsert=True,
+    # categories : reprises des produits existants puis gerees par l'admin
+    for nom in sorted({p["categorie"] for p in await db.produits.find({}, {"_id": 0, "categorie": 1}).to_list(500)}):
+        await db.categories.update_one(
+            {"nom": nom},
+            {"$setOnInsert": {"id": str(uuid.uuid4()), "nom": nom}},
+            upsert=True,
+        )
+
+    # super admin unique : le compte Google du proprietaire
+    await db.users.delete_one({"telephone": "0800000000", "role": "superadmin"})
+    promu = await db.users.update_one(
+        {"email": SUPERADMIN_EMAIL},
+        {"$set": {"role": "superadmin", "actif": True, "verifie": True}},
+    )
+    if promu.matched_count == 0:
+        logger.warning(f"Super admin {SUPERADMIN_EMAIL} absent de la base")
+    await db.users.update_many(
+        {"role": "superadmin", "email": {"$ne": SUPERADMIN_EMAIL}},
+        {"$set": {"role": "admin"}},
     )
     # comptes existants : actif par defaut
     await db.users.update_many({"actif": {"$exists": False}}, {"$set": {"actif": True}})

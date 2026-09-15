@@ -30,7 +30,7 @@ import { useToast } from "@/src/toast";
 const TAILLE_MAX = 5 * 1024 * 1024;
 const FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
-const CATEGORIES = ["Pots de crème", "Smoothies", "Toppings", "Boissons"];
+const CATEGORIES_VIDES: { id: string; nom: string; nbProduits: number }[] = [];
 const TAILLES = [
   { nom: "Petit", ecart: 0 },
   { nom: "Moyen", ecart: 1.5 },
@@ -49,14 +49,22 @@ export default function Catalogue() {
   const toast = useToast();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<any[]>("/produits") });
+  const categoriesQ = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: () => apiFetch<{ id: string; nom: string; nbProduits: number }[]>("/admin/categories"),
+  });
+  const categories = categoriesQ.data ?? CATEGORIES_VIDES;
   const { taux, fc } = useMontant();
 
   const [tauxOuvert, setTauxOuvert] = useState(false);
   const [tauxTexte, setTauxTexte] = useState("");
+  const [catsOuvert, setCatsOuvert] = useState(false);
+  const [nouvelleCat, setNouvelleCat] = useState("");
+  const [catASupprimer, setCatASupprimer] = useState<{ id: string; nom: string; nbProduits: number } | null>(null);
 
   const [edition, setEdition] = useState<any>(null);
   const [nom, setNom] = useState("");
-  const [categorie, setCategorie] = useState(CATEGORIES[0]);
+  const [categorie, setCategorie] = useState("");
   const [prixTexte, setPrixTexte] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [apercuLocal, setApercuLocal] = useState<string | null>(null);
@@ -69,7 +77,7 @@ export default function Catalogue() {
   const ouvrir = (p: any | null) => {
     setEdition(p ?? { nouveau: true });
     setNom(p?.nom ?? "");
-    setCategorie(p?.categorie ?? CATEGORIES[0]);
+    setCategorie(p?.categorie ?? categories[0]?.nom ?? "");
     setPrixTexte(p ? String(p.prix) : "");
     setImage(p?.image ?? null);
     setApercuLocal(null);
@@ -187,6 +195,44 @@ export default function Catalogue() {
     }
   };
 
+  const ajouterCategorie = async () => {
+    const nomCat = nouvelleCat.trim();
+    if (nomCat.length < 2) {
+      toast.show("Nom de catégorie trop court", "erreur");
+      return;
+    }
+    try {
+      await apiFetch("/admin/categories", { method: "POST", body: { nom: nomCat } });
+      qc.invalidateQueries({ queryKey: ["admin-categories"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      setNouvelleCat("");
+      toast.show(`Catégorie « ${nomCat} » ajoutée`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
+  const supprimerCategorie = async () => {
+    if (!catASupprimer) return;
+    try {
+      const r = await apiFetch<{ produitsSupprimes: number }>(`/admin/categories/${catASupprimer.id}`, {
+        method: "DELETE",
+      });
+      qc.invalidateQueries({ queryKey: ["admin-categories"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      qc.invalidateQueries({ queryKey: ["produits"] });
+      toast.show(
+        r.produitsSupprimes > 0
+          ? `Catégorie et ${r.produitsSupprimes} produit(s) supprimés`
+          : "Catégorie supprimée",
+        "succes",
+      );
+      setCatASupprimer(null);
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
   const supprimer = async (id: string) => {
     try {
       await apiFetch(`/admin/produits/${id}`, { method: "DELETE" });
@@ -201,9 +247,14 @@ export default function Catalogue() {
     <View testID="ecran-admin-catalogue" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
         <Text style={styles.titre}>Catalogue</Text>
-        <Pressable testID="btn-ajouter-produit" onPress={() => ouvrir(null)} style={styles.ajouter}>
-          <Icone name="plus" size={20} color={colors.onBrandPrimary} />
-        </Pressable>
+        <View style={styles.actionsEntete}>
+          <Pressable testID="btn-gerer-categories" onPress={() => setCatsOuvert(true)} style={styles.secondaire}>
+            <Icone name="grid" size={20} color={colors.brandPrimary} />
+          </Pressable>
+          <Pressable testID="btn-ajouter-produit" onPress={() => ouvrir(null)} style={styles.ajouter}>
+            <Icone name="plus" size={20} color={colors.onBrandPrimary} />
+          </Pressable>
+        </View>
       </View>
 
       <Pressable
@@ -300,14 +351,16 @@ export default function Catalogue() {
 
               <Text style={styles.label}>Catégorie</Text>
               <View style={styles.chipsRow}>
-                {CATEGORIES.map((c) => (
+                {categories.map((c) => (
                   <Pressable
-                    key={c}
-                    testID={`cat-${c}`}
-                    onPress={() => setCategorie(c)}
-                    style={[styles.chip, categorie === c && styles.chipActif]}
+                    key={c.id}
+                    testID={`cat-${c.nom}`}
+                    onPress={() => setCategorie(c.nom)}
+                    style={[styles.chip, categorie === c.nom && styles.chipActif]}
                   >
-                    <Text style={[styles.chipTexte, categorie === c && { color: colors.onBrandPrimary }]}>{c}</Text>
+                    <Text style={[styles.chipTexte, categorie === c.nom && { color: colors.onBrandPrimary }]}>
+                      {c.nom}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
@@ -375,6 +428,75 @@ export default function Catalogue() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={catsOuvert} animationType="slide" transparent onRequestClose={() => setCatsOuvert(false)}>
+        <View style={styles.voile}>
+          <Pressable style={{ flex: 1 }} onPress={() => setCatsOuvert(false)} />
+          <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
+            <KeyboardAwareScrollView bottomOffset={60} contentContainerStyle={styles.feuilleContenu}>
+              <Text style={styles.feuilleTitre}>Catégories</Text>
+
+              {catASupprimer ? (
+                <View style={styles.alerte}>
+                  <Text style={styles.alerteTexte}>
+                    Supprimer « {catASupprimer.nom} » ?{" "}
+                    {catASupprimer.nbProduits > 0
+                      ? `Les ${catASupprimer.nbProduits} produit(s) de cette catégorie seront aussi supprimés.`
+                      : "Cette catégorie est vide."}
+                  </Text>
+                  <Bouton
+                    testID="btn-confirmer-suppression-categorie"
+                    label="Supprimer définitivement"
+                    variant="danger"
+                    onPress={supprimerCategorie}
+                  />
+                  <Bouton
+                    testID="btn-annuler-suppression-categorie"
+                    label="Annuler"
+                    variant="contour"
+                    onPress={() => setCatASupprimer(null)}
+                  />
+                </View>
+              ) : null}
+
+              <View testID="liste-categories">
+                {categories.map((c) => (
+                  <View key={c.id} testID={`categorie-${c.nom}`} style={styles.ligneCat}>
+                    <Text style={styles.ligneCatNom}>{c.nom}</Text>
+                    <Text style={styles.ligneCatNb}>{c.nbProduits} produit(s)</Text>
+                    <Pressable
+                      testID={`btn-supprimer-categorie-${c.nom}`}
+                      hitSlop={8}
+                      onPress={() => setCatASupprimer(c)}
+                      style={styles.secondaire}
+                    >
+                      <Icone name="trash-2" size={18} color={colors.error} />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+
+              <Champ
+                label="Nouvelle catégorie"
+                testID="input-nouvelle-categorie"
+                value={nouvelleCat}
+                onChangeText={setNouvelleCat}
+                placeholder="Ex. Gaufres"
+              />
+              <Bouton testID="btn-ajouter-categorie" label="Ajouter la catégorie" onPress={ajouterCategorie} />
+              <Bouton
+                testID="btn-fermer-categories"
+                label="Fermer"
+                variant="contour"
+                onPress={() => {
+                  setCatASupprimer(null);
+                  setCatsOuvert(false);
+                }}
+              />
+            </KeyboardAwareScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -388,6 +510,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
+  actionsEntete: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   titre: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
   ajouter: {
     width: 44,
@@ -397,6 +520,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  secondaire: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ligneCat: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    minHeight: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  ligneCatNom: { flex: 1, fontFamily: fonts.text, fontSize: 15, color: colors.onSurface },
+  ligneCatNb: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+  alerte: {
+    backgroundColor: colors.errorSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  alerteTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
   liste: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   carte: {

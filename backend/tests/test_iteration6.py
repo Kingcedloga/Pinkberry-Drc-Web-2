@@ -1,12 +1,19 @@
-"""Iteration 6 backend tests: super admin RBAC + personnel CRUD."""
+"""Iteration 6 backend tests: super admin RBAC + personnel CRUD.
+
+Iter7 update: superadmin unique via Google (no app password). We forge a JWT
+using JWT_SECRET to authenticate as superadmin in these tests."""
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
 
+import jwt
 import pytest
 import requests
 
-BASE_URL = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
+BASE_URL = (os.environ.get("EXPO_PUBLIC_BACKEND_URL") or os.environ.get("EXPO_BACKEND_URL", "")).rstrip("/")
 API = f"{BASE_URL}/api"
+JWT_SECRET = "pinkberry-drc-secret-2026-kinshasa"
+SUPERADMIN_EMAIL = "mecedloga@gmail.com"
 
 
 # -------- helpers auth --------
@@ -20,10 +27,22 @@ def _h(tok: str) -> dict:
     return {"Authorization": f"Bearer {tok}"}
 
 
+def _forge_super() -> str:
+    from pymongo import MongoClient
+    c = MongoClient(os.environ.get("MONGO_URL", "mongodb://localhost:27017"))
+    db = c[os.environ.get("DB_NAME", "test_database")]
+    u = db.users.find_one({"email": SUPERADMIN_EMAIL, "role": "superadmin"}, {"_id": 0})
+    assert u, "Superadmin not seeded"
+    return jwt.encode(
+        {"sub": u["id"], "exp": datetime.now(timezone.utc) + timedelta(days=1)},
+        JWT_SECRET, algorithm="HS256"
+    )
+
+
 @pytest.fixture(scope="module")
 def tokens() -> dict:
     return {
-        "super": _login("0800000000", "super123"),
+        "super": _forge_super(),
         "admin": _login("0810000000", "admin123"),
         "livreur": _login("0820000001", "livreur123"),
         "client": _login("0990000001", "client123"),

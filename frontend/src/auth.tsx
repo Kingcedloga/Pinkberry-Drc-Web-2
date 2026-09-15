@@ -37,6 +37,7 @@ type AuthValue = {
   connexionGoogle: () => Promise<void>;
   enregistrerTelephone: (telephone: string) => Promise<Utilisateur>;
   deconnexion: () => Promise<void>;
+  supprimerCompte: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -172,6 +173,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const supprimerCompte = useCallback(async () => {
+    await apiFetch("/auth/moi", { method: "DELETE" });
+    setAuthToken(null);
+    await storage.secureRemove(TOKEN_KEY);
+    setUser(null);
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -182,8 +190,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       connexionGoogle,
       enregistrerTelephone,
       deconnexion,
+      supprimerCompte,
     }),
-    [user, loading, connexion, inscription, verifierOtp, connexionGoogle, enregistrerTelephone, deconnexion],
+    [user, loading, connexion, inscription, verifierOtp, connexionGoogle, enregistrerTelephone, deconnexion, supprimerCompte],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

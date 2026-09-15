@@ -2,7 +2,9 @@
 import os
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 
+import jwt
 import pytest
 import requests
 
@@ -15,8 +17,20 @@ LIVREUR_TEL = "0820000001"
 LIVREUR_PWD = "livreur123"
 ADMIN_TEL = "0810000000"
 ADMIN_PWD = "admin123"
-SUPER_TEL = "0800000000"
-SUPER_PWD = "super123"
+JWT_SECRET_ = "pinkberry-drc-secret-2026-kinshasa"
+SUPERADMIN_EMAIL = "mecedloga@gmail.com"
+
+
+def _forge_super_token():
+    from pymongo import MongoClient
+    c = MongoClient(os.environ.get("MONGO_URL", "mongodb://localhost:27017"))
+    db = c[os.environ.get("DB_NAME", "test_database")]
+    u = db.users.find_one({"email": SUPERADMIN_EMAIL, "role": "superadmin"}, {"_id": 0, "id": 1})
+    assert u, "Superadmin missing"
+    return jwt.encode(
+        {"sub": u["id"], "exp": datetime.now(timezone.utc) + timedelta(days=1)},
+        JWT_SECRET_, algorithm="HS256"
+    )
 
 
 def _login(tel, pwd):
@@ -217,7 +231,7 @@ def test_admin_livreurs_and_assign(admin_ctx, client_ctx):
 
 def test_admin_livreur_create_update(admin_ctx):
     """POST /admin/livreurs is superadmin-only (iter6); PUT reste admin."""
-    super_tok, _ = _login(SUPER_TEL, SUPER_PWD)
+    super_tok = _forge_super_token()
     tel = f"082{int(time.time())%1_000_000:06d}"
     payload = {"nom": "TEST Coursier", "telephone": tel, "vehicule": "Vélo",
                "plaque": "TEST-1", "note": 5.0, "actif": True, "motDePasse": "test123"}

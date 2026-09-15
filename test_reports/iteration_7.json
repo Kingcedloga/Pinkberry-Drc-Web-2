@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 7 (Suppression compte client + CRUD catégories admin + super admin unique Google) — ALL GREEN. Backend: 17/17 nouveaux tests iter7 (superadmin unique idempotent après restart, ancien 0800000000 supprimé, JWT forgé pour tester les routes /superadmin/*; DELETE /api/auth/moi anonymise les commandes (userId=anonyme, clientNom='Client supprime', clientTelephone=null, adresse.telephone=null, anonymisee=true), supprime les adresses, refuse admin/livreur/superadmin (403) et sans jeton (401); GET /api/categories public renvoie ['Tous', ...]; GET /admin/categories avec nbProduits; POST valide + rejette nom<2 / 'Tous' / doublon insensible à la casse; DELETE supprime aussi les produits et renvoie produitsSupprimes; RBAC 401/403). Suite complète: 90/90 tests pytest passent (73 baseline iter1-6 + 17 iter7). Adaptations iter6/pinkberry_api: fixture 'super' remplacée par JWT forgé (JWT_SECRET + id du superadmin seed) — l'ancien identifiant 0800000000/super123 n'existe plus. Frontend: Admin (0810000000/admin123) -> catalogue -> btn-gerer-categories ouvre liste-categories avec nbProduits par ligne; input-nouvelle-categorie + btn-ajouter-categorie crée la catégorie (visible dans la liste ET dans GET /api/categories public); btn-supprimer-categorie-<nom> + btn-confirmer-suppression-categorie retire la catégorie (nettoyée côté admin ET côté API publique). Client suppression: création d'un client TEST via inscription+OTP, connexion, /compte -> btn-supprimer-compte -> btn-confirmer-suppression-1 -> btn-confirmer-suppression-2 -> redirection /bienvenue et re-connexion refusée (401). Taux vérifié à 2800 FC, comptes TEST_* nettoyés (11 clients orphelins des tests supprimés).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/pytest_iter7.xml",
+    "/app/test_reports/pytest/pytest_regression_iter7.xml",
+    "/app/backend/tests/test_iteration7.py",
+    "/app/backend/tests/test_iteration6.py",
+    "/app/backend/tests/test_pinkberry_api.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py L507-531 DELETE /auth/moi : bien réservé à role=='client' (403 sinon), anonymise commandes ($set userId/clientNom/clientTelephone/adresse.telephone/anonymisee), supprime adresses/OTP/sessions puis le user. Cohérent avec la spec Apple.",
+    "server.py L823-845 categories : POST valide nom>=2 chars, refuse 'Tous', doublon regex case-insensitive. DELETE cascade sur produits avec produitsSupprimes retourné. RBAC via require_admin.",
+    "server.py L1366-1376 seed superadmin idempotent : suppression 0800000000 explicite, promotion du user par SUPERADMIN_EMAIL, rétrogradation des autres superadmins en admin. Vérifié après sudo supervisorctl restart backend : count=1, email/telephone/actif/verifie corrects.",
+    "server.py L45 SUPERADMIN_EMAIL lu depuis env avec .strip().lower() : robuste. Le seed emet un warning si le compte cible est absent (au lieu de créer un compte fantôme sans compte Google), ce qui est correct."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration7.py (NEW - 17 tests iter7)",
+    "/app/backend/tests/test_iteration6.py (fixture 'super' via JWT forgé au lieu de 0800000000/super123)",
+    "/app/backend/tests/test_pinkberry_api.py (SUPER_TEL/SUPER_PWD retirés, remplacés par _forge_super_token via JWT_SECRET)"
+  ],
+  "success_rate": {"backend": "100% (17/17 iter7 + 90/90 régression complète)", "frontend": "100% (categories admin + suppression compte client)"},
+  "seed_data_creation": "Aucune donnée séedée manuellement. Chaque test crée et supprime ses propres TESTUI_* (catégories), TEST_UI_Del (clients). Nettoyage manuel supplémentaire de 11 comptes TEST_* clients orphelins d'itérations précédentes.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "La suite backend contient désormais 90 tests (73 baseline + 17 iter7). Le superadmin (mecedloga@gmail.com) est authentifiable uniquement via Google : pour les tests automatisés, forger un JWT via _forge_super_token() (JWT_SECRET='pinkberry-drc-secret-2026-kinshasa' + id récupéré via pymongo). Toujours exécuter avec -n 1 pour éviter les flakies xdist. Ne PAS toucher au compte superadmin réel ni aux catégories/produits de démo (Boissons, Pots de crème, Smoothies, Toppings). Taux à conserver à 2800 FC. Sur l'écran /compte, la double confirmation (btn-confirmer-suppression-1 puis btn-confirmer-suppression-2) est bloquante mais bien testable via testID. DELETE /api/auth/moi conserve la commande mais efface toutes les données personnelles : c'est le comportement voulu par le PM (comptabilité Apple).",
+  "rca_of_issue": "N/A — pas de bug détecté. Deux fichiers de tests existants (test_iteration6.py, test_pinkberry_api.py) référençaient l'ancien identifiant démo 0800000000/super123 qui a été retiré par le seed de l'itération 7 : ils ont été mis à jour pour forger un JWT via JWT_SECRET (méthode indiquée dans la review_request)."
+}

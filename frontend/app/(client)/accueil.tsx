@@ -26,7 +26,7 @@ import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
-const CATEGORIES = ["Tous", "Pots de crème", "Smoothies", "Toppings", "Boissons"];
+const CATEGORIES_DEFAUT = ["Tous"];
 
 export default function Accueil() {
   const insets = useSafeAreaInsets();
@@ -42,6 +42,7 @@ export default function Accueil() {
   const offsetOnglets = hauteurOngletsNatifs(insets.bottom);
 
   const produitsQ = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<Produit[]>("/produits") });
+  const categoriesQ = useQuery({ queryKey: ["categories"], queryFn: () => apiFetch<string[]>("/categories") });
   const commandesQ = useQuery({
     queryKey: ["mes-commandes"],
     queryFn: () => apiFetch<any[]>("/commandes/mes"),
@@ -49,6 +50,7 @@ export default function Accueil() {
   });
 
   const produits = produitsQ.data ?? [];
+  const categories = categoriesQ.data ?? CATEGORIES_DEFAUT;
   const aRecommander = (commandesQ.data ?? []).filter((c) => c.statut === "livree").slice(0, 5);
 
   const filtres = useMemo(() => {
@@ -97,7 +99,7 @@ export default function Accueil() {
             style={styles.recherche}
           />
         </View>
-        <Chips options={CATEGORIES} valeur={categorie} onChange={setCategorie} />
+        <Chips options={categories} valeur={categorie} onChange={setCategorie} />
       </View>
 
       {produitsQ.isLoading ? (

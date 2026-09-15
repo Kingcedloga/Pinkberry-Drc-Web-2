@@ -166,6 +166,23 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Tests : 73/73 backend (dont 16 nouveaux tests RBAC) + parcours frontend superadmin, admin, livreur
   et client validés (itération 6).
 
+## Implémenté — ajout du 15/09/2026 (v1.6)
+- **Super admin unique** : le compte du propriétaire (`SUPERADMIN_EMAIL` = `mecedloga@gmail.com`,
+  +243992113682) est promu superadmin au démarrage ; tout autre superadmin est rétrogradé en admin et
+  l'ancien compte de démo `0800000000` a été supprimé. Connexion via Google uniquement (pas de mot de
+  passe applicatif).
+- **Suppression de compte client** (exigence Apple) : `DELETE /api/auth/moi` réservé aux clients, avec
+  double confirmation dans l'écran Compte. Le profil, les adresses, les OTP et les sessions sont
+  effacés ; les commandes sont **conservées anonymisées** (`userId: "anonyme"`,
+  `clientNom: "Client supprime"`, téléphones vidés, `anonymisee: true`) pour la comptabilité.
+- **Gestion des catégories par l'admin** : nouvelle collection `categories` (initialisée depuis les
+  produits existants), `GET /api/categories` devenu dynamique, plus
+  `GET|POST /api/admin/categories` et `DELETE /api/admin/categories/{id}`. La suppression d'une
+  catégorie supprime aussi ses produits et renvoie `produitsSupprimes`. UI : bouton « Catégories »
+  dans le catalogue admin (ajout, compteur de produits, suppression avec confirmation) ; les chips
+  du catalogue client et du formulaire produit sont désormais alimentées par l'API.
+- Tests : 90/90 backend (17 nouveaux) + parcours frontend admin et client validés (itération 7).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)
