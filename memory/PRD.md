@@ -219,6 +219,18 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   de bord, écran Archives (`app/(admin)/archives.tsx`) avec Restaurer et Supprimer + confirmation.
 - Tests : 115/115 backend (25 nouveaux) + parcours frontend admin validés (itération 9).
 
+## Correctif — 15/09/2026 (v1.8.1)
+- **Bug « bouton Paramètres non cliquable » sur téléphone** : les écrans Paramètres et Archives
+  étaient des onglets masqués du groupe `(admin)`. Sur iOS 26 (onglets natifs `NativeTabs`), un
+  `router.push` vers un onglet masqué ne navigue pas → bouton apparemment mort, alors que le web
+  fonctionnait. Corrigé en sortant les deux écrans du groupe d'onglets : ils sont désormais des
+  routes de pile de premier niveau `app/admin/parametres.tsx` (`/admin/parametres`) et
+  `app/admin/archives.tsx` (`/admin/archives`), sans aucune déclaration d'onglet masqué.
+  Les raccourcis vers les onglets (catalogue, zones, personnel) utilisent `router.replace`.
+- **Leçon pour les tests** : un écran hors barre d'onglets doit être validé par lecture de code en
+  plus du web, car `NativeTabs` n'est pas rendu dans l'aperçu web.
+- Tests : 115/115 backend + navigation admin revérifiée (itération 10).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

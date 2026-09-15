@@ -196,7 +196,7 @@ export default function Parametres() {
                 icone="package"
                 label="Archives des commandes"
                 valeur="Commandes livrées ou annulées archivées"
-                onPress={() => router.push("/archives")}
+                onPress={() => router.push("/admin/archives")}
               />
             </Section>
 
@@ -205,13 +205,13 @@ export default function Parametres() {
                 testID="ligne-taux"
                 icone="repeat"
                 label="Taux de change et catalogue"
-                onPress={() => router.push("/catalogue")}
+                onPress={() => router.replace("/catalogue")}
               />
               <Ligne
                 testID="ligne-zones"
                 icone="map"
                 label="Zones de livraison"
-                onPress={() => router.push("/zones")}
+                onPress={() => router.replace("/zones")}
               />
               {estSuper ? (
                 <Ligne
@@ -219,7 +219,7 @@ export default function Parametres() {
                   icone="users"
                   label="Comptes du personnel"
                   valeur="Réservé au super admin"
-                  onPress={() => router.push("/personnel")}
+                  onPress={() => router.replace("/personnel")}
                 />
               ) : null}
             </Section>

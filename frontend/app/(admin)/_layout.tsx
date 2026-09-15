@@ -41,14 +41,6 @@ export default function AdminLayout() {
           <Icon sf={{ default: "person.badge.key", selected: "person.badge.key.fill" }} />
           <Label>Personnel</Label>
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="parametres" hidden>
-          <Icon sf="gearshape" />
-          <Label>Paramètres</Label>
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="archives" hidden>
-          <Icon sf="archivebox" />
-          <Label>Archives</Label>
-        </NativeTabs.Trigger>
       </NativeTabs>
     );
   }
@@ -93,8 +85,6 @@ export default function AdminLayout() {
           tabBarIcon: ({ color }) => <Icone name="key" size={22} color={color} />,
         }}
       />
-      <Tabs.Screen name="parametres" options={{ title: "Paramètres", href: null }} />
-      <Tabs.Screen name="archives" options={{ title: "Archives", href: null }} />
     </Tabs>
   );
 }

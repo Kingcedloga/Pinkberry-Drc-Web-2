@@ -112,7 +112,7 @@ export default function Dashboard() {
         </View>
         <Pressable
           testID="btn-admin-parametres"
-          onPress={() => router.push("/parametres")}
+          onPress={() => router.push("/admin/parametres")}
           style={styles.iconeBtn}
         >
           <Icone name="settings" size={20} color={colors.brandPrimary} />
