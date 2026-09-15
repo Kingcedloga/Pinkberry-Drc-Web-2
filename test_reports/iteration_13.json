@@ -1,0 +1,24 @@
+{
+  "summary": "Itération 13 — validation frontend de la page /bienvenue (illustration emoji animée du livreur). Tous les critères sont respectés : testID='hero-livreur' présent, aucune image PNG 'livreur' dans le DOM (0 <img> chargée), les 4 emojis attendus (🛵 🧑 🍦 ✨) sont bien rendus, le logo pinkberry et le slogan « Le vrai frozen yogurt, livré chez toi à Kinshasa » ainsi que le sous-titre sont affichés. Les boutons testID='btn-creer-compte' et testID='btn-deja-compte' naviguent correctement vers /inscription et /connexion. Rendu correct en mobile 390x844 (scène centrée, boutons visibles à y=704 et y=768, pas de débordement horizontal) ET en desktop 1280x900 (scène centrée à x=460 w=360, boutons visibles à y=760 et y=824). Aucune erreur console bloquante (0 erreurs, seulement des warnings web-only attendus : expo-notifications, shadow*, pointerEvents, useNativeDriver — normal en web preview car Animated fait fallback JS).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/bienvenue (desktop 1280x900)", "issues": ["Observation non bloquante hors scope de l'itération : les deux CTA (Créer un compte / J'ai déjà un compte) s'étirent sur toute la largeur (1232px) en desktop. Fonctionne, mais un maxWidth ~360-420px centré serait plus élégant pour un usage desktop. À ignorer si le design est volontairement mobile-first."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_13.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "bienvenue.tsx : import propre de HeroLivreur, plus aucune référence à expo-image ni à HERO/style hero — conforme à la demande.",
+    "HeroLivreur.tsx : utilise Animated (RN) avec Animated.loop et cleanup correct via return () => boucle.stop(). AccessibilityInfo.isReduceMotionEnabled est bien respecté pour désactiver l'animation. Aucune fuite d'écouteur (sub?.remove?.()). Code sobre et lisible."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skip)", "frontend": "100%"},
+  "seed_data_creation": "Aucune",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Page /bienvenue validée à 100% en itération 13. Illustration emoji animée en place (Animated JS-driver côté web, warning useNativeDriver attendu et non bloquant). Ne pas retester sauf si le fichier bienvenue.tsx ou HeroLivreur.tsx est modifié à nouveau. Le bug taux de change avait été validé à l'itération 12 — ne pas retester non plus."
+}

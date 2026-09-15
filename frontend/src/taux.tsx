@@ -15,6 +15,8 @@ export function TauxProvider({ children }: { children: React.ReactNode }) {
     queryKey: ["config"],
     queryFn: () => apiFetch<ConfigApp>("/config"),
     refetchInterval: 20000,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   useEffect(() => {

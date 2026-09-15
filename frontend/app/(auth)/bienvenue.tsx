@@ -1,14 +1,12 @@
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
+import { HeroLivreur } from "@/src/components/HeroLivreur";
 import { Logo } from "@/src/components/Logo";
 import { colors, fonts, spacing } from "@/src/theme";
-
-const HERO = require("@/assets/images/livreur-pinkberry.png");
 
 export default function Bienvenue() {
   const router = useRouter();
@@ -20,7 +18,7 @@ export default function Bienvenue() {
         <Logo taille={34} />
 
         <View style={styles.heroZone}>
-          <Image source={HERO} style={styles.hero} contentFit="contain" transition={300} />
+          <HeroLivreur />
         </View>
 
         <View style={styles.bloc}>
@@ -53,7 +51,6 @@ const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   contenu: { flex: 1, paddingHorizontal: spacing.xl, gap: spacing.xl },
   heroZone: { flex: 1, alignItems: "center", justifyContent: "center" },
-  hero: { width: "100%", maxWidth: 360, aspectRatio: 670 / 656 },
   bloc: { gap: spacing.sm },
   titre: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 15, lineHeight: 22, color: colors.muted },

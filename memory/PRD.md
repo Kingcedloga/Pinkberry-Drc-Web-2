@@ -231,6 +231,41 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   plus du web, car `NativeTabs` n'est pas rendu dans l'aperçu web.
 - Tests : 115/115 backend + navigation admin revérifiée (itération 10).
 
+## Implémenté — ajout du 15/09/2026 (v1.9)
+- **Rapport des commandes par période** : `GET /api/admin/rapport?debut&fin&format=xlsx|pdf`
+  (openpyxl + reportlab, commandes archivées incluses) — colonnes numéro, date, client,
+  adresse/commune, articles, total USD, statut, livreur, plus un récapitulatif (nombre de commandes,
+  chiffre d'affaires des livrées, livraisons réussies, commandes annulées). Écran
+  `app/admin/rapports.tsx` (`/admin/rapports`, accessible depuis Paramètres) avec filtres rapides
+  aujourd'hui / cette semaine / ce mois, période personnalisée et téléchargement Excel ou PDF
+  (partage natif via `expo-file-system` + `expo-sharing`, téléchargement direct sur le web).
+- **Zones entièrement gérées par l'admin** : `POST /api/admin/zones` (nom + activation, refus des
+  doublons insensibles à la casse) et `DELETE /api/admin/zones/{id}`. Écran Zones refondu avec ajout,
+  bascule d'activation et suppression confirmée ; retirer une zone la rend immédiatement
+  indisponible côté client (sélecteur d'adresse et contrôle serveur à la commande).
+- **Archivage automatique** : champ `termineeAt` posé à chaque passage en livrée/annulée et helper
+  `archiver_anciennes()` (appelé par `GET /api/admin/commandes`) qui archive les commandes livrées
+  depuis plus de `ARCHIVAGE_AUTO_JOURS` jours (10 par défaut), marquées `archivageAuto`.
+  Les annulées restent archivables manuellement.
+- Tests : 136/136 backend (21 nouveaux) + parcours frontend admin validés (itération 11).
+
+## Correctifs — 15/09/2026 (v1.9.1)
+- **Taux de change durable** : `lire_config()` lit toujours le document `{cle:"global"}` de la
+  collection `parametres` (les variables d'env `TAUX_FC`/`FRAIS_LIVRAISON` ne servent qu'à la
+  création initiale) ; `GET /api/config` répond avec `Cache-Control: no-store` ;
+  `PUT /api/admin/config` fait un `update_one` (`$set` + `$setOnInsert`, upsert) et renvoie la config
+  relue en base ; le seed de démarrage reste en `$setOnInsert` (jamais d'écrasement).
+  Côté client, `enregistrerTaux` affiche la valeur renvoyée par le serveur puis refetch `["config"]`,
+  et `TauxProvider` utilise `staleTime: 0` + `refetchOnMount: "always"`.
+  Cause racine complémentaire : d'anciens tests (`test_final_taux_is_2800`, `test_config`,
+  `test_non_regression_config`) remettaient le taux à 2800 à chaque exécution — ils restaurent
+  désormais la valeur initiale. **Ne jamais remettre 2800 en dur dans un test.**
+- **Page de bienvenue animée** : `src/components/HeroLivreur.tsx` remplace la photo
+  `livreur-pinkberry.png` par une scène emoji (🛵 + 🧑 + 🍦) animée avec `Animated` de react-native
+  (rebond, tressautement, route qui défile, étincelles), respect de « réduire les animations »,
+  charte rose/vert conservée avec logo et slogan.
+- Tests : 152 tests backend (itération 12) + parcours admin/bienvenue validés.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

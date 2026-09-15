@@ -17,7 +17,7 @@ import httpx
 import jwt
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
@@ -1598,25 +1598,44 @@ async def livreur_position(body: PositionIn, user=Depends(require_livreur)):
     return {"ok": True}
 
 
+async def lire_config() -> Dict[str, Any]:
+    """Le taux vient TOUJOURS de la base. Les valeurs d'environnement ne servent
+    qu'a creer l'enregistrement initial, une seule fois."""
+    doc = await db.parametres.find_one({"cle": "global"}, {"_id": 0})
+    if not doc:
+        await db.parametres.update_one(
+            {"cle": "global"},
+            {"$setOnInsert": {"cle": "global", "tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON}},
+            upsert=True,
+        )
+        doc = await db.parametres.find_one({"cle": "global"}, {"_id": 0})
+    return {
+        "tauxFC": float(doc["tauxFC"]),
+        "fraisLivraison": float(doc.get("fraisLivraison", FRAIS_LIVRAISON)),
+    }
+
+
 @api_router.get("/config")
 async def config():
-    doc = await db.parametres.find_one({"cle": "global"}, {"_id": 0})
-    return {
-        "tauxFC": (doc or {}).get("tauxFC", TAUX_FC),
-        "fraisLivraison": (doc or {}).get("fraisLivraison", FRAIS_LIVRAISON),
-    }
+    # Pas de cache : l'admin doit voir son nouveau taux immediatement partout.
+    return JSONResponse(await lire_config(), headers={"Cache-Control": "no-store"})
 
 
 @api_router.put("/admin/config")
 async def modifier_config(body: ConfigIn, _=Depends(require_admin)):
     if body.tauxFC <= 0:
         raise HTTPException(status_code=400, detail="Le taux doit être supérieur à zéro")
-    await db.parametres.update_one(
+    res = await db.parametres.update_one(
         {"cle": "global"},
-        {"$set": {"tauxFC": body.tauxFC, "majLe": iso(now_utc())}},
+        {
+            "$set": {"tauxFC": float(body.tauxFC), "majLe": iso(now_utc())},
+            "$setOnInsert": {"cle": "global", "fraisLivraison": FRAIS_LIVRAISON},
+        },
         upsert=True,
     )
-    return await config()
+    if res.matched_count == 0 and res.upserted_id is None:
+        raise HTTPException(status_code=500, detail="Enregistrement du taux impossible")
+    return JSONResponse(await lire_config(), headers={"Cache-Control": "no-store"})
 
 
 @api_router.get("/")
@@ -1682,6 +1701,8 @@ async def seed():
         unique=True,
         partialFilterExpression={"telephone": {"$type": "string"}},
     )
+    # Le taux de change appartient a l'admin : on cree l'enregistrement seulement
+    # s'il n'existe pas ($setOnInsert), jamais d'ecrasement au demarrage.
     await db.parametres.update_one(
         {"cle": "global"},
         {"$setOnInsert": {"cle": "global", "tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON}},

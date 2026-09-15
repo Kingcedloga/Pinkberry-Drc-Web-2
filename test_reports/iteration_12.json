@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 12 : bug taux de change (backend + frontend) VALIDE, mais page /bienvenue KO — le fichier app/(auth)/bienvenue.tsx sur disque a été RÉVERTÉ à l'ancienne version qui utilise `Image source={require('@/assets/images/livreur-pinkberry.png')}`, donc HeroLivreur n'est jamais rendu. Aucun testID `hero-livreur`, aucun emoji 🛵/🧑/🍦 dans le DOM, l'ancienne image livreur-pinkberry.png est toujours chargée. 16/16 tests iteration_12 passent (config no-store, PUT admin, refus 400/401/403, persistance après supervisorctl restart backend, un seul doc {cle:'global'} en base, non-régression zones + rapport xlsx/pdf + admin/commandes). Frontend admin flow : login 0810000000/admin123 OK, banniere-taux + input-taux + btn-enregistrer-taux mettent 3050 en base, `taux-actuel` affiche `1 USD = 3 050 FC` et persiste après page.reload().",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/admin/zones", "issue": "Route inexistante (405 Method Not Allowed) — la lecture publique passe par /api/zones. Test iteration 12 ajusté en conséquence."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "app/(auth)/bienvenue.tsx",
+        "issue": "Le fichier a été réverté à la version avec <Image source={require('@/assets/images/livreur-pinkberry.png')} /> — HeroLivreur (emojis animés) NE remplace plus la photo statique. Résultat : testID='hero-livreur' introuvable, aucun emoji 🛵/🧑/🍦 dans le DOM, image livreur-pinkberry.png toujours chargée depuis /assets. Le composant /app/frontend/src/components/HeroLivreur.tsx existe pourtant bien avec le bon testID. À restaurer : importer et utiliser <HeroLivreur /> comme dans la version précédente.",
+        "testID": "hero-livreur",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/bienvenue", "issues": ["Bandeau vide entre le logo et le slogan tant que la photo n'est pas chargée (aspectRatio hero laisse un grand vide sur mobile 390x844)."]}
+    ],
+    "react_native_issues": [
+      {"component": "Metro warnings", "issue": "Console : \"shadow*\" style props are deprecated. Use \"boxShadow\" ; props.pointerEvents is deprecated. Use style.pointerEvents. Non bloquant mais à nettoyer côté theme/softShadow."},
+      {"component": "expo-notifications", "issue": "Warning : Listening to push token changes is not yet fully supported on web (non bloquant en preview web)."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration12.py",
+    "/app/test_reports/pytest/pytest_iter12.xml"
+  ],
+  "action_items": [
+    "URGENT : Restaurer /app/frontend/app/(auth)/bienvenue.tsx pour utiliser <HeroLivreur /> à la place de <Image source={require('@/assets/images/livreur-pinkberry.png')} /> ; supprimer l'import Image de expo-image, le const HERO et le style `hero`; ajouter `import { HeroLivreur } from \"@/src/components/HeroLivreur\";` et remplacer le contenu de <View style={styles.heroZone}> par <HeroLivreur />. Le fichier semble avoir été écrasé par un hot-reload ou une sauvegarde concurrente.",
+    "Optionnel : supprimer les assets /app/frontend/assets/images/livreur-pinkberry.jpg + .png pour être certain qu'aucun bundler ne les recharge.",
+    "Nettoyer le cache Metro (rm -rf /app/frontend/.metro-cache) puis sudo supervisorctl restart expo après la restauration pour purger l'ancien module."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py:1601-1638 (lire_config + PUT /api/admin/config) : implémentation correcte — lecture systématique en base, upsert idempotent, réponse relue via lire_config, Cache-Control: no-store partout.",
+    "backend/server.py:1706 : seed via $setOnInsert => n'écrase jamais un taux existant, validé par le test test_taux_survives_backend_restart.",
+    "frontend/src/taux.tsx : queryKey 'config' avec staleTime:0 + refetchOnMount:'always' + refetchInterval 20s — bonne stratégie de fraîcheur.",
+    "frontend/app/(admin)/catalogue.tsx enregistrerTaux : appelle bien setQueryData + refetchQueries après PUT ; toast affiche la valeur retournée par le serveur."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration12.py (nouveau — 16 tests couvrant taux + non-régression)"
+  ],
+  "success_rate": {"backend": "100% (16/16 iteration_12)", "frontend": "50% (taux OK, /bienvenue KO — HeroLivreur absent)"},
+  "seed_data_creation": "Aucune donnée persistante créée. La zone TEST_ZONE_ITER12_<ts> est supprimée immédiatement. Le taux est restauré à sa valeur initiale via fixture `taux_initial` (aucune valeur en dur).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Après restauration de bienvenue.tsx (HeroLivreur), retester /bienvenue : présence du testID hero-livreur, aucun <img> livreur-pinkberry, présence des emojis 🛵/🧑/🍦, boutons btn-creer-compte + btn-deja-compte fonctionnels. Le bug taux (backend + persistance) est validé, pas besoin de le rejouer entièrement. Suite pytest à relancer : `cd /app && export EXPO_PUBLIC_BACKEND_URL=https://commande-rose.preview.emergentagent.com && set -a && . /app/backend/.env && set +a && python -m pytest backend/tests/test_iteration12.py -q -p no:randomly`. La suite complète `python -m pytest backend/tests -q` montre quelques échecs dans test_pinkberry_api.py (test_admin_403_for_client, test_livreur_role_required, test_paiement_client_note, test_admin_commandes_and_stats, test_admin_produit_crud, test_admin_zone_toggle, test_admin_livreurs_and_assign, test_admin_livreur_create_update, test_livreur_flow_position_and_encaisser) — probablement flaky sous xdist loadscope, non liés aux modifications iteration 12.",
+  "rca_of_issue": "Bug page bienvenue : au premier `view_file` du fichier app/(auth)/bienvenue.tsx en début de session, le contenu importait bien HeroLivreur et utilisait <HeroLivreur />. Un second view_file (après tests) montre le fichier réverté à la version qui require('@/assets/images/livreur-pinkberry.png'). Le bundle servi (avant/après supervisorctl restart expo) affiche toujours la photo statique, jamais la scène emoji animée. Le composant HeroLivreur reste présent et exporté dans /app/frontend/src/components/HeroLivreur.tsx avec le testID attendu. Il s'agit d'une régression sur bienvenue.tsx (fichier écrasé), pas d'un bug dans HeroLivreur lui-même. Mitigation : réappliquer l'édition qui remplace <Image source={HERO} .../> par <HeroLivreur /> et retirer les imports/asset devenus inutiles."
+}

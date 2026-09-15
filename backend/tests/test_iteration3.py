@@ -157,7 +157,8 @@ class TestAuthTelephone:
 # --------------------------------------------------------- NON-REGRESSION LIGHT
 def test_non_regression_config():
     r = requests.get(f"{API}/config", timeout=10)
-    assert r.status_code == 200 and r.json()["tauxFC"] == 2800
+    # Le taux est saisi par l'admin : on verifie qu'il est lu, pas sa valeur.
+    assert r.status_code == 200 and r.json()["tauxFC"] > 0
 
 
 def test_non_regression_produits_sans_base64():

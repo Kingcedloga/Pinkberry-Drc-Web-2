@@ -92,11 +92,14 @@ def test_taux_seed_setoninsert_does_not_overwrite():
                      headers=_h(admin_tok), timeout=10)
 
 
-def test_final_taux_is_2800():
-    """Sanity: at the end of test suite, taux is back to 2800."""
+def test_taux_reste_celui_de_ladmin():
+    """Les tests ne doivent jamais ecraser durablement le taux choisi par l'admin."""
     admin_tok = _login(ADMIN_TEL, ADMIN_PWD)
-    # ensure it's 2800 for teardown
-    requests.put(f"{API}/admin/config", json={"tauxFC": 2800},
+    initial = requests.get(f"{API}/config", timeout=10).json()["tauxFC"]
+    requests.put(f"{API}/admin/config", json={"tauxFC": 2999},
+                 headers=_h(admin_tok), timeout=10)
+    assert requests.get(f"{API}/config", timeout=10).json()["tauxFC"] == 2999
+    requests.put(f"{API}/admin/config", json={"tauxFC": initial},
                  headers=_h(admin_tok), timeout=10)
     r = requests.get(f"{API}/config", timeout=10)
-    assert r.status_code == 200 and r.json()["tauxFC"] == 2800
+    assert r.status_code == 200 and r.json()["tauxFC"] == initial

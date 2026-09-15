@@ -186,10 +186,16 @@ export default function Catalogue() {
       return;
     }
     try {
-      await apiFetch("/admin/config", { method: "PUT", body: { tauxFC: valeur } });
-      qc.invalidateQueries({ queryKey: ["config"] });
+      // Le serveur renvoie la config relue en base : on affiche cette valeur
+      // de reference plutot que la saisie locale.
+      const enregistre = await apiFetch<{ tauxFC: number }>("/admin/config", {
+        method: "PUT",
+        body: { tauxFC: valeur },
+      });
+      qc.setQueryData(["config"], enregistre);
+      await qc.refetchQueries({ queryKey: ["config"] });
       setTauxOuvert(false);
-      toast.show(`Taux mis à jour : 1 USD = ${valeur} FC`, "succes");
+      toast.show(`Taux mis à jour : 1 USD = ${enregistre.tauxFC} FC`, "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
