@@ -28,7 +28,13 @@ export default function Connexion() {
     try {
       const u = await connexion(telephone, motDePasse);
       toast.show(`Bonjour ${u.nom} !`, "succes");
-      router.replace(u.role === "admin" ? "/dashboard" : u.role === "livreur" ? "/courses" : "/accueil");
+      router.replace(
+        u.role === "admin" || u.role === "superadmin"
+          ? "/dashboard"
+          : u.role === "livreur"
+            ? "/courses"
+            : "/accueil",
+      );
     } catch (e: any) {
       toast.show(e.message, "erreur");
     } finally {
@@ -67,7 +73,7 @@ export default function Connexion() {
             testID="input-connexion-motdepasse"
             value={motDePasse}
             onChangeText={setMotDePasse}
-            placeholder="••••••"
+            placeholder="••••••••••••"
             secureTextEntry
           />
         </View>

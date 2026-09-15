@@ -220,12 +220,28 @@ async def get_current_user(cred: Optional[HTTPAuthorizationCredentials] = Depend
     user = await db.users.find_one({"id": data.get("sub")}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="Utilisateur introuvable")
+    if user.get("actif") is False:
+        raise HTTPException(status_code=403, detail="Compte desactive")
     return user
 
 
+# Hierarchie des roles : superadmin > admin > livreur > client.
+NIVEAUX = {"client": 1, "livreur": 2, "admin": 3, "superadmin": 4}
+
+
+def niveau(role: Optional[str]) -> int:
+    return NIVEAUX.get(role or "client", 0)
+
+
 async def require_admin(user=Depends(get_current_user)) -> Dict[str, Any]:
-    if user.get("role") != "admin":
+    if niveau(user.get("role")) < NIVEAUX["admin"]:
         raise HTTPException(status_code=403, detail="Acces reserve a l'administrateur")
+    return user
+
+
+async def require_superadmin(user=Depends(get_current_user)) -> Dict[str, Any]:
+    if user.get("role") != "superadmin":
+        raise HTTPException(status_code=403, detail="Acces reserve au super admin")
     return user
 
 
@@ -244,6 +260,7 @@ def public_user(u: Dict[str, Any]) -> Dict[str, Any]:
         "role": u.get("role", "client"),
         "verifie": u.get("verifie", False),
         "livreurId": u.get("livreurId"),
+        "actif": u.get("actif", True),
     }
 
 
@@ -340,6 +357,17 @@ class LivreurIn(BaseModel):
     note: float = 5.0
     actif: bool = True
     motDePasse: Optional[str] = None
+
+
+class AdminIn(BaseModel):
+    nom: str
+    email: Optional[str] = None
+    telephone: str
+    motDePasse: str
+
+
+class ActifIn(BaseModel):
+    actif: bool
 
 
 class ZoneIn(BaseModel):
@@ -445,6 +473,8 @@ async def verifier_otp(body: OtpIn):
     user = await db.users.find_one({"telephone": tel}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Compte introuvable")
+    if user.get("actif") is False:
+        raise HTTPException(status_code=403, detail="Compte desactive, contactez le super admin")
     await db.users.update_one({"id": user["id"]}, {"$set": {"verifie": True}})
     await db.otps.delete_one({"telephone": tel})
     user["verifie"] = True
@@ -457,6 +487,8 @@ async def connexion(body: ConnexionIn):
     user = await db.users.find_one({"telephone": tel}, {"_id": 0})
     if not user or not check_pwd(body.motDePasse, user.get("motDePasseHash", "")):
         raise HTTPException(status_code=401, detail="Telephone ou mot de passe incorrect")
+    if user.get("actif") is False:
+        raise HTTPException(status_code=403, detail="Compte desactive, contactez le super admin")
     if not user.get("verifie"):
         raise HTTPException(status_code=403, detail="Compte non verifie, verifiez votre code")
     return {"token": make_token(user["id"]), "user": public_user(user)}
@@ -501,6 +533,8 @@ async def auth_session(body: SessionIn):
         }
         await db.users.insert_one(dict(user))
     else:
+        if user.get("actif") is False:
+            raise HTTPException(status_code=403, detail="Compte desactive, contactez le super admin")
         await db.users.update_one({"id": user["id"]}, {"$set": {"verifie": True, "google": True}})
         user["verifie"] = True
 
@@ -793,7 +827,7 @@ async def admin_livreurs(_=Depends(require_admin)):
 
 
 @api_router.post("/admin/livreurs")
-async def creer_livreur(body: LivreurIn, _=Depends(require_admin)):
+async def creer_livreur(body: LivreurIn, _=Depends(require_superadmin)):
     tel = norm_tel(body.telephone)
     doc = body.model_dump(exclude={"motDePasse"})
     doc["id"] = str(uuid.uuid4())
@@ -811,6 +845,7 @@ async def creer_livreur(body: LivreurIn, _=Depends(require_admin)):
             "role": "livreur",
             "livreurId": doc["id"],
             "verifie": True,
+            "actif": True,
             "createdAt": iso(now_utc()),
         },
         upsert=True,
@@ -829,8 +864,94 @@ async def modifier_livreur(livreur_id: str, body: LivreurIn, _=Depends(require_a
 
 
 @api_router.delete("/admin/livreurs/{livreur_id}")
-async def supprimer_livreur(livreur_id: str, _=Depends(require_admin)):
+async def supprimer_livreur(livreur_id: str, _=Depends(require_superadmin)):
     await db.livreurs.delete_one({"id": livreur_id})
+    await db.users.delete_one({"livreurId": livreur_id, "role": "livreur"})
+    return {"ok": True}
+
+
+# ------------------------------------------------------ super admin : personnel
+def compte_public(u: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": u["id"],
+        "nom": u.get("nom"),
+        "telephone": u.get("telephone"),
+        "email": u.get("email"),
+        "role": u.get("role"),
+        "actif": u.get("actif", True),
+        "livreurId": u.get("livreurId"),
+        "createdAt": u.get("createdAt"),
+    }
+
+
+@api_router.get("/superadmin/comptes")
+async def superadmin_comptes(_=Depends(require_superadmin)):
+    users = await db.users.find(
+        {"role": {"$in": ["admin", "livreur"]}}, {"_id": 0, "motDePasseHash": 0}
+    ).to_list(300)
+    fiches = {f["id"]: f for f in await db.livreurs.find({}, {"_id": 0}).to_list(300)}
+    comptes = []
+    for u in users:
+        c = compte_public(u)
+        fiche = fiches.get(u.get("livreurId") or "")
+        if fiche:
+            c["vehicule"] = fiche.get("vehicule")
+            c["plaque"] = fiche.get("plaque")
+        comptes.append(c)
+    comptes.sort(key=lambda c: (c["role"], (c["nom"] or "").lower()))
+    return comptes
+
+
+@api_router.post("/superadmin/admins")
+async def creer_admin(body: AdminIn, _=Depends(require_superadmin)):
+    tel = norm_tel(body.telephone)
+    if len(tel) < 9:
+        raise HTTPException(status_code=400, detail="Numero de telephone invalide")
+    if len(body.motDePasse) < 6:
+        raise HTTPException(status_code=400, detail="Mot de passe : 6 caracteres minimum")
+    email = (body.email or "").strip().lower() or None
+    if await db.users.find_one({"telephone": tel}):
+        raise HTTPException(status_code=400, detail="Ce numero est deja utilise")
+    if email and await db.users.find_one({"email": email}):
+        raise HTTPException(status_code=400, detail="Cet email est deja utilise")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "nom": body.nom.strip(),
+        "telephone": tel,
+        "email": email,
+        "motDePasseHash": hash_pwd(body.motDePasse),
+        "role": "admin",
+        "verifie": True,
+        "actif": True,
+        "createdAt": iso(now_utc()),
+    }
+    await db.users.insert_one(dict(doc))
+    return compte_public(doc)
+
+
+@api_router.patch("/superadmin/comptes/{user_id}/actif")
+async def basculer_compte(user_id: str, body: ActifIn, _=Depends(require_superadmin)):
+    cible = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not cible or cible.get("role") not in ("admin", "livreur"):
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    await db.users.update_one({"id": user_id}, {"$set": {"actif": body.actif}})
+    if cible.get("livreurId"):
+        await db.livreurs.update_one({"id": cible["livreurId"]}, {"$set": {"actif": body.actif}})
+    cible["actif"] = body.actif
+    return compte_public(cible)
+
+
+@api_router.delete("/superadmin/comptes/{user_id}")
+async def supprimer_compte(user_id: str, moi_meme=Depends(require_superadmin)):
+    if user_id == moi_meme["id"]:
+        raise HTTPException(status_code=400, detail="Impossible de supprimer votre propre compte")
+    cible = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not cible or cible.get("role") not in ("admin", "livreur"):
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    await db.users.delete_one({"id": user_id})
+    if cible.get("livreurId"):
+        await db.livreurs.delete_one({"id": cible["livreurId"]})
+        await db.positions_livreurs.delete_one({"livreurId": cible["livreurId"]})
     return {"ok": True}
 
 
@@ -1165,6 +1286,19 @@ async def seed():
             doc["id"] = str(uuid.uuid4())
             doc["disponible"] = True
             await db.produits.insert_one(doc)
+
+    # super admin (gere les comptes du personnel) - idempotent
+    await db.users.update_one(
+        {"telephone": "0800000000"},
+        {"$setOnInsert": {
+            "id": str(uuid.uuid4()), "nom": "Super Admin", "telephone": "0800000000",
+            "email": None, "motDePasseHash": hash_pwd("super123"), "role": "superadmin",
+            "verifie": True, "actif": True, "createdAt": iso(now_utc()),
+        }},
+        upsert=True,
+    )
+    # comptes existants : actif par defaut
+    await db.users.update_many({"actif": {"$exists": False}}, {"$set": {"actif": True}})
 
     # admin
     if not await db.users.find_one({"telephone": "0810000000"}):

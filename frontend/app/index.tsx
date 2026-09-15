@@ -27,7 +27,7 @@ export default function Index() {
   }
 
   if (!user) return <Redirect href="/bienvenue" />;
-  if (user.role === "admin") return <Redirect href="/dashboard" />;
+  if (user.role === "admin" || user.role === "superadmin") return <Redirect href="/dashboard" />;
   if (user.role === "livreur") return <Redirect href="/courses" />;
   if (!user.telephone && !reporte) return <Redirect href="/telephone" />;
   return <Redirect href="/accueil" />;

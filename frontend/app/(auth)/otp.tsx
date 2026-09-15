@@ -34,7 +34,13 @@ export default function VerificationOtp() {
     try {
       const u = await verifierOtp(telephone, code);
       toast.show("Compte vérifié, bienvenue !", "succes");
-      router.replace(u.role === "admin" ? "/dashboard" : u.role === "livreur" ? "/courses" : "/accueil");
+      router.replace(
+        u.role === "admin" || u.role === "superadmin"
+          ? "/dashboard"
+          : u.role === "livreur"
+            ? "/courses"
+            : "/accueil",
+      );
     } catch (e: any) {
       toast.show(e.message, "erreur");
     } finally {

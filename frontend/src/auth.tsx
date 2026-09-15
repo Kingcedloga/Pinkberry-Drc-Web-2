@@ -22,9 +22,10 @@ export type Utilisateur = {
   nom: string;
   telephone: string;
   email?: string | null;
-  role: "client" | "livreur" | "admin";
+  role: "client" | "livreur" | "admin" | "superadmin";
   verifie: boolean;
   livreurId?: string | null;
+  actif?: boolean;
 };
 
 type AuthValue = {

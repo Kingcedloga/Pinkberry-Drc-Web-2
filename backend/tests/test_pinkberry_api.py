@@ -15,6 +15,8 @@ LIVREUR_TEL = "0820000001"
 LIVREUR_PWD = "livreur123"
 ADMIN_TEL = "0810000000"
 ADMIN_PWD = "admin123"
+SUPER_TEL = "0800000000"
+SUPER_PWD = "super123"
 
 
 def _login(tel, pwd):
@@ -214,15 +216,24 @@ def test_admin_livreurs_and_assign(admin_ctx, client_ctx):
 
 
 def test_admin_livreur_create_update(admin_ctx):
+    """POST /admin/livreurs is superadmin-only (iter6); PUT reste admin."""
+    super_tok, _ = _login(SUPER_TEL, SUPER_PWD)
     tel = f"082{int(time.time())%1_000_000:06d}"
     payload = {"nom": "TEST Coursier", "telephone": tel, "vehicule": "Vélo",
                "plaque": "TEST-1", "note": 5.0, "actif": True, "motDePasse": "test123"}
-    r = requests.post(f"{API}/admin/livreurs", json=payload, headers=_h(admin_ctx["tok"]), timeout=15)
-    assert r.status_code == 200
+    # admin normal doit être refusé
+    r_admin = requests.post(f"{API}/admin/livreurs", json=payload, headers=_h(admin_ctx["tok"]), timeout=15)
+    assert r_admin.status_code == 403
+    # superadmin doit passer
+    r = requests.post(f"{API}/admin/livreurs", json=payload, headers=_h(super_tok), timeout=15)
+    assert r.status_code == 200, r.text
     lv_id = r.json()["id"]
-    payload["vehicule"] = "Moto"
-    r2 = requests.put(f"{API}/admin/livreurs/{lv_id}", json=payload, headers=_h(admin_ctx["tok"]), timeout=10)
-    assert r2.status_code == 200 and r2.json()["vehicule"] == "Moto"
+    try:
+        payload["vehicule"] = "Moto"
+        r2 = requests.put(f"{API}/admin/livreurs/{lv_id}", json=payload, headers=_h(admin_ctx["tok"]), timeout=10)
+        assert r2.status_code == 200 and r2.json()["vehicule"] == "Moto"
+    finally:
+        requests.delete(f"{API}/admin/livreurs/{lv_id}", headers=_h(super_tok), timeout=10)
 
 
 # --------------------------------------------------------------- livreur flow

@@ -4,12 +4,16 @@ import React from "react";
 import { Platform } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
+import { useAuth } from "@/src/auth";
 import { ONGLETS_NATIFS } from "@/src/nav";
 import { colors, fonts } from "@/src/theme";
 
 const { Icon, Label } = NativeTabs.Trigger;
 
 export default function AdminLayout() {
+  const { user } = useAuth();
+  const estSuper = user?.role === "superadmin";
+
   if (ONGLETS_NATIFS) {
     return (
       <NativeTabs
@@ -32,6 +36,10 @@ export default function AdminLayout() {
         <NativeTabs.Trigger name="livreurs">
           <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
           <Label>Livreurs</Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="personnel" hidden={!estSuper}>
+          <Icon sf={{ default: "person.badge.key", selected: "person.badge.key.fill" }} />
+          <Label>Personnel</Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     );
@@ -68,6 +76,14 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="livreurs"
         options={{ title: "Livreurs", tabBarIcon: ({ color }) => <Icone name="users" size={22} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="personnel"
+        options={{
+          title: "Personnel",
+          href: estSuper ? undefined : null,
+          tabBarIcon: ({ color }) => <Icone name="key" size={22} color={color} />,
+        }}
       />
     </Tabs>
   );

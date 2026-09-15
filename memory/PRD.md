@@ -144,6 +144,28 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Tests : 57/57 backend + vérification runtime (0 SVG de taille nulle, 0 `currentColor`) en mobile et
   desktop, client et admin (itération 5).
 
+## Implémenté — ajout du 15/09/2026 (v1.5)
+- **Rôle Super Admin et hiérarchie RBAC** : `superadmin > admin > livreur > client`, appliquée côté
+  serveur (`NIVEAUX` / `require_admin` par niveau / `require_superadmin` dans `backend/server.py`).
+  Le superadmin conserve tous les droits admin ; l'admin perd la création et la suppression de comptes.
+- **Section « Personnel » réservée au superadmin** (`app/(admin)/personnel.tsx`, 5e onglet masqué pour
+  les autres rôles) : liste des comptes admin + livreur, création d'un Admin (nom, email, téléphone,
+  mot de passe initial) ou d'un Livreur (nom, téléphone, véhicule, plaque, mot de passe),
+  activation/désactivation et suppression.
+- **Nouvelles routes** : `GET /api/superadmin/comptes`, `POST /api/superadmin/admins`,
+  `PATCH /api/superadmin/comptes/{id}/actif`, `DELETE /api/superadmin/comptes/{id}`.
+  `POST` et `DELETE /api/admin/livreurs` sont désormais réservés au superadmin (le `PUT` reste admin).
+- **Champ `actif`** : un compte désactivé est bloqué à la connexion (téléphone, OTP et Google) et sur
+  toute requête authentifiée, même avec un jeton déjà émis. Garde-fous : impossible de supprimer son
+  propre compte, ni de cibler un client ou un autre superadmin.
+- **Seed idempotent du superadmin** (`0800000000` / `super123`) via `$setOnInsert`, plus migration
+  `actif: true` pour les comptes existants.
+- **Bascule œil sur tous les mots de passe** : `src/components/Champ.tsx` affiche une icône Heroicon
+  œil / œil barré à l'intérieur du champ, alignée à droite, masqué par défaut, sans changement de
+  hauteur (inscription, connexion, création Admin/Livreur).
+- Tests : 73/73 backend (dont 16 nouveaux tests RBAC) + parcours frontend superadmin, admin, livreur
+  et client validés (itération 6).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

@@ -6,6 +6,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
+import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { hauteurOngletsNatifs } from "@/src/nav";
@@ -16,6 +17,8 @@ export default function Livreurs() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const estSuper = user?.role === "superadmin";
   const q = useQuery({
     queryKey: ["admin-livreurs"],
     queryFn: () => apiFetch<any[]>("/admin/livreurs"),
@@ -66,9 +69,11 @@ export default function Livreurs() {
     <View testID="ecran-admin-livreurs" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
         <Text style={styles.titre}>Livreurs</Text>
-        <Pressable testID="btn-ajouter-livreur" onPress={() => setOuvert(true)} style={styles.ajouter}>
-          <Icone name="plus" size={20} color={colors.onBrandPrimary} />
-        </Pressable>
+        {estSuper ? (
+          <Pressable testID="btn-ajouter-livreur" onPress={() => setOuvert(true)} style={styles.ajouter}>
+            <Icone name="plus" size={20} color={colors.onBrandPrimary} />
+          </Pressable>
+        ) : null}
       </View>
 
       {q.isLoading ? (
@@ -123,7 +128,7 @@ export default function Livreurs() {
               <Champ label="Téléphone" testID="input-livreur-telephone" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" />
               <Champ label="Véhicule" testID="input-livreur-vehicule" value={vehicule} onChangeText={setVehicule} />
               <Champ label="Plaque" testID="input-livreur-plaque" value={plaque} onChangeText={setPlaque} />
-              <Champ label="Mot de passe de connexion" testID="input-livreur-motdepasse" value={motDePasse} onChangeText={setMotDePasse} />
+              <Champ label="Mot de passe de connexion" testID="input-livreur-motdepasse" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry />
               <Bouton testID="btn-enregistrer-livreur" label="Ajouter le livreur" onPress={ajouter} />
               <Bouton testID="btn-annuler-livreur" label="Annuler" variant="contour" onPress={() => setOuvert(false)} />
             </KeyboardAwareScrollView>

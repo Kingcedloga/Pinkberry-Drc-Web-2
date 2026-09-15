@@ -1,0 +1,32 @@
+{
+  "summary": "Iteration 6 (Super Admin RBAC + password eye toggle) — ALL GREEN. Backend: 16/16 nouveaux tests iter6 (RBAC, hiérarchie, création admin+livreur, activer/désactiver + invalidation immédiate du jeton via champ actif, suppression avec garde-fous, non-régression). Regression complète : 73/73 tests pytest passent séquentiellement. Frontend: super admin (0800000000/super123) est redirigé vers /dashboard, /personnel affiche ecran-personnel + liste-comptes, la feuille btn-ajouter-compte ouvre les champs input-compte-nom/email/telephone/motdepasse (+ vehicule/plaque quand type=livreur). Admin normal (0810000000) : /personnel affiche ecran-personnel-refuse (jamais ecran-personnel), et btn-ajouter-livreur est absent de l'écran Livreurs. Icône œil : sur /connexion, /inscription, feuille Personnel — le type de l'input bascule bien password ↔ text à chaque clic ; hauteur du champ constante à 52px en 390x844 ET 1280x800 ; SVG œil 20x20 (jamais nul), aligné à droite dans le champ (paddingRight 52). Aucune réponse API ne contient motDePasseHash. Nettoyage: 6 comptes 'TEST Coursier' orphelins supprimés, taux de change vérifié à 2 800 FC.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/pytest_iter6_new.xml",
+    "/app/test_reports/pytest/pytest_regression_iter6_new.xml",
+    "/app/backend/tests/test_iteration6.py",
+    "/app/backend/tests/test_pinkberry_api.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py : require_superadmin bien branché sur toutes les routes /superadmin/* + POST/DELETE /admin/livreurs. get_current_user renvoie 403 dès que user.actif == false, ce qui invalide un jeton déjà émis (test_flux_complet vérifie ce scénario).",
+    "supprimer_compte refuse le suicide (user_id == moi_meme.id -> 400) et refuse tout id non admin/livreur -> 404 (client, superadmin). Cohérent avec la spec.",
+    "compte_public + projection {motDePasseHash: 0} sur GET /superadmin/comptes : aucune fuite de hash de mot de passe dans les réponses.",
+    "Champ.tsx (frontend) : le paddingRight=52 est appliqué uniquement quand secureTextEntry est true (style avecOeil), donc les autres champs conservent leur mise en page. La hauteur reste 52px avec ou sans œil (icône positionnée en absolute), vérifié en 390x844 et 1280x800."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_pinkberry_api.py (mise à jour test_admin_livreur_create_update pour utiliser le superadmin sur POST/DELETE /admin/livreurs — reflète la restriction iter6 ; vérifie aussi qu'un admin normal reçoit 403)"
+  ],
+  "success_rate": {"backend": "100% (16/16 iter6 + 73/73 regression)", "frontend": "100%"},
+  "seed_data_creation": "Aucune donnée séedée manuellement. Les tests créent et suppriment leurs propres comptes TEST_*. Nettoyage manuel supplémentaire des 6 TEST Coursier orphelins d'itérations précédentes.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "La suite backend contient maintenant 73 tests (57 baseline iter1-5 + 16 iter6). Exécuter séquentiellement avec `-n 1` pour éviter les 2 flakies xdist déjà documentées (test_livree_incremente, test_upload_png_ok_et_lecture). Le web preview rend le fallback JS <Tabs> — l'onglet Personnel n'est présent que pour role=superadmin (vérifié via redirection + testID). Pour tester l'œil du mot de passe, utiliser `page.evaluate(() => el.type)` plutôt que `page.get_attribute('type')` : ce dernier renvoie parfois None sur les inputs React Native Web pendant la transition. Ne pas modifier le taux (2800 FC).",
+  "rca_of_issue": "Aucun bug. Un seul test de régression a fallu être adapté (test_admin_livreur_create_update dans test_pinkberry_api.py) car POST /admin/livreurs est désormais réservé au superadmin — c'est un changement de contrat intentionnel de l'itération 6. Le test a été mis à jour pour (a) vérifier que l'admin normal est refusé (403) et (b) utiliser le token superadmin pour créer/supprimer, tout en laissant PUT /admin/livreurs accessible à l'admin (inchangé)."
+}
