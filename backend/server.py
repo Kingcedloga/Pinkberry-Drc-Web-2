@@ -1456,8 +1456,16 @@ async def rapport_commandes(
     titre = f"Rapport des commandes du {debut} au {fin}"
     nom_fichier = f"pinkberry-rapport-{debut}-{fin}.{format}"
 
+    resume_lignes = [
+        ("Nombre de commandes", resume["nbCommandes"]),
+        ("Chiffre d'affaires (commandes livrées)", f"$ {resume['chiffre']:.2f}"),
+        ("Livraisons réussies", resume["nbLivrees"]),
+        ("Commandes annulées", resume["nbAnnulees"]),
+    ]
     contenu = (
-        construire_xlsx(titre, lignes, resume) if format == "xlsx" else construire_pdf(titre, lignes, resume)
+        construire_xlsx(titre, lignes, resume_lignes)
+        if format == "xlsx"
+        else construire_pdf(titre, lignes, resume_lignes)
     )
     media = (
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -1483,19 +1491,25 @@ COLONNES_RAPPORT = [
 ]
 
 
-def construire_xlsx(titre: str, lignes: List[Dict[str, Any]], resume: Dict[str, Any]) -> bytes:
+def construire_xlsx(
+    titre: str,
+    lignes: List[Dict[str, Any]],
+    resume_lignes: List[tuple],
+    colonnes: List[tuple] = COLONNES_RAPPORT,
+    feuille: str = "Commandes",
+) -> bytes:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Commandes"
+    ws.title = feuille
 
     ws.append([titre])
     ws["A1"].font = Font(bold=True, size=14, color="E6156F")
     ws.append([])
 
-    entetes = [c[1] for c in COLONNES_RAPPORT]
+    entetes = [c[1] for c in colonnes]
     ws.append(entetes)
     for cell in ws[3]:
         cell.font = Font(bold=True, color="FFFFFF")
@@ -1503,20 +1517,15 @@ def construire_xlsx(titre: str, lignes: List[Dict[str, Any]], resume: Dict[str, 
         cell.alignment = Alignment(horizontal="center")
 
     for lg in lignes:
-        ws.append([lg[c[0]] for c in COLONNES_RAPPORT])
+        ws.append([lg[c[0]] for c in colonnes])
 
-    for i, (_, __, largeur) in enumerate(COLONNES_RAPPORT, start=1):
+    for i, (_, __, largeur) in enumerate(colonnes, start=1):
         ws.column_dimensions[ws.cell(row=3, column=i).column_letter].width = largeur
 
     ws.append([])
     ws.append(["Récapitulatif"])
     ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=12)
-    for label, valeur in [
-        ("Nombre de commandes", resume["nbCommandes"]),
-        ("Chiffre d'affaires (commandes livrées)", f"$ {resume['chiffre']:.2f}"),
-        ("Livraisons réussies", resume["nbLivrees"]),
-        ("Commandes annulées", resume["nbAnnulees"]),
-    ]:
+    for label, valeur in resume_lignes:
         ws.append([label, valeur])
 
     flux = io.BytesIO()
@@ -1524,7 +1533,12 @@ def construire_xlsx(titre: str, lignes: List[Dict[str, Any]], resume: Dict[str, 
     return flux.getvalue()
 
 
-def construire_pdf(titre: str, lignes: List[Dict[str, Any]], resume: Dict[str, Any]) -> bytes:
+def construire_pdf(
+    titre: str,
+    lignes: List[Dict[str, Any]],
+    resume_lignes: List[tuple],
+    colonnes: List[tuple] = COLONNES_RAPPORT,
+) -> bytes:
     from reportlab.lib import colors as pdfcolors
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet
@@ -1547,14 +1561,16 @@ def construire_pdf(titre: str, lignes: List[Dict[str, Any]], resume: Dict[str, A
         Spacer(1, 6),
     ]
 
-    donnees = [[Paragraph(f"<b>{c[1]}</b>", petit) for c in COLONNES_RAPPORT]]
+    donnees = [[Paragraph(f"<b>{c[1]}</b>", petit) for c in colonnes]]
     for lg in lignes:
         donnees.append([
-            Paragraph(f"$ {lg[c[0]]:.2f}" if c[0] == "total" else str(lg[c[0]]), petit)
-            for c in COLONNES_RAPPORT
+            Paragraph(f"$ {lg[c[0]]:.2f}" if c[0] in ("total", "cash") else str(lg[c[0]]), petit)
+            for c in colonnes
         ])
 
-    largeurs = [22 * mm, 26 * mm, 30 * mm, 48 * mm, 62 * mm, 20 * mm, 24 * mm, 28 * mm]
+    # Largeur proportionnelle aux largeurs de colonnes Excel, sur la page A4 paysage.
+    total_largeur = sum(c[2] for c in colonnes)
+    largeurs = [max(18, c[2] / total_largeur * 260) * mm for c in colonnes]
     table = Table(donnees, colWidths=largeurs, repeatRows=1)
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), rose),
@@ -1566,12 +1582,7 @@ def construire_pdf(titre: str, lignes: List[Dict[str, Any]], resume: Dict[str, A
     elements += [table, Spacer(1, 10), Paragraph("<b>Récapitulatif</b>", styles["Heading3"])]
 
     resume_table = Table(
-        [
-            ["Nombre de commandes", str(resume["nbCommandes"])],
-            ["Chiffre d'affaires (commandes livrées)", f"$ {resume['chiffre']:.2f}"],
-            ["Livraisons réussies", str(resume["nbLivrees"])],
-            ["Commandes annulées", str(resume["nbAnnulees"])],
-        ],
+        [[label, str(valeur)] for label, valeur in resume_lignes],
         colWidths=[80 * mm, 40 * mm],
     )
     resume_table.setStyle(TableStyle([
@@ -1660,12 +1671,151 @@ async def ventes_du_jour(_=Depends(require_admin)):
     }
 
 
+COLONNES_RAPPORT_LIVREUR = [
+    ("numero", "N° commande", 14),
+    ("date", "Date", 17),
+    ("adresse", "Adresse / commune", 34),
+    ("cash", "Cash encaissé USD", 16),
+    ("statut", "Statut", 14),
+]
+
+
 # ---------------------------------------------------------------------- livreur
 @api_router.get("/livreur/courses")
 async def livreur_courses(user=Depends(require_livreur)):
-    cmds = await db.commandes.find({"livreurId": user.get("livreurId")}, {"_id": 0}).to_list(200)
-    cmds.sort(key=lambda c: c["createdAt"], reverse=True)
+    cmds = (
+        await db.commandes.find(
+            {
+                "livreurId": user.get("livreurId"),
+                "livreurArchivee": {"$ne": True},
+                "livreurMasquee": {"$ne": True},
+            },
+            {"_id": 0},
+        )
+        .sort("createdAt", -1)
+        .to_list(200)
+    )
     return await enrichir_lot(cmds)
+
+
+@api_router.get("/livreur/courses/archives")
+async def livreur_courses_archivees(user=Depends(require_livreur)):
+    cmds = (
+        await db.commandes.find(
+            {"livreurId": user.get("livreurId"), "livreurArchivee": True, "livreurMasquee": {"$ne": True}},
+            {"_id": 0},
+        )
+        .sort("livreurArchiveeAt", -1)
+        .to_list(200)
+    )
+    return await enrichir_lot(cmds)
+
+
+async def _course_du_livreur(cmd_id: str, user: Dict[str, Any]) -> Dict[str, Any]:
+    cmd = await db.commandes.find_one({"id": cmd_id, "livreurId": user.get("livreurId")}, {"_id": 0})
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Course introuvable")
+    return cmd
+
+
+@api_router.post("/livreur/courses/{cmd_id}/archiver")
+async def livreur_archiver(cmd_id: str, user=Depends(require_livreur)):
+    cmd = await _course_du_livreur(cmd_id, user)
+    if cmd.get("statut") not in ("livree", "annulee"):
+        raise HTTPException(status_code=400, detail="Seule une course terminee peut etre archivee")
+    await db.commandes.update_one(
+        {"id": cmd_id}, {"$set": {"livreurArchivee": True, "livreurArchiveeAt": iso(now_utc())}}
+    )
+    return {"ok": True}
+
+
+@api_router.post("/livreur/courses/{cmd_id}/desarchiver")
+async def livreur_desarchiver(cmd_id: str, user=Depends(require_livreur)):
+    await _course_du_livreur(cmd_id, user)
+    await db.commandes.update_one(
+        {"id": cmd_id}, {"$set": {"livreurArchivee": False}, "$unset": {"livreurArchiveeAt": ""}}
+    )
+    return {"ok": True}
+
+
+@api_router.delete("/livreur/courses/{cmd_id}/masquer")
+async def livreur_masquer(cmd_id: str, user=Depends(require_livreur)):
+    """Retire la course de la vue du livreur. La commande reste intacte cote
+    admin (rapports et comptabilite) : rien n'est supprime en base."""
+    cmd = await _course_du_livreur(cmd_id, user)
+    if not cmd.get("livreurArchivee"):
+        raise HTTPException(status_code=400, detail="Archivez la course avant de la supprimer")
+    await db.commandes.update_one(
+        {"id": cmd_id}, {"$set": {"livreurMasquee": True, "livreurMasqueeAt": iso(now_utc())}}
+    )
+    return {"ok": True}
+
+
+@api_router.get("/livreur/rapport")
+async def rapport_livreur(debut: str, fin: str, format: str = "xlsx", user=Depends(require_livreur)):
+    """Rapport des courses du livreur : cash encaisse et livraisons de la periode."""
+    if format not in ("xlsx", "pdf"):
+        raise HTTPException(status_code=400, detail="Format attendu : xlsx ou pdf")
+    try:
+        d_debut = datetime.strptime(debut, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        d_fin = datetime.strptime(fin, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Dates attendues au format AAAA-MM-JJ")
+    if d_fin < d_debut:
+        raise HTTPException(status_code=400, detail="La date de fin precede la date de debut")
+
+    cmds = await db.commandes.find(
+        {
+            "livreurId": user.get("livreurId"),
+            "createdAt": {"$gte": iso(d_debut), "$lt": iso(d_fin + timedelta(days=1))},
+        },
+        {"_id": 0},
+    ).to_list(5000)
+    cmds.sort(key=lambda c: c["createdAt"])
+
+    lignes = []
+    for c in cmds:
+        adr = c.get("adresse") or {}
+        encaisse = float(c.get("total", 0)) if c.get("cashEncaisse") else 0.0
+        lignes.append({
+            "numero": c.get("numero", ""),
+            "date": (c.get("createdAt") or "")[:16].replace("T", " "),
+            "adresse": f"{adr.get('commune', '')} — {adr.get('avenue', '')} {adr.get('numero', '')}".strip(" —"),
+            "cash": round(encaisse, 2),
+            "statut": LIBELLES_STATUT.get(c.get("statut", ""), c.get("statut", "")),
+        })
+
+    nb_livrees = len([c for c in cmds if c.get("statut") == "livree"])
+    nb_annulees = len([c for c in cmds if c.get("statut") == "annulee"])
+    total_cash = round(sum(lg["cash"] for lg in lignes), 2)
+    resume_lignes = [
+        ("Courses effectuées", len(cmds)),
+        ("Livraisons réussies", nb_livrees),
+        ("Courses annulées", nb_annulees),
+        ("Total cash encaissé", f"$ {total_cash:.2f}"),
+    ]
+
+    nom_livreur = (await db.livreurs.find_one({"id": user.get("livreurId")}, {"_id": 0}) or {}).get(
+        "nom", user.get("nom", "")
+    )
+    titre = f"Courses de {nom_livreur} du {debut} au {fin}"
+    nom_fichier = f"pinkberry-courses-{debut}-{fin}.{format}"
+
+    contenu = (
+        construire_xlsx(titre, lignes, resume_lignes, COLONNES_RAPPORT_LIVREUR, "Courses")
+        if format == "xlsx"
+        else construire_pdf(titre, lignes, resume_lignes, COLONNES_RAPPORT_LIVREUR)
+    )
+    media = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        if format == "xlsx"
+        else "application/pdf"
+    )
+    return StreamingResponse(
+        io.BytesIO(contenu),
+        media_type=media,
+        headers={"Content-Disposition": f'attachment; filename="{nom_fichier}"'},
+    )
 
 
 @api_router.patch("/livreur/courses/{cmd_id}/statut")

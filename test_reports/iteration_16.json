@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 16 — Livreur (archivage/masquage/rapport) + Admin langue + suppression du texte langueDetail côté client — VALIDÉE. Backend : suite test_iteration16.py 17/17 OK en ~10s (archiver refuse non-terminée 400, accepte livree 200, liste principale exclut/archives inclut, désarchiver remet, masquer refuse si non-archivée 400, masquer OK sinon; ISOLATION ADMIN critique validée — après DELETE /livreur/courses/{id}/masquer la commande reste dans /admin/commandes|archives ET dans /admin/rapport xlsx (contient bien le numéro), et le total en base ne diminue pas; sécurité : livreur 2 → 404 sur ids du livreur 1, client/admin → 403 sur /api/livreur/*; rapport livreur xlsx/pdf : Content-Type OK, colonnes N° commande/Date/Adresse/Cash/Statut présentes, récapitulatif Courses effectuées/Livraisons réussies/Courses annulées/Total cash encaissé présent, format=csv → 400, dates KO → 400, fin<debut → 400, sans token → 401/403, rapport livreur 2 ne contient PAS les courses du livreur 1, une course masquée reste dans le RAPPORT du livreur; non-régression admin rapport xlsx (8 colonnes) + pdf : OK; admin peut changer langue via PUT /auth/preferences et la relire via /auth/moi). Régression complète 190 tests exécutés : 189 OK + 1 flaky ConnectTimeout (test_iteration12 TestTauxAPI, passe en isolation — connu du contexte). Frontend livreur mobile 390x844 (0820000001/livreur123) : ecran-livreur-courses OK, btn-livreur-rapports + btn-livreur-archives présents en en-tête, 36 boutons btn-archiver-course-{numero} sur les courses Livrée/Annulée; clic → la course disparaît de la liste principale; ecran-archives-livreur OK avec btn-desarchiver-course-{numero} + btn-supprimer-course-{numero}; clic Supprimer → modal-supprimer-course visible avec btn-confirmer-suppression-course (annulé pour ne pas perdre la course); désarchiver remet dans la liste (toast « Course remise dans la liste » ✓); ecran-rapports OK avec periode-aujourdhui/semaine/mois, input-rapport-debut/fin, btn-rapport-xlsx/pdf. Frontend admin (0810000000/admin123) → Paramètres : section « LANGUE » présente avec btn-langue-admin-fr + btn-langue-admin-en, bascule vers EN → puce ✓ passe sur English, reload → puce reste sur English (persistance OK), remis en Français à la fin. Frontend client (0990000001/client123) → Paramètres : texte « Toute l'application s'affiche dans cette langue » (langueDetail) SUPPRIMÉ ; btn-langue-fr et btn-langue-en restent présents et fonctionnels. Aucun problème React Native détecté.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/admin/parametres",
+        "issues": [
+          "Quand l'admin passe en Anglais, seuls certains libellés (LANGUAGE, sous-titres) sont traduits ; les titres de sections ‘COMMANDES’, ‘BOUTIQUE’, ‘MON COMPTE’ restent en français. Non bloquant mais i18n admin incomplet — envisager d'ajouter les clés params.commandes / params.boutique / params.monCompte au dictionnaire EN dans src/i18n.tsx."
+        ]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration16.py",
+    "/app/test_reports/pytest/pytest_iter16.xml",
+    "/app/test_reports/pytest/pytest_regression_iter16.xml"
+  ],
+  "action_items": [
+    "(Optionnel, cosmétique) Compléter la traduction EN dans /app/frontend/src/i18n.tsx pour les sections de /admin/parametres (‘Commandes’, ‘Boutique’, ‘Mon compte’, ‘Historique’) — actuellement seuls quelques libellés basculent en anglais."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py:1721-1751 : cycle archiver/desarchiver/masquer est propre — _course_du_livreur() 404 si mauvais livreur (sécurité), archiver 400 si statut ∉ {livree,annulee}, masquer 400 si non archivée d'abord. Rien n'est supprimé physiquement (livreurMasquee flag) → isolation admin garantie.",
+    "backend/server.py:1754-1818 : rapport livreur bien filtré sur livreurId ; contient TOUTES les courses de la période (y compris celles masquées côté livreur) car aucun filtre livreurMasquee — c'est le comportement attendu (le livreur peut re-télécharger son historique).",
+    "backend/server.py:1482-1590 : COLONNES_RAPPORT + COLONNES_RAPPORT_LIVREUR paramétrables sur construire_xlsx/pdf : bon design, non-régression du rapport admin (8 colonnes) validée.",
+    "frontend/app/livreur/archives.tsx : modal de confirmation avec btn-confirmer-suppression-course + btn-annuler-suppression-course, refetch propre après action ; texte explique bien que la boutique conserve la commande pour ses rapports.",
+    "frontend/app/admin/parametres.tsx:179-197 : section Langue bien testable via btn-langue-admin-{code}, appelle enregistrerPrefs qui PUT /auth/preferences + met à jour localStorage → persistance vérifiée après reload."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration16.py (nouveau)"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 iteration_16 ; 189/190 régression avec 1 flaky ConnectTimeout hors périmètre)",
+    "frontend": "100% (livreur : archivage, désarchivage, modal suppression, écran rapports ; admin : section langue + persistance ; client : plus de texte langueDetail)"
+  },
+  "seed_data_creation": "Plusieurs commandes TEST_ITER16_* créées par le client démo, assignées au livreur 1, marquées livree ; certaines archivées/masquées côté livreur pour valider l'isolation admin (elles restent visibles admin). Rétablissement : les courses archivées via le test UI ont été désarchivées ; les courses masquées via pytest restent visibles côté admin (par design — la contrainte user est « jamais réellement effacée »). Langue admin remise à 'fr'. Aucun mot de passe modifié.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Itération 16 validée à 100%. Le refactor construire_xlsx/pdf en colonnes paramétrables n'a pas cassé le rapport admin (validé par TestNonRegressionAdminRapport). L'isolation admin après masquer livreur est garantie (validée par test_masquer_apres_archivage_et_isolation_admin qui inspecte le xlsx admin). Un seul point cosmétique : la traduction EN des titres de sections dans /admin/parametres est incomplète (COMMANDES/BOUTIQUE/MON COMPTE restent en FR). Test flaky connu : test_iteration12.py::TestTauxAPI::test_put_admin_config_returns_reread_from_db en parallèle (ConnectTimeout) — passe en isolation, ce n'est pas une régression. Fichier de tests : /app/backend/tests/test_iteration16.py (17 tests, ~10s en parallèle).",
+  "rca_of_issue": "N/A — aucune régression"
+}

@@ -1,5 +1,5 @@
 import { Icone } from "@/src/components/Icone";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
@@ -9,7 +9,8 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { usd } from "@/src/money";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, poids, radius, softShadow, spacing } from "@/src/theme";
+import { useToast } from "@/src/toast";
 
 const LIBELLES: Record<string, string> = {
   recue: "À récupérer",
@@ -24,12 +25,25 @@ export default function Courses() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, deconnexion } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
 
   const q = useQuery({
     queryKey: ["livreur-courses"],
     queryFn: () => apiFetch<any[]>("/livreur/courses"),
     refetchInterval: 5000,
   });
+
+  const archiver = async (id: string) => {
+    try {
+      await apiFetch(`/livreur/courses/${id}/archiver`, { method: "POST" });
+      qc.invalidateQueries({ queryKey: ["livreur-courses"] });
+      qc.invalidateQueries({ queryKey: ["livreur-archives"] });
+      toast.show("Course archivée", "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
 
   const actives = (q.data ?? []).filter((c) => !["livree", "annulee"].includes(c.statut));
   const terminees = (q.data ?? []).filter((c) => ["livree", "annulee"].includes(c.statut));
@@ -41,16 +55,32 @@ export default function Courses() {
           <Text style={styles.titre}>Mes courses</Text>
           <Text style={styles.sous}>{user?.nom}</Text>
         </View>
-        <Pressable
-          testID="btn-livreur-deconnexion"
+        <View style={styles.enteteActions}>
+          <Pressable
+            testID="btn-livreur-rapports"
+            onPress={() => router.push("/livreur/rapports")}
+            style={styles.iconeBtn}
+          >
+            <Icone name="download" size={20} color={colors.brandPrimary} />
+          </Pressable>
+          <Pressable
+            testID="btn-livreur-archives"
+            onPress={() => router.push("/livreur/archives")}
+            style={styles.iconeBtn}
+          >
+            <Icone name="archive" size={20} color={colors.brandPrimary} />
+          </Pressable>
+          <Pressable
+            testID="btn-livreur-deconnexion"
           onPress={async () => {
             await deconnexion();
             router.replace("/bienvenue");
           }}
-          style={styles.iconeBtn}
-        >
-          <Icone name="log-out" size={20} color={colors.brandPrimary} />
-        </Pressable>
+            style={styles.iconeBtn}
+          >
+            <Icone name="log-out" size={20} color={colors.brandPrimary} />
+          </Pressable>
+        </View>
       </View>
 
       {q.isLoading ? (
@@ -117,6 +147,16 @@ export default function Courses() {
                 </Text>
                 <Text style={styles.montant}>{usd(item.total)}</Text>
               </View>
+              {["livree", "annulee"].includes(item.statut) ? (
+                <Pressable
+                  testID={`btn-archiver-course-${item.numero}`}
+                  onPress={() => archiver(item.id)}
+                  style={styles.archiver}
+                >
+                  <Icone name="archive" size={16} color={colors.brandPrimary} />
+                  <Text style={styles.archiverTexte}>Archiver</Text>
+                </Pressable>
+              ) : null}
             </Pressable>
           )}
         />
@@ -172,4 +212,16 @@ const styles = StyleSheet.create({
   },
   items: { flex: 1, fontFamily: fonts.text, fontSize: 12, color: colors.onSurface },
   montant: { fontFamily: fonts.display, fontSize: 18, color: colors.brandPrimary },
+  enteteActions: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  archiver: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    minHeight: 44,
+    marginTop: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+  },
+  archiverTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.brandPrimary },
 });

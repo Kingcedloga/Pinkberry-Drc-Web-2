@@ -310,6 +310,27 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   (`carrousel-recommandes`). Masquée pendant une recherche. Textes traduits FR/EN.
 - Tests : 173/173 backend (itération 15) + parcours admin et client validés.
 
+## Livreur : archives + rapport, langue admin — 16/09/2026 (v2.2)
+- **Choix de la langue côté admin** : section Langue dans `app/admin/parametres.tsx`
+  (`btn-langue-admin-fr` / `btn-langue-admin-en`) ; écran Paramètres admin traduit via les clés
+  `admin.*` de `src/i18n.tsx`. Suppression de la clé `params.langueDetail` (texte d'aide retiré).
+- **Livreur — archiver puis supprimer** : champs `livreurArchivee` / `livreurMasquee` sur la commande.
+  `POST /api/livreur/courses/{id}/archiver` (course terminée uniquement),
+  `POST /api/livreur/courses/{id}/desarchiver`, `DELETE /api/livreur/courses/{id}/masquer`
+  (uniquement si archivée) et `GET /api/livreur/courses/archives`. `GET /api/livreur/courses` exclut
+  archivées et masquées. Rien n'est supprimé en base : la commande reste côté admin et dans les rapports.
+  Écrans : bouton Archiver sur les courses terminées + en-tête avec accès Archives et Rapports
+  (`app/livreur/archives.tsx`).
+- **Livreur — rapport par période** : `GET /api/livreur/rapport?debut&fin&format=xlsx|pdf` (colonnes
+  `COLONNES_RAPPORT_LIVREUR` : n° commande, date, adresse/commune, cash encaissé, statut ; récapitulatif
+  courses effectuées / livraisons réussies / annulées / total cash). Écran `app/livreur/rapports.tsx`.
+  `construire_xlsx` et `construire_pdf` acceptent désormais des colonnes et un récapitulatif
+  paramétrables ; l'écran de téléchargement est partagé (`src/components/EcranRapport.tsx`) entre
+  admin et livreur.
+- Tests : 190 tests backend (17 nouveaux, itération 16) + parcours livreur, admin et client validés.
+  Note : `test_iteration9`/`test_iteration11` peuvent échouer en exécution parallèle (données
+  partagées) mais passent en isolation.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

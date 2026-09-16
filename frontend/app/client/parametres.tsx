@@ -261,7 +261,6 @@ export default function ParametresClient() {
                   );
                 })}
               </View>
-              <Text style={styles.aide}>{t("params.langueDetail")}</Text>
             </Section>
 
             <Section titre={t("params.notifications")}>

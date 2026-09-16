@@ -38,7 +38,6 @@ const FR = {
 
   "params.titre": "Paramètres",
   "params.langue": "Langue",
-  "params.langueDetail": "Toute l'application s'affiche dans cette langue",
   "params.notifications": "Notifications",
   "params.notifSuivi": "Suivi de commande",
   "params.notifSuiviDetail": "Préparation, départ du livreur et livraison",
@@ -171,6 +170,18 @@ const FR = {
   "etape.en_preparation": "En préparation",
   "etape.en_route": "Livreur en route",
   "etape.livree": "Livré",
+
+  "admin.titre": "Paramètres",
+  "admin.commandes": "Commandes",
+  "admin.boutique": "Boutique",
+  "admin.rapports": "Rapport des commandes",
+  "admin.rapportsDetail": "Excel ou PDF par période",
+  "admin.archives": "Archives des commandes",
+  "admin.archivesDetail": "Commandes livrées ou annulées archivées",
+  "admin.taux": "Taux de change et catalogue",
+  "admin.zones": "Zones de livraison",
+  "admin.personnel": "Comptes du personnel",
+  "admin.personnelDetail": "Réservé au super admin",
 };
 
 const EN: Record<keyof typeof FR, string> = {
@@ -200,7 +211,6 @@ const EN: Record<keyof typeof FR, string> = {
 
   "params.titre": "Settings",
   "params.langue": "Language",
-  "params.langueDetail": "The whole app is displayed in this language",
   "params.notifications": "Notifications",
   "params.notifSuivi": "Order updates",
   "params.notifSuiviDetail": "Preparation, rider on the way and delivery",
@@ -332,6 +342,18 @@ const EN: Record<keyof typeof FR, string> = {
   "etape.en_preparation": "Being prepared",
   "etape.en_route": "Rider on the way",
   "etape.livree": "Delivered",
+
+  "admin.titre": "Settings",
+  "admin.commandes": "Orders",
+  "admin.boutique": "Shop",
+  "admin.rapports": "Orders report",
+  "admin.rapportsDetail": "Excel or PDF by period",
+  "admin.archives": "Archived orders",
+  "admin.archivesDetail": "Delivered or cancelled orders set aside",
+  "admin.taux": "Exchange rate and menu",
+  "admin.zones": "Delivery areas",
+  "admin.personnel": "Staff accounts",
+  "admin.personnelDetail": "Super admin only",
 };
 
 export type CleTexte = keyof typeof FR;

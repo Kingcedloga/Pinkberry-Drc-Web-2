@@ -9,6 +9,7 @@ import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone, type NomIcone } from "@/src/components/Icone";
+import { useLangue, type Langue } from "@/src/i18n";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useToast } from "@/src/toast";
 
@@ -57,6 +58,7 @@ export default function Parametres() {
   const router = useRouter();
   const toast = useToast();
   const { user, deconnexion } = useAuth();
+  const { langue, t, enregistrerPrefs } = useLangue();
   const estSuper = user?.role === "superadmin";
 
   const [vue, setVue] = useState<"menu" | "profil" | "motdepasse">("menu");
@@ -112,7 +114,11 @@ export default function Parametres() {
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
         <Text style={styles.titre}>
-          {vue === "profil" ? "Modifier le profil" : vue === "motdepasse" ? "Changer le mot de passe" : "Paramètres"}
+          {vue === "profil"
+            ? t("params.profilTitre")
+            : vue === "motdepasse"
+              ? t("params.mdpTitre")
+              : t("admin.titre")}
         </Text>
       </View>
 
@@ -174,58 +180,86 @@ export default function Parametres() {
           </View>
         ) : (
           <>
-            <Section titre="Mon compte">
+            <Section titre={t("params.langue")}>
+              <View style={styles.langues}>
+                {(["fr", "en"] as Langue[]).map((code) => {
+                  const actif = langue === code;
+                  return (
+                    <Pressable
+                      key={code}
+                      testID={`btn-langue-admin-${code}`}
+                      onPress={async () => {
+                        try {
+                          await enregistrerPrefs({ langue: code });
+                          toast.show(t("params.enregistre"), "succes");
+                        } catch (e: any) {
+                          toast.show(e.message, "erreur");
+                        }
+                      }}
+                      style={[styles.langue, actif && styles.langueActive]}
+                    >
+                      <Text style={[styles.langueTexte, actif && styles.langueTexteActif]}>
+                        {code === "fr" ? "Français" : "English"}
+                      </Text>
+                      {actif ? <Icone name="check" size={16} color={colors.onBrandPrimary} /> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </Section>
+
+            <Section titre={t("params.monCompte")}>
               <Ligne
                 testID="ligne-profil"
                 icone="user"
-                label="Modifier le profil"
+                label={t("params.profil")}
                 valeur={user?.nom}
                 onPress={() => setVue("profil")}
               />
               <Ligne
                 testID="ligne-motdepasse"
                 icone="key"
-                label="Changer le mot de passe"
+                label={t("params.motdepasse")}
                 onPress={() => setVue("motdepasse")}
               />
             </Section>
 
-            <Section titre="Commandes">
+            <Section titre={t("admin.commandes")}>
               <Ligne
                 testID="ligne-rapports"
                 icone="download"
-                label="Rapport des commandes"
-                valeur="Excel ou PDF par période"
+                label={t("admin.rapports")}
+                valeur={t("admin.rapportsDetail")}
                 onPress={() => router.push("/admin/rapports")}
               />
               <Ligne
                 testID="ligne-archives"
                 icone="package"
-                label="Archives des commandes"
-                valeur="Commandes livrées ou annulées archivées"
+                label={t("admin.archives")}
+                valeur={t("admin.archivesDetail")}
                 onPress={() => router.push("/admin/archives")}
               />
             </Section>
 
-            <Section titre="Boutique">
+            <Section titre={t("admin.boutique")}>
               <Ligne
                 testID="ligne-taux"
                 icone="repeat"
-                label="Taux de change et catalogue"
+                label={t("admin.taux")}
                 onPress={() => router.replace("/catalogue")}
               />
               <Ligne
                 testID="ligne-zones"
                 icone="map"
-                label="Zones de livraison"
+                label={t("admin.zones")}
                 onPress={() => router.replace("/zones")}
               />
               {estSuper ? (
                 <Ligne
                   testID="ligne-personnel"
                   icone="users"
-                  label="Comptes du personnel"
-                  valeur="Réservé au super admin"
+                  label={t("admin.personnel")}
+                  valeur={t("admin.personnelDetail")}
                   onPress={() => router.replace("/personnel")}
                 />
               ) : null}
@@ -233,7 +267,7 @@ export default function Parametres() {
 
             <Bouton
               testID="btn-deconnexion-parametres"
-              label="Se déconnecter"
+              label={t("compte.deconnexion")}
               variant="danger"
               icone="log-out"
               onPress={async () => {
@@ -287,5 +321,19 @@ const styles = StyleSheet.create({
   },
   ligneTexte: { flex: 1 },
   ligneLabel: { fontFamily: fonts.text, fontSize: 15, fontWeight: "700", color: colors.onSurface },
+  langues: { flexDirection: "row", gap: spacing.sm, padding: spacing.md },
+  langue: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    minHeight: 48,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+  },
+  langueActive: { backgroundColor: colors.brandPrimary },
+  langueTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.brandPrimary },
+  langueTexteActif: { color: colors.onBrandPrimary },
   ligneValeur: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
 });
