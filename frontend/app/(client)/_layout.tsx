@@ -3,6 +3,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
 import { Platform } from "react-native";
 
+import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { useT } from "@/src/i18n";
 import { ONGLETS_NATIFS } from "@/src/nav";
@@ -11,7 +12,7 @@ import { useTheme } from "@/src/theme-contexte";
 
 const { Icon, Label } = NativeTabs.Trigger;
 
-export default function ClientLayout() {
+function OngletsClient() {
   useTheme();
   const t = useT();
 
@@ -70,5 +71,13 @@ export default function ClientLayout() {
         options={{ title: t("onglet.compte"), tabBarIcon: ({ color }) => <Icone name="user" size={22} color={color} /> }}
       />
     </Tabs>
+  );
+}
+
+export default function ClientLayout() {
+  return (
+    <Garde roles={["client"]}>
+      <OngletsClient />
+    </Garde>
   );
 }

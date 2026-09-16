@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
+import { Garde, TOUS_ROLES } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { Logo } from "@/src/components/Logo";
 import { CLE_TEL_REPORTE } from "@/src/prefs";
@@ -49,6 +50,7 @@ export default function DemandeTelephone() {
   };
 
   return (
+    <Garde roles={TOUS_ROLES}>
     <View testID="ecran-telephone" style={styles.ecran}>
       <KeyboardAwareScrollView
         bottomOffset={100}
@@ -85,6 +87,7 @@ export default function DemandeTelephone() {
         </Pressable>
       </KeyboardAwareScrollView>
     </View>
+    </Garde>
   );
 }
 

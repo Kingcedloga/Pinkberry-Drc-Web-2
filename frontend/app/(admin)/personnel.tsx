@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Redirect } from "expo-router";
 import React, { useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -9,6 +10,7 @@ import { useAuth } from "@/src/auth";
 import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
+import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -50,14 +52,7 @@ export default function Personnel() {
   const [vehicule, setVehicule] = useState("Moto");
   const [plaque, setPlaque] = useState("");
 
-  if (!estSuper) {
-    return (
-      <View testID="ecran-personnel-refuse" style={[styles.ecran, styles.centre]}>
-        <Icone name="key" size={40} color={colors.muted} />
-        <Text style={styles.refus}>Section réservée au super admin</Text>
-      </View>
-    );
-  }
+  if (!estSuper) return <Redirect href="/dashboard" />;
 
   const reinitialiser = () => {
     setNom("");
@@ -122,6 +117,7 @@ export default function Personnel() {
   };
 
   return (
+    <Garde roles={["superadmin"]}>
     <View testID="ecran-personnel" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
         <View>
@@ -263,6 +259,7 @@ export default function Personnel() {
         </View>
       </Modal>
     </View>
+    </Garde>
   );
 }
 

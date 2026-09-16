@@ -1,0 +1,46 @@
+{
+  "summary": "Itération 21 — Bannière Recommandée + gardes de routes par rôle. (1) BANNIÈRE RECOMMANDÉE : testID='banniere-recommandes' visible en haut de /accueil client (0990000001/client123), fond rgb(230,21,111) plein (colors.brandPrimary, non transparent) EN MODES CLAIR ET SOMBRE — le calque LinearGradient reste en absolu par-dessus mais la couleur pleine garantit la visibilité. Badge '⭐ Recommandé' + accroche 'Les coups de cœur Pinkberry' + testID='carrousel-recommandes' avec 2 cartes 'carte-recommande-<id>'. Recherche 'zzz' → bannière masquée ; effacement → bannière revient. Tap sur une carte → FeuilleProduit s'ouvre correctement. (2) GARDES NON CONNECTÉ : 22/22 URLs protégées (/accueil, /commandes, /compte, /panier, /adresse, /confirmation, /suivi/xxx, /dashboard, /catalogue, /zones, /livreurs, /personnel, /courses, /admin/parametres, /admin/rapports, /admin/archives, /client/parametres, /client/archives, /livreur/parametres, /livreur/rapports, /livreur/archives, /telephone) redirigent vers /bienvenue. (3) GARDES CLIENT connecté : 11/11 URLs interdites (/dashboard, /catalogue, /zones, /livreurs, /personnel, /courses, /admin/parametres, /livreur/rapports, /bienvenue, /connexion, /inscription) redirigent vers /accueil ; 6/6 URLs autorisées (/accueil, /panier, /adresse, /confirmation, /client/parametres, /client/archives) restent accessibles. (4) GARDES LIVREUR connecté (0820000001/livreur123) : 4/4 URLs autorisées (/courses, /livreur/parametres, /livreur/rapports, /livreur/archives) accessibles ; 8/8 URLs interdites (/accueil, /panier, /dashboard, /catalogue, /personnel, /admin/rapports, /client/parametres, /connexion) redirigent vers /courses. (5) GARDES ADMIN connecté (0810000000/admin123) : 7/7 URLs autorisées (/dashboard, /catalogue, /zones, /livreurs, /admin/parametres, /admin/rapports, /admin/archives) accessibles ; 5/5 URLs (/accueil, /panier, /courses, /client/parametres, /bienvenue) redirigent vers /dashboard. ANOMALIE : /personnel pour un admin simple affiche bien l'écran de refus 'Section réservée au super admin' (testID='ecran-personnel-refuse') MAIS l'URL RESTE /personnel au lieu de rediriger vers /dashboard comme demandé dans la spec. (6) NON-RÉGRESSION PARCOURS COMMANDE : /panier, /adresse, /confirmation fonctionnent toujours après déplacement dans app/(commande)/ — ajout produit → barre-panier apparaît → tap → /panier → bouton commander → /adresse → /confirmation OK. (7) DÉCONNEXIONS : les 3 boutons (btn-deconnexion-client, btn-deconnexion-livreur, btn-deconnexion-parametres) renvoient bien vers /bienvenue sans boucle de redirection. Aucune erreur console 'Rendered more hooks…' détectée. (8) BACKEND : suite pytest complète 228/228 passed en 175s (backend/tests/test_iteration21.py ajouté avec 28 tests de permissions parametrized). Un jeton client est bien refusé (401/403) sur tous /api/admin/*, /api/superadmin/*, /api/livreur/*, un jeton admin est refusé sur /api/superadmin/*, un jeton livreur est refusé sur /api/admin/* et /api/superadmin/*, et l'absence de jeton donne 401/403.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "app/(admin)/personnel.tsx",
+        "issue": "Pour un admin simple, /personnel affiche l'écran 'Section réservée au super admin' (testID='ecran-personnel-refuse') mais l'URL reste /personnel — la spec demande une redirection vers /dashboard. Le early-return `if (!estSuper) return <View testID='ecran-personnel-refuse'>…` court-circuite le `<Garde roles=['superadmin']>` posé plus bas dans le second return. Remplacer par `<Garde roles={['superadmin']}>` au niveau racine du composant (ou par `<Redirect href='/dashboard' />` quand !estSuper) — accueilDuRole('admin') vaut '/dashboard' donc la Garde redirigera automatiquement. Reference: /app/frontend/app/(admin)/personnel.tsx:54-61",
+        "testID": "ecran-personnel-refuse",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration21.py",
+    "/app/test_reports/pytest/pytest_iter21.xml"
+  ],
+  "action_items": [
+    "Corriger /personnel pour un admin simple : la spec exige une redirection vers /dashboard, or actuellement l'URL reste /personnel et l'écran de refus s'affiche en place. Fix suggéré : envelopper le composant Personnel dans `<Garde roles={['superadmin']}>` au niveau racine (avant tout early-return), ou remplacer le bloc `if (!estSuper) return <ecran-personnel-refuse>` par `<Redirect href='/dashboard' />`."
+  ],
+  "critical_code_review_comments": [
+    "src/components/Garde.tsx : bien conçu — `useBlocage` respecte l'ordre des hooks (loading→user→role) et retourne des JSX cohérents (EcranDemarrage pendant loading, Redirect ensuite). `accueilDuRole` centralise les rôles→URLs. GardeInvite pour les écrans réservés aux visiteurs est propre.",
+    "app/(admin)/_layout.tsx : Garde roles=['admin','superadmin'] au niveau layout laisse passer un admin simple sur /personnel — c'est INTENTIONNEL pour permettre au superadmin d'y aller, mais dans ce cas la protection fine doit se faire dans personnel.tsx AVANT tout return, ce qui n'est pas le cas (bug rapporté).",
+    "src/components/BanniereRecommandes.tsx : robustesse OK — backgroundColor: colors.brandPrimary sur `banniere` garantit la visibilité même si LinearGradient (calque absolu) ne rend pas. Testé rgb(230,21,111) en clair ET sombre. 2 produits → carrousel horizontal + testID='carrousel-recommandes' + testID='carte-recommande-<id>' présents.",
+    "app/(commande)/_layout.tsx : Garde roles=['client'] + Stack propre. Le déplacement de panier/adresse/confirmation dans le groupe (commande) préserve bien les URLs /panier, /adresse, /confirmation (vérifié).",
+    "app/telephone.tsx : Garde roles=TOUS_ROLES à l'intérieur du composant (après hooks) — correct. Redirige bien un utilisateur non connecté vers /bienvenue."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration21.py (créé)"
+  ],
+  "success_rate": {
+    "backend": "100% (228/228 pytest + 28/28 nouveau test_iteration21.py)",
+    "frontend": "95% (1 bug : /personnel pour admin simple ne redirige pas — spec non respectée. 46/47 URLs de guards testées OK, bannière + parcours commande + déconnexions OK)"
+  },
+  "seed_data_creation": "Aucune donnée créée en base. Thème restauré à 'systeme' via localStorage après le test dark mode. Aucune commande créée. Panier client peut contenir 1 article local (test non-régression) — sans impact serveur.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Un seul bug ouvert : /personnel doit rediriger un admin non-super vers /dashboard (voir action_items). Tout le reste (bannière, gardes non-connecté/client/livreur/admin, parcours commande, déconnexions, backend pytest 228/228) est conforme à la spec de l'itération 21. Le test backend test_iteration21.py couvre bien les permissions API (client/admin/livreur/super) et devrait être conservé pour la régression.",
+  "rca_of_issue": "app/(admin)/personnel.tsx lignes 54-61 : le composant vérifie `if (!estSuper) return <View testID='ecran-personnel-refuse'>…</View>` avant d'atteindre le `<Garde roles={['superadmin']}>` posé lignes 126-268. Résultat : un admin simple passe la garde de layout (['admin','superadmin']), atteint le composant, mais est court-circuité par le early-return qui rend seulement l'écran de refus SANS redirection. La spec attend une redirection URL vers /dashboard. Fix : soit envelopper tout le composant `Personnel` dans `<Garde roles={['superadmin']}>` au niveau racine (avant `useSafeAreaInsets` etc. — donc via un composant wrapper), soit remplacer le early-return par `return <Redirect href='/dashboard' />` pour rester compatible avec l'ordre des hooks. Reproduction : login admin (0810000000/admin123) → naviguer manuellement vers /personnel → URL reste /personnel et l'écran gris de refus s'affiche."
+}

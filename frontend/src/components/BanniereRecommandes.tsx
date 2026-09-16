@@ -59,13 +59,15 @@ export function BanniereRecommandes({
   );
 
   return (
-    <LinearGradient
-      testID="banniere-recommandes"
-      colors={[colors.brandPrimary, colors.brandSecondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.banniere}
-    >
+    <View testID="banniere-recommandes" style={styles.banniere}>
+      {/* Fond dégradé en calque : la bannière reste visible même si le dégradé
+          n'est pas rendu (couleur pleine de secours dans `banniere`). */}
+      <LinearGradient
+        colors={[colors.brandPrimary, colors.brandSecondary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.badge}>
         <Text style={styles.badgeTexte}>⭐ {t("accueil.recommande")}</Text>
       </View>
@@ -83,13 +85,15 @@ export function BanniereRecommandes({
           {produits.map(carte)}
         </ScrollView>
       )}
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = stylesDynamiques(() => StyleSheet.create({
   banniere: {
     borderRadius: radius.xl,
+    overflow: "hidden",
+    backgroundColor: colors.brandPrimary,
     paddingVertical: spacing.lg,
     gap: spacing.sm,
     marginBottom: spacing.lg,

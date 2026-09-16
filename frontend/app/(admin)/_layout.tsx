@@ -3,6 +3,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
 import { Platform } from "react-native";
 
+import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { useAuth } from "@/src/auth";
 import { ONGLETS_NATIFS } from "@/src/nav";
@@ -11,7 +12,7 @@ import { useTheme } from "@/src/theme-contexte";
 
 const { Icon, Label } = NativeTabs.Trigger;
 
-export default function AdminLayout() {
+function OngletsAdmin() {
   useTheme();
   const { user } = useAuth();
   const estSuper = user?.role === "superadmin";
@@ -88,5 +89,13 @@ export default function AdminLayout() {
         }}
       />
     </Tabs>
+  );
+}
+
+export default function AdminLayout() {
+  return (
+    <Garde roles={["admin", "superadmin"]}>
+      <OngletsAdmin />
+    </Garde>
   );
 }

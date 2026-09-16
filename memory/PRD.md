@@ -382,6 +382,24 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Ajustement : illustration `image-livreur` agrandie sur Bienvenue (largeur = 1,45 × largeur de la
   carte, hauteur plafonnée à 54 % de la hauteur d'écran) pour un rendu imposant au centre tout en
   gardant les deux boutons visibles sans scroll dès 360 × 640.
+- Marque écrite « Pinkberry » (P majuscule) dans `EnteteMarque`.
+
+## Gardes de routes par rôle + bannière recommandée — 16/09/2026 (v2.6)
+- **Bannière recommandée** (`src/components/BanniereRecommandes.tsx`) : la racine n'est plus un
+  `LinearGradient` mais une `View` à fond plein `brandPrimary` avec le dégradé en calque absolu →
+  la bannière reste visible même si le dégradé natif ne rend pas (cas signalé sur Expo Go).
+- **Protection des routes** : `src/components/Garde.tsx` expose `Garde`, `GardeInvite`,
+  `useBlocage`, `accueilDuRole`, `TOUS_ROLES`. Un accès interdit redirige vers l'accueil du rôle,
+  un visiteur non connecté vers `/bienvenue`, un connecté sur les écrans d'auth vers son accueil.
+  - `(auth)` → visiteurs uniquement ; `(client)` + `client/*` + `suivi/*` + `(commande)/*` → client ;
+    `(livreur)` + `livreur/*` → livreur ; `(admin)` + `admin/*` → admin/superadmin ;
+    `/personnel` → superadmin (redirection `/dashboard` sinon) ; `/telephone` → tout connecté.
+  - `panier.tsx`, `adresse.tsx`, `confirmation.tsx` déplacés dans `app/(commande)/`
+    (URLs `/panier`, `/adresse`, `/confirmation` inchangées) pour bénéficier d'un layout gardé.
+- Côté serveur les permissions existaient déjà (`require_admin`, `require_superadmin`,
+  `require_livreur`) — couvertes par `backend/tests/test_iteration21.py`.
+- Tests : itération 21 — 228/228 backend, 22/22 URLs bloquées hors connexion, matrices
+  client/livreur/admin conformes, bannière validée en clair et sombre.
 
 ## Backlog priorisé
 ### P0
