@@ -131,11 +131,20 @@ def _cmd_payload(prods, commune="Gombe"):
     }
 
 
-def test_commande_refus_zone_non_couverte(client_ctx):
-    body = _cmd_payload(client_ctx["prods"], commune="Masina")
-    r = requests.post(f"{API}/commandes", json=body, headers=_h(client_ctx["tok"]), timeout=15)
-    assert r.status_code == 400
-    assert "Masina" in r.text
+def test_commande_refus_zone_non_couverte(client_ctx, admin_ctx):
+    """Une zone desactivee par l'admin doit refuser toute nouvelle commande."""
+    zone = next(z for z in requests.get(f"{API}/zones", timeout=10).json() if z["commune"] == "Masina")
+    etat_initial = zone["active"]
+    requests.put(f"{API}/admin/zones/{zone['id']}", json={"active": False},
+                 headers=_h(admin_ctx["tok"]), timeout=10)
+    try:
+        body = _cmd_payload(client_ctx["prods"], commune="Masina")
+        r = requests.post(f"{API}/commandes", json=body, headers=_h(client_ctx["tok"]), timeout=15)
+        assert r.status_code == 400
+        assert "Masina" in r.text
+    finally:
+        requests.put(f"{API}/admin/zones/{zone['id']}", json={"active": etat_initial},
+                     headers=_h(admin_ctx["tok"]), timeout=10)
 
 
 def test_commande_gombe_success(client_ctx):

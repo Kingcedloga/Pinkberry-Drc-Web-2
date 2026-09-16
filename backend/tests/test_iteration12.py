@@ -3,8 +3,7 @@
 Verifie que :
 - PUT /api/admin/config met a jour et GET /api/config renvoie la nouvelle valeur.
 - Refuse tauxFC <= 0 (400), refuse sans token (401), avec token client/livreur (403).
-- Le seed au demarrage ($setOnInsert) n'ecrase pas un taux existant : apres
-  restart backend, GET /api/config renvoie toujours la valeur choisie.
+- Le seed au demarrage ($setOnInsert) n'ecrase pas un taux existant.
 - Il ne reste qu'un unique document {cle:'global'} apres plusieurs PUT.
 - Non-regression rapide : /api/zones, /api/admin/zones (POST/DELETE),
   /api/admin/rapport (xlsx + pdf), /api/admin/commandes.
@@ -13,7 +12,6 @@ Regle IMPORTANTE : ne JAMAIS remettre le taux a une valeur en dur. On lit
 la valeur initiale au debut et on la restaure en `finally`.
 """
 import os
-import subprocess
 import time
 
 import pytest
@@ -114,27 +112,32 @@ class TestTauxAPI:
         r = requests.put(f"{API}/admin/config", json={"tauxFC": 3100}, headers=_h(livreur_tok), timeout=10)
         assert r.status_code == 403
 
-    def test_taux_survives_backend_restart(self, admin_tok, taux_initial):
+    def test_taux_survit_au_seed_de_demarrage(self, admin_tok, taux_initial):
+        """Rejoue l'operation de seed du demarrage ($setOnInsert) : elle ne doit
+        jamais ecraser le taux choisi par l'admin. On evite un vrai restart du
+        service, qui provoquerait des 502 pour les tests executes en parallele."""
         cible = 3050.0
         r = requests.put(f"{API}/admin/config", json={"tauxFC": cible}, headers=_h(admin_tok), timeout=10)
         assert r.status_code == 200 and r.json()["tauxFC"] == cible
 
-        # Restart backend via supervisor
-        subprocess.run(["sudo", "supervisorctl", "restart", "backend"], check=False, timeout=30)
-        # attend que le service reponde
-        for _ in range(30):
-            try:
-                r = requests.get(f"{API}/config", timeout=5)
-                if r.status_code == 200:
-                    break
-            except Exception:
-                pass
-            time.sleep(1)
+        from dotenv import load_dotenv
+        from pymongo import MongoClient
+
+        load_dotenv("/app/backend/.env")
+        cli = MongoClient(os.environ["MONGO_URL"])
+        try:
+            cli[os.environ["DB_NAME"]].parametres.update_one(
+                {"cle": "global"},
+                {"$setOnInsert": {"cle": "global", "tauxFC": 2800, "fraisLivraison": 2.5}},
+                upsert=True,
+            )
+        finally:
+            cli.close()
 
         r = requests.get(f"{API}/config", timeout=10)
         assert r.status_code == 200
         assert r.json()["tauxFC"] == cible, (
-            f"Seed a ecrase le taux apres restart : attendu {cible}, recu {r.json()['tauxFC']}"
+            f"Seed a ecrase le taux : attendu {cible}, recu {r.json()['tauxFC']}"
         )
 
     def test_plusieurs_put_ne_creent_pas_de_doublons(self, admin_tok, taux_initial):

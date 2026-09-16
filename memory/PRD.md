@@ -264,6 +264,20 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   la scène emoji `HeroLivreur` a été supprimée).
 - Tests : 152 tests backend (itération 12) + parcours admin/bienvenue validés.
 
+## Préparation au déploiement — 16/09/2026
+- `frontend/.env` : valeur `METRO_CACHE_ROOT` mise entre guillemets (env malformée = bloqueur de build).
+- `frontend/app.json` : entrée de plugin `@react-native-vector-icons/feather` retirée (paquet non utilisé,
+  toutes les icônes viennent de `react-native-heroicons`). `npx expo config --type introspect` sort en 0.
+- `backend/server.py` : suppression des requêtes N+1 — `enrichir()` accepte des maps pré-chargées et
+  `enrichir_lot()` charge livreurs + positions en 2 requêtes (utilisé par `/commandes/mes`,
+  `/admin/commandes`, `/admin/commandes/archives`, `/livreur/courses`) ; `/admin/categories` compte les
+  produits via une agrégation ; `/admin/livreurs` charge les positions en une seule requête `$in`.
+- Tests : `test_iteration12` ne redémarre plus le backend (cela provoquait des 502 sur les tests en
+  parallèle) — il rejoue l'opération de seed directement en base. `test_commande_refus_zone_non_couverte`
+  désactive lui-même la zone testée puis restaure son état.
+- Reste en avertissement (non bloquant) : push iOS non configuré (il manque `GoogleService-Info.plist`
+  et `expo.ios.googleServicesFile`) ; l'Android est configuré via `google-services.json`.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

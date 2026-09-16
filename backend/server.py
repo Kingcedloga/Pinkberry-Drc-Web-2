@@ -868,8 +868,12 @@ async def liste_categories():
 @api_router.get("/admin/categories")
 async def admin_categories(_=Depends(require_admin)):
     cats = await db.categories.find({}, {"_id": 0}).to_list(100)
+    compte = {
+        g["_id"]: g["n"]
+        for g in await db.produits.aggregate([{"$group": {"_id": "$categorie", "n": {"$sum": 1}}}]).to_list(200)
+    }
     for c in cats:
-        c["nbProduits"] = await db.produits.count_documents({"categorie": c["nom"]})
+        c["nbProduits"] = compte.get(c["nom"], 0)
     return sorted(cats, key=lambda c: c["nom"].lower())
 
 
@@ -960,9 +964,13 @@ async def modifier_zone(zone_id: str, body: ZoneIn, _=Depends(require_admin)):
 @api_router.get("/admin/livreurs")
 async def admin_livreurs(_=Depends(require_admin)):
     livreurs = await db.livreurs.find({}, {"_id": 0}).to_list(200)
+    ids = [lv["id"] for lv in livreurs]
+    positions = {
+        p["livreurId"]: p
+        for p in await db.positions_livreurs.find({"livreurId": {"$in": ids}}, {"_id": 0}).to_list(200)
+    } if ids else {}
     for lv in livreurs:
-        pos = await db.positions_livreurs.find_one({"livreurId": lv["id"]}, {"_id": 0})
-        lv["position"] = pos
+        lv["position"] = positions.get(lv["id"])
     return livreurs
 
 
@@ -1096,10 +1104,21 @@ async def supprimer_compte(user_id: str, moi_meme=Depends(require_superadmin)):
 
 
 # --------------------------------------------------------------------- commandes
-async def enrichir(cmd: Dict[str, Any]) -> Dict[str, Any]:
-    if cmd.get("livreurId"):
-        cmd["livreur"] = await db.livreurs.find_one({"id": cmd["livreurId"]}, {"_id": 0})
-        pos = await db.positions_livreurs.find_one({"livreurId": cmd["livreurId"]}, {"_id": 0})
+async def enrichir(
+    cmd: Dict[str, Any],
+    livreurs: Optional[Dict[str, Any]] = None,
+    positions: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    lid = cmd.get("livreurId")
+    if lid:
+        cmd["livreur"] = (
+            livreurs.get(lid) if livreurs is not None else await db.livreurs.find_one({"id": lid}, {"_id": 0})
+        )
+        pos = (
+            positions.get(lid)
+            if positions is not None
+            else await db.positions_livreurs.find_one({"livreurId": lid}, {"_id": 0})
+        )
         cmd["positionLivreur"] = pos
         adr = cmd.get("adresse") or {}
         if pos and adr.get("lat") and adr.get("lng"):
@@ -1110,6 +1129,22 @@ async def enrichir(cmd: Dict[str, Any]) -> Dict[str, Any]:
         cmd["livreur"] = None
         cmd["positionLivreur"] = None
     return cmd
+
+
+async def enrichir_lot(cmds: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Enrichit une liste de commandes avec 2 requetes au total (pas de N+1)."""
+    ids = list({c["livreurId"] for c in cmds if c.get("livreurId")})
+    livreurs: Dict[str, Any] = {}
+    positions: Dict[str, Any] = {}
+    if ids:
+        livreurs = {
+            lv["id"]: lv for lv in await db.livreurs.find({"id": {"$in": ids}}, {"_id": 0}).to_list(len(ids))
+        }
+        positions = {
+            p["livreurId"]: p
+            for p in await db.positions_livreurs.find({"livreurId": {"$in": ids}}, {"_id": 0}).to_list(len(ids))
+        }
+    return [await enrichir(c, livreurs, positions) for c in cmds]
 
 
 @api_router.post("/commandes")
@@ -1160,7 +1195,7 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
 async def mes_commandes(user=Depends(get_current_user)):
     cmds = await db.commandes.find({"userId": user["id"]}, {"_id": 0}).to_list(200)
     cmds.sort(key=lambda c: c["createdAt"], reverse=True)
-    return [await enrichir(c) for c in cmds]
+    return await enrichir_lot(cmds)
 
 
 @api_router.get("/commandes/{cmd_id}")
@@ -1241,14 +1276,14 @@ async def admin_commandes(_=Depends(require_admin)):
     await archiver_anciennes()
     cmds = await db.commandes.find({"archivee": {"$ne": True}}, {"_id": 0}).to_list(500)
     cmds.sort(key=lambda c: c["createdAt"], reverse=True)
-    return [await enrichir(c) for c in cmds]
+    return await enrichir_lot(cmds)
 
 
 @api_router.get("/admin/commandes/archives")
 async def admin_commandes_archivees(_=Depends(require_admin)):
     cmds = await db.commandes.find({"archivee": True}, {"_id": 0}).to_list(500)
     cmds.sort(key=lambda c: c.get("archiveeAt") or c["createdAt"], reverse=True)
-    return [await enrichir(c) for c in cmds]
+    return await enrichir_lot(cmds)
 
 
 @api_router.post("/admin/commandes/{cmd_id}/archiver")
@@ -1549,7 +1584,7 @@ async def ventes_du_jour(_=Depends(require_admin)):
 async def livreur_courses(user=Depends(require_livreur)):
     cmds = await db.commandes.find({"livreurId": user.get("livreurId")}, {"_id": 0}).to_list(200)
     cmds.sort(key=lambda c: c["createdAt"], reverse=True)
-    return [await enrichir(c) for c in cmds]
+    return await enrichir_lot(cmds)
 
 
 @api_router.patch("/livreur/courses/{cmd_id}/statut")
