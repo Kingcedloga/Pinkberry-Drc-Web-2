@@ -299,6 +299,17 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - **Typographie plus affirmée** : `src/gras.ts` patche `Text.render` pour un poids 600 par défaut
   (les styles explicites 700/800 restent prioritaires) et `theme.poids` expose `corps/titre/fort`.
 
+## Produit mis en avant — 16/09/2026 (v2.1)
+- **Admin** : champ `enAvant` sur `ProduitIn` (POST/PUT `/api/admin/produits`), interrupteur
+  `switch-en-avant` « Mettre en avant / Recommander » dans la fiche produit du catalogue et badge
+  « ⭐ Recommandé » sur la carte du produit. Le seed normalise les anciens produits (`enAvant: false`).
+- **Client** : `src/components/BanniereRecommandes.tsx` — bannière dégradé rose
+  (`brandPrimary → brandSecondary`, `expo-linear-gradient`), badge « ⭐ Recommandé », accroche
+  « Les coups de cœur Pinkberry », affichée en tête de l'accueil avant « Commander à nouveau » et
+  « Notre carte ». Un seul produit = grande carte, plusieurs = carrousel horizontal
+  (`carrousel-recommandes`). Masquée pendant une recherche. Textes traduits FR/EN.
+- Tests : 173/173 backend (itération 15) + parcours admin et client validés.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

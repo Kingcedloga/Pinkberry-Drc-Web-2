@@ -18,6 +18,7 @@ export type Produit = {
   emoji?: string | null;
   description?: string | null;
   disponible: boolean;
+  enAvant?: boolean;
   tailles: { nom: string; ecart: number }[];
   garnitures: Garniture[];
 };

@@ -320,6 +320,7 @@ class ProduitIn(BaseModel):
     emoji: Optional[str] = None
     description: Optional[str] = None
     disponible: bool = True
+    enAvant: bool = False
     tailles: List[Taille] = Field(default_factory=list)
     garnitures: List[Garniture] = Field(default_factory=list)
 
@@ -1816,6 +1817,9 @@ async def seed():
         unique=True,
         partialFilterExpression={"telephone": {"$type": "string"}},
     )
+    # Normalise les produits anterieurs a l'ajout de la mise en avant.
+    await db.produits.update_many({"enAvant": {"$exists": False}}, {"$set": {"enAvant": False}})
+
     # Le taux de change appartient a l'admin : on cree l'enregistrement seulement
     # s'il n'existe pas ($setOnInsert), jamais d'ecrasement au demarrage.
     await db.parametres.update_one(

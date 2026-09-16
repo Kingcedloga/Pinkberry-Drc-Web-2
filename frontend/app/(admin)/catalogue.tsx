@@ -71,6 +71,7 @@ export default function Catalogue() {
   const [envoiPhoto, setEnvoiPhoto] = useState(false);
   const [description, setDescription] = useState("");
   const [disponible, setDisponible] = useState(true);
+  const [enAvant, setEnAvant] = useState(false);
   const [avecTailles, setAvecTailles] = useState(true);
   const [avecGarnitures, setAvecGarnitures] = useState(true);
 
@@ -83,6 +84,7 @@ export default function Catalogue() {
     setApercuLocal(null);
     setDescription(p?.description ?? "");
     setDisponible(p?.disponible ?? true);
+    setEnAvant(p?.enAvant ?? false);
     setAvecTailles((p?.tailles?.length ?? 0) > 0 || !p);
     setAvecGarnitures((p?.garnitures?.length ?? 0) > 0 || !p);
   };
@@ -165,6 +167,7 @@ export default function Catalogue() {
       image,
       description,
       disponible,
+      enAvant,
       tailles: avecTailles ? TAILLES : [],
       garnitures: avecGarnitures ? GARNITURES : [],
     };
@@ -301,6 +304,7 @@ export default function Catalogue() {
                 <Text style={styles.cat}>{item.categorie}</Text>
                 <Text style={styles.prix}>{usd(item.prix)}</Text>
                 {!item.disponible ? <Text style={styles.rupture}>En rupture</Text> : null}
+                {item.enAvant ? <Text style={styles.enAvant}>⭐ Recommandé</Text> : null}
               </View>
               <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
                 <Icone name="edit-2" size={17} color={colors.brandPrimary} />
@@ -378,6 +382,18 @@ export default function Catalogue() {
                   value={disponible}
                   onValueChange={setDisponible}
                   trackColor={{ true: colors.success, false: colors.border }}
+                />
+              </View>
+              <View style={styles.switchRow}>
+                <View style={styles.switchTexte}>
+                  <Text style={styles.switchLabel}>Mettre en avant / Recommander</Text>
+                  <Text style={styles.switchAide}>Affiché en haut de l&apos;accueil client</Text>
+                </View>
+                <Switch
+                  testID="switch-en-avant"
+                  value={enAvant}
+                  onValueChange={setEnAvant}
+                  trackColor={{ true: colors.brandPrimary, false: colors.border }}
                 />
               </View>
               <View style={styles.switchRow}>
@@ -572,6 +588,9 @@ const styles = StyleSheet.create({
   nom: { fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   cat: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
   prix: { fontFamily: fonts.display, fontSize: 14, color: colors.brandPrimary },
+  enAvant: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.brandPrimary },
+  switchTexte: { flex: 1 },
+  switchAide: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
   rupture: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.error },
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },

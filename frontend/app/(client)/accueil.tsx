@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
+import { BanniereRecommandes } from "@/src/components/BanniereRecommandes";
 import { useAuth } from "@/src/auth";
 import { Chips } from "@/src/components/Chips";
 import { FeuilleProduit, Produit } from "@/src/components/FeuilleProduit";
@@ -54,6 +55,8 @@ export default function Accueil() {
   const produits = produitsQ.data ?? [];
   const categories = categoriesQ.data ?? CATEGORIES_DEFAUT;
   const aRecommander = (commandesQ.data ?? []).filter((c) => c.statut === "livree").slice(0, 5);
+  const enAvant = produits.filter((p) => p.enAvant);
+  const rechercheActive = recherche.trim().length > 0;
 
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -127,9 +130,13 @@ export default function Accueil() {
           refreshing={produitsQ.isRefetching}
           onRefresh={() => produitsQ.refetch()}
           ListHeaderComponent={
-            aRecommander.length > 0 ? (
+            <>
+              {!rechercheActive ? (
+                <BanniereRecommandes produits={enAvant} onChoisir={(p) => setProduitOuvert(p)} />
+              ) : null}
+              {aRecommander.length > 0 ? (
               <View testID="section-recommander" style={styles.recoSection}>
-                <Text style={styles.sectionTitre}>{t("accueil.recommander")}</Text>
+                <Text style={styles.sectionTitre}>{t("accueil.aNouveau")}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recoRow}>
                   {aRecommander.map((c) => (
                     <View key={c.id} testID={`carte-reco-${c.numero}`} style={styles.recoCarte}>
@@ -149,11 +156,12 @@ export default function Accueil() {
                     </View>
                   ))}
                 </ScrollView>
-                <Text style={styles.sectionTitre}>{t("accueil.notreCarte")}</Text>
-              </View>
-            ) : (
-              <Text style={[styles.sectionTitre, styles.sectionSeule]}>{t("accueil.notreCarte")}</Text>
-            )
+                  <Text style={styles.sectionTitre}>{t("accueil.notreCarte")}</Text>
+                </View>
+              ) : (
+                <Text style={[styles.sectionTitre, styles.sectionSeule]}>{t("accueil.notreCarte")}</Text>
+              )}
+            </>
           }
           ListEmptyComponent={
             <View style={styles.centre}>

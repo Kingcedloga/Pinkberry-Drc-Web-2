@@ -1,0 +1,45 @@
+{
+  "summary": "Itération 15 — Produit mis en avant / Recommandé validée à 100% backend & frontend. Suite pytest test_iteration15.py : 9/9 tests OK (POST /admin/produits persiste enAvant true/false, défaut à False quand omis, PUT /admin/produits/{id} toggle True→False→True via GET, GET /produits expose le booléen sur les produits neufs, RBAC client → 403 sur POST et PUT). Régression complète 173/173 OK en 214s. Frontend mobile 390x844 : côté client (0990000001/client123), banniere-recommandes visible EN HAUT (y=196) AVANT section-recommander (y=410) AVANT « Notre carte » (y=628), badge « ⭐ Recommandé » + accroche « Les coups de cœur Pinkberry » rendus dans un LinearGradient rose ; 2 produits en avant → carrousel-recommandes présent avec les testIDs carte-recommande-{id} (Eau minérale 50cl, Pot Fraise) ; recherche « eau » masque bien la bannière, effacer la fait réapparaître ; tap carte-recommande ouvre feuille-produit, btn-ajouter-panier fonctionne (toast « Ajouté au panier », badge « 1 Voir mon panier $1.00 » apparaît). Traduction FR↔EN : passage en Anglais via Compte→Paramètres→btn-langue-en, la bannière affiche « ⭐ Recommended » / « Pinkberry favourites », les onglets deviennent Home/Orders/Account, retour à Français restauré et persisté. Côté admin (0810000000/admin123), onglet Catalogue : les cartes admin-produit-Eau minérale 50cl et admin-produit-Pot Fraise affichent « ⭐ Recommandé » ; ouverture btn-modifier-Pot Mangue → interrupteur switch-en-avant présent avec libellé « Mettre en avant / Recommander », toggle → checked passe à True → btn-enregistrer-produit → toast « Produit enregistré » → la carte affiche « ⭐ Recommandé » ; réouverture confirme la persistance (switch checked=True) ; désactivation puis enregistrement → badge disparaît. État final restauré : « Pot Fraise » et « Eau minérale 50cl » restent enAvant=true en base ; taux de change intact (2800 FC) ; langue client remise en FR ; aucune donnée de test persistée (produits TEST_ITER15_* créés/supprimés dans la même classe pytest). Aucun problème React Native détecté sur cette itération.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/produits",
+        "issue": "Les produits legacy (Pot Mangue, Pot Original, Smoothies, Toppings, etc.) créés AVANT l'ajout du champ enAvant n'exposent pas la clé `enAvant` dans la réponse (le champ est absent, pas False). Fonctionnellement OK côté frontend (falsy = non recommandé) mais l'API n'est pas 100% stricte. Correctif possible : projection $ifNull ou migration one-shot `db.produits.updateMany({enAvant:{$exists:false}}, {$set:{enAvant:false}})`."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration15.py",
+    "/app/test_reports/pytest/pytest_iter15.xml",
+    "/app/test_reports/pytest/pytest_regression_iter15.xml"
+  ],
+  "action_items": [
+    "Optionnel (mineur) : normaliser la réponse de GET /api/produits pour toujours renvoyer enAvant=false sur les produits legacy (soit via projection Mongo `$ifNull`, soit via un one-shot updateMany dans la fonction de seed). Le frontend gère déjà l'absence, donc pas bloquant."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py:315-325 ProduitIn : ajout propre du champ `enAvant: bool = False` en Pydantic → défaut respecté sur POST, model_dump persiste toujours la clé, `enAvant` restitué tel quel dans GET /produits pour les nouveaux produits.",
+    "backend/server.py:929-943 POST/PUT /admin/produits : `body.model_dump()` push la clé enAvant systématiquement en base — bon pattern, pas de branche `if body.enAvant is not None`.",
+    "frontend/src/components/BanniereRecommandes.tsx : `if (produits.length === 0) return null;` protège la bannière absente quand personne n'est en avant ; branche `seul ? (...) : (<ScrollView testID=carrousel-recommandes>)` clean — 1 produit = grande carte, 2+ = carrousel horizontal, sans layout shift.",
+    "frontend/app/(client)/accueil.tsx:58 `produits.filter((p) => p.enAvant)` traite `undefined` comme falsy → OK pour les produits legacy sans le champ.",
+    "frontend/app/(client)/accueil.tsx:134-136 masque la bannière quand `rechercheActive` est vrai — bonne UX pour éviter d'occulter les résultats de recherche.",
+    "frontend/app/(admin)/catalogue.tsx:307 badge inline `{item.enAvant ? <Text …>⭐ Recommandé</Text> : null}` dans la carte liste — cohérent avec la charte (couleur brandPrimary, gras)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration15.py (nouveau)"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 iteration_15 + 173/173 régression)",
+    "frontend": "100% (bannière position + carrousel + tap→feuille→ajout panier + recherche masque/restaure + FR↔EN + admin switch persistant + badge liste)"
+  },
+  "seed_data_creation": "Aucune donnée persistante nouvelle : 2 produits TEST_ITER15_* créés puis supprimés dans la même classe pytest ; « Pot Mangue » basculé enAvant=true puis remis à false. État final identique à l'initial : Eau minérale 50cl + Pot Fraise en avant. Langue client=fr, mot de passe demo intact, taux=2800 FC.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Itération 15 (Produit mis en avant) validée à 100%. Suite pytest complète : 173 tests OK en ~214s. Le champ `enAvant` est correctement supporté côté backend (POST/PUT/GET, RBAC) et côté frontend (BanniereRecommandes visible en haut, carrousel, traduction FR/EN, admin switch persistant). Seul mineur : les produits legacy en base n'ont pas le champ enAvant retourné par GET /produits (falsy côté client, donc pas visible). Ne pas rejouer la régression complète sans raison — c'est long (>3 min). L'état des produits en avant est resté identique à l'initial (Eau minérale 50cl + Pot Fraise)."
+}
