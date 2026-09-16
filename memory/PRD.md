@@ -371,8 +371,7 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   « pinkberry » + trait + « LIVRAISON », option `anime` pour faire tourner la spirale) et
   `CarteAuth` (carte blanche arrondie plein écran des écrans d'authentification).
 - `src/components/EcranDemarrage.tsx` : écran de démarrage reprenant la mise en page Bienvenue
-  (logo qui tourne, illustration flottante sur aplat rose, vague, slogan + « Chargement… »).
-  Branché dans `app/index.tsx` (testID `ecran-chargement`) et dans `app/_layout.tsx` pendant le
+  (logo qui tourne, illustration flottante sur aplat rose, vague, slogan + « Chargement… »).  Branché dans `app/index.tsx` (testID `ecran-chargement`) et dans `app/_layout.tsx` pendant le
   chargement des polices (testID `ecran-demarrage-polices`) — n'utilise pas les safe-area insets
   car rendu avant `SafeAreaProvider`.
 - `app/(auth)/connexion.tsx` et `app/(auth)/inscription.tsx` réécrits dans `CarteAuth` :
@@ -380,6 +379,9 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   inchangés (KeyboardAwareScrollView conservé). `bienvenue.tsx` réutilise désormais `DecorAuth`.
 - Tests : itération 20 — splash, connexion, inscription, responsive 360→1280 et mode sombre
   validés ; 200/200 backend.
+- Ajustement : illustration `image-livreur` agrandie sur Bienvenue (largeur = 1,45 × largeur de la
+  carte, hauteur plafonnée à 54 % de la hauteur d'écran) pour un rendu imposant au centre tout en
+  gardant les deux boutons visibles sans scroll dès 360 × 640.
 
 ## Backlog priorisé
 ### P0

@@ -14,7 +14,7 @@ export default function Bienvenue() {
   const { scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   const flotte = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -27,7 +27,8 @@ export default function Bienvenue() {
 
   const monte = flotte.interpolate({ inputRange: [0, 1], outputRange: [8, -12] });
   const largeurCarte = Math.min(width - spacing.md * 2, 520);
-  const largeurHero = largeurCarte * 1.24;
+  const largeurHero = largeurCarte * 1.45;
+  const hauteurHero = Math.min(largeurHero * 0.82, height * 0.54);
 
   return (
     <View testID="ecran-bienvenue" style={styles.ecran}>
@@ -45,7 +46,7 @@ export default function Bienvenue() {
             <Image
               testID="image-livreur"
               source={HERO}
-              style={{ width: largeurHero, height: largeurHero * 0.7 }}
+              style={{ width: largeurHero, height: hauteurHero }}
               contentFit="contain"
               transition={400}
             />
@@ -94,7 +95,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   illustration: {
     flex: 1,
-    minHeight: 260,
+    minHeight: 240,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: colors.brandTertiary,
