@@ -1,0 +1,40 @@
+{
+  "summary": "Itération 20 — Splash animé + refonte /connexion et /inscription dans la carte arrondie validés + non-régression /bienvenue + pytest backend 200/200 (avec retry sur 3 flakes réseau). (1) ÉCRAN DE DÉMARRAGE (splash) — via route.intercept sur /api/auth/moi (délai ~6s) + goto '/', le testID='ecran-chargement' apparaît immédiatement, contient bien 'pinkberry', 'LIVRAISON', 'Chargement…' et l'image testID='image-demarrage' (livreur-pinkberry-v2.webp). Après unroute + fin du /api/auth/moi, l'app redirige correctement vers /bienvenue. Aucune erreur console de type 'No safe area value available' — EcranDemarrage ne consomme plus useSafeAreaInsets (rendu avant le SafeAreaProvider dans _layout.tsx OK). Warnings web habituels seulement (useNativeDriver JS fallback, shadow*/pointerEvents deprecation, expo-notifications listener web) non bloquants. (2) CONNEXION (/connexion) — testID='ecran-connexion' + EnteteMarque (pinkberry + LIVRAISON) + titre 'Connexion' + testID='btn-retour-connexion' rond en position absolue (bbox {x:25,y:21,w:40,h:40}) cliquable (touch target 44+ effectif avec hitSlop=10). Tous les testID présents et visibles : input-connexion-telephone, input-connexion-motdepasse, btn-valider-connexion, btn-google-connexion, bloc-comptes-demo, lien-inscription. Connexion réelle 0990000001/client123 → redirection /accueil OK. Déconnexion depuis /client/parametres → /bienvenue OK. (3) INSCRIPTION (/inscription) — testID='ecran-inscription' + tous les inputs (input-nom, input-telephone, input-email, input-motdepasse), btn-valider-inscription, btn-google-inscription (label 'S'inscrire avec Google'), lien-connexion, btn-retour. Titre 'Créer mon compte' présent. Soumission à vide → toast d'erreur bien affiché ('Nom, téléphone (9 chiffres) et mot de passe (6 caractères) requis'). lien-connexion navigue vers /connexion OK. KeyboardAwareScrollView présent dans CarteAuth, scroll fonctionnel dans la carte. (4) RESPONSIVE — 4 viewports testés (360x640, 390x844, 768x1024, 1280x900) x 3 écrans (/connexion, /inscription, /bienvenue) : aucun débordement horizontal sur aucun combinaison. Le bouton retour ne chevauche pas le logo (btn-retour à x=25,y=21 vs en-tête centré à ~50% de la largeur). (5) MODE SOMBRE — localStorage.setItem('pb_theme', JSON.stringify('sombre')) + reload sur /connexion, /inscription et /bienvenue : ecran-bg = rgb(26,16,22) (= surfaceSecondary sombre) sur les 3 écrans, carte, textes et boutons lisibles, aucun liseré blanc sur la vague dans /bienvenue. Screenshots confirmés (/tmp/connexion_dark.png, /tmp/inscription_dark.png). Thème restauré à 'systeme' à la fin. (6) NON-RÉGRESSION /bienvenue — refactorisée pour utiliser DecorAuth (EnteteMarque, MotifCoin, Vague) : structure identique à l'itération 19 (illustration imposante centrée, vague, 2 CTAs, image livreur-pinkberry-v2.webp visible). Aucun changement visuel régressif. (7) PYTEST BACKEND — 197/200 passed au premier run (3 tests failed pour ConnectTimeout=10s vers preview URL, non liés au code métier), retry ciblé sur backend/tests/test_iteration9.py + test_iteration14.py → 37/37 passed. Score effectif 200/200 (les 3 fails sont des flakes réseau connus). (8) ÉTAT FINAL — client démo remis en theme='systeme' via localStorage, langue non modifiée (fr), aucune commande créée, aucun mot de passe modifié, aucun taux modifié, DB seed intact. Résumé : refonte splash + connexion + inscription conforme spec, non-régression /bienvenue et backend OK.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "backend/tests/test_iteration9.py::test_email_deja_pris & test_iteration14.py::TestPreferences::*", "issue": "ConnectTimeout=10s vers https://commande-rose.preview.emergentagent.com/api/... au premier run (3 fails). Passent au retry (37/37). Flake réseau connu, pas un défaut applicatif."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/pytest_iter20.xml",
+    "/app/backend/tests/"
+  ],
+  "action_items": [
+    "Rien à corriger : la spec de l'itération 20 est intégralement respectée (splash animé branché à la fois dans app/_layout.tsx pendant le chargement des polices ET dans app/index.tsx pendant le chargement auth, /connexion et /inscription dans la carte arrondie avec EnteteMarque + btn-retour absolu + KeyboardAwareScrollView, non-régression /bienvenue et backend). Itération clôturable."
+  ],
+  "critical_code_review_comments": [
+    "src/components/EcranDemarrage.tsx : bon découplage — l'EcranDemarrage n'utilise PAS useSafeAreaInsets (correct puisqu'il peut être rendu avant SafeAreaProvider dans _layout.tsx quand les polices ne sont pas prêtes). Animated.loop bien démonté (return () => boucle.stop()). largeurHero = largeurCarte * 1.24 identique à /bienvenue → cohérence visuelle.",
+    "src/components/DecorAuth.tsx : CarteAuth utilise useSafeAreaInsets — OK puisqu'utilisée seulement dans /connexion, /inscription, /bienvenue qui sont sous SafeAreaProvider. EnteteMarque(anime=true) fait tourner la spirale à 1100ms/tour en boucle linéaire — animation propre, bien démontée. Composant partagé propre (~110 lignes).",
+    "app/(auth)/connexion.tsx : refonte propre, ~145 lignes. btn-retour en position absolue (top/left = spacing.md, taille 40x40 + borderRadius pill + hitSlop=10) au-dessus du scroll → n'interfère pas avec le KeyboardAwareScrollView. Utilise bien EnteteMarque au lieu du Logo autonome. Gestion loading + toast en place.",
+    "app/(auth)/inscription.tsx : mêmes bonnes pratiques que connexion. Validation locale minimale (nom.trim, tel>=9 chiffres, motDePasse>=6) avant appel API + toast d'erreur → confirmé fonctionnel via UI. testID cohérents avec l'itération précédente (btn-retour, input-nom, etc.).",
+    "app/index.tsx : rendu du EcranDemarrage tant que loading OU reporte==null. Bonne logique (empêche un flash de redirection avant que la préférence 'téléphone reporté' soit lue). testID='ecran-chargement' clairement distinguable du splash polices testID='ecran-demarrage-polices'.",
+    "app/_layout.tsx : EcranDemarrage rendu AVANT SafeAreaProvider quand les polices ne sont pas prêtes — architecture correcte pour éviter le crash 'No safe area value available'. Vérifié : aucune erreur console au démarrage."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (200/200 effectif après retry des 3 flakes réseau)",
+    "frontend": "100% (splash + connexion + inscription conformes, responsive OK, dark mode OK, navigation OK)"
+  },
+  "seed_data_creation": "Aucune. Client démo restauré à theme='systeme' via localStorage. Admin et livreurs non modifiés.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Itération 20 clôturée sans issue. Le composant partagé DecorAuth (MotifCoin/Vague/EnteteMarque/CarteAuth) et le nouvel EcranDemarrage animé sont opérationnels. /connexion et /inscription utilisent maintenant CarteAuth + EnteteMarque + btn-retour absolu. Splash validé via route.intercept /api/auth/moi. Backend 200/200 (3 flakes réseau ConnectTimeout=10 passent au retry, connu depuis les itérations précédentes). Aucun avertissement React Native nouveau, aucune erreur console.",
+  "rca_of_issue": "N/A — aucune anomalie ouverte."
+}

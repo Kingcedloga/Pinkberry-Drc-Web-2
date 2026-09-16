@@ -1,0 +1,1930 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="200" time="193.839" timestamp="2026-09-16T15:26:06.342356+00:00" hostname="agent-env-0fcb3ecd-4d74-41f0-b886-372e5a91ffd9"><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_get_config_headers_no_store" time="0.182" /><testcase classname="tests.test_pinkberry_api" name="test_root" time="0.230" /><testcase classname="tests.test_pinkberry_api" name="test_produits_10" time="0.321" /><testcase classname="tests.test_pinkberry_api" name="test_zones_actives" time="0.188" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_put_admin_config_updates_and_get_reflects" time="1.288" /><testcase classname="tests.test_pinkberry_api" name="test_config" time="0.149" /><testcase classname="tests.test_pinkberry_api" name="test_inscription_returns_code_demo" time="0.518" /><testcase classname="tests.test_pinkberry_api" name="test_inscription_bad_password" time="0.136" /><testcase classname="tests.test_pinkberry_api" name="test_connexion_and_moi" time="0.552" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_put_admin_config_returns_reread_from_db" time="0.993" /><testcase classname="tests.test_pinkberry_api" name="test_connexion_bad" time="0.371" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_reject_taux_zero" time="0.159" /><testcase classname="tests.test_pinkberry_api" name="test_renvoyer_otp" time="0.194" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_reject_taux_negatif" time="0.455" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_put_admin_config_requires_auth" time="0.159" /><testcase classname="tests.test_pinkberry_api" name="test_commande_refus_zone_non_couverte" time="1.774" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_put_admin_config_forbidden_for_client" time="0.641" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_put_admin_config_forbidden_for_livreur" time="0.550" /><testcase classname="tests.test_pinkberry_api" name="test_commande_gombe_success" time="0.390" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_taux_survit_au_seed_de_demarrage" time="0.707" /><testcase classname="tests.test_pinkberry_api" name="test_mes_commandes" time="0.229" /><testcase classname="tests.test_pinkberry_api" name="test_annuler_ok_then_forbidden" time="0.536" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_plusieurs_put_ne_creent_pas_de_doublons" time="1.146" /><testcase classname="tests.test_pinkberry_api" name="test_admin_403_for_client" time="0.130" /><testcase classname="tests.test_pinkberry_api" name="test_admin_commandes_and_stats" time="0.343" /><testcase classname="tests.test_pinkberry_api" name="test_admin_produit_crud" time="0.437" /><testcase classname="tests.test_iteration12.TestTauxAPI" name="test_un_seul_document_parametres_en_base" time="0.810" /><testcase classname="tests.test_pinkberry_api" name="test_admin_zone_toggle" time="0.643" /><testcase classname="tests.test_pinkberry_api" name="test_admin_livreurs_and_assign" time="1.234" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_xlsx_ok" time="1.644" /><testcase classname="tests.test_pinkberry_api" name="test_admin_livreur_create_update" time="1.196" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_pdf_ok" time="0.689" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_coherence_recap_et_archives_incluses" time="0.227" /><testcase classname="tests.test_pinkberry_api" name="test_livreur_flow_position_and_encaisser" time="1.387" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_format_invalide" time="0.300" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_dates_malformees" time="0.140" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_fin_avant_debut" time="0.171" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_sans_jeton_401" time="0.194" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_client_403" time="0.103" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_livreur_403" time="0.164" /><testcase classname="tests.test_iteration11.TestRapport" name="test_rapport_superadmin_200" time="0.154" /><testcase classname="tests.test_iteration11.TestZones" name="test_creer_zone_ok_et_visible_public" time="0.643" /><testcase classname="tests.test_pinkberry_api" name="test_livreur_role_required" time="0.588" /><testcase classname="tests.test_iteration11.TestZones" name="test_creer_zone_nom_trop_court" time="0.139" /><testcase classname="tests.test_pinkberry_api" name="test_paiement_client_note" time="0.298" /><testcase classname="tests.test_iteration11.TestZones" name="test_creer_zone_doublon_insensible_casse" time="0.743" /><testcase classname="tests.test_iteration11.TestZones" name="test_supprimer_zone_ok" time="0.975" /><testcase classname="tests.test_iteration9.TestArchivage" name="test_archiver_livree_ok" time="6.022" /><testcase classname="tests.test_iteration11.TestZones" name="test_supprimer_zone_404" time="0.167" /><testcase classname="tests.test_iteration11.TestZones" name="test_rbac_zones" time="2.829" /><testcase classname="tests.test_iteration11.TestZones" name="test_superadmin_peut_gerer_zones" time="0.277" /><testcase classname="tests.test_iteration11.TestZones" name="test_zone_inactive_refuse_commande_activation_supprime" time="1.760" /><testcase classname="tests.test_iteration9.TestArchivage" name="test_archiver_annulee_ok" time="1.058" /><testcase classname="tests.test_taux_change" name="test_config_public_has_taux_and_frais" time="0.151" /><testcase classname="tests.test_taux_change" name="test_admin_update_taux_persists_via_get_config" time="1.181" /><testcase classname="tests.test_iteration9.TestArchivage" name="test_archiver_active_refuse" time="0.896" /><testcase classname="tests.test_taux_change" name="test_admin_reject_taux_zero_or_negative" time="0.875" /><testcase classname="tests.test_iteration9.TestArchivage" name="test_archiver_404" time="0.301" /><testcase classname="tests.test_iteration9.TestArchivage" name="test_desarchiver_ok" time="2.726" /><testcase classname="tests.test_taux_change" name="test_admin_config_requires_auth" time="0.123" /><testcase classname="tests.test_taux_change" name="test_admin_config_forbidden_for_client" time="0.608" /><testcase classname="tests.test_taux_change" name="test_admin_config_forbidden_for_livreur" time="0.581" /><testcase classname="tests.test_taux_change" name="test_taux_seed_setoninsert_does_not_overwrite" time="0.873" /><testcase classname="tests.test_taux_change" name="test_taux_reste_celui_de_ladmin" time="1.199" /><testcase classname="tests.test_iteration9.TestArchivage" name="test_desarchiver_404_si_pas_archivee" time="2.319" /><testcase classname="tests.test_iteration16.TestRapportLivreur" name="test_rapport_xlsx_ok" time="0.531" /><testcase classname="tests.test_iteration16.TestRapportLivreur" name="test_rapport_pdf_ok" time="0.264" /><testcase classname="tests.test_iteration16.TestRapportLivreur" name="test_rapport_format_invalide_400" time="0.167" /><testcase classname="tests.test_iteration16.TestRapportLivreur" name="test_rapport_dates_invalides_400" time="0.142" /><testcase classname="tests.test_iteration16.TestRapportLivreur" name="test_rapport_fin_avant_debut_400" time="0.132" /><testcase classname="tests.test_iteration9.TestArchivage" name="test_rbac_archiver" time="0.566" /><testcase classname="tests.test_iteration16.TestRapportLivreur" name="test_rapport_sans_token_401_ou_403" time="0.138" /><testcase classname="tests.test_iteration9.TestArchivage" name="test_superadmin_peut_archiver" time="51.793" /><testcase classname="tests.test_iteration16.TestRapportLivreur" name="test_rapport_isole_par_livreur" time="47.886" /><testcase classname="tests.test_iteration9.TestProfil" name="test_update_profil_ok" time="13.142" /><testcase classname="tests.test_iteration7.TestCategoriesAdmin" name="test_get_admin_categories_avec_nb_produits" time="1.283" /><testcase classname="tests.test_iteration7.TestCategoriesAdmin" name="test_rbac_admin_categories" time="0.741" /><testcase classname="tests.test_iteration7.TestCategoriesAdmin" name="test_creer_valide_puis_liste" time="2.711" /><testcase classname="tests.test_iteration7.TestCategoriesAdmin" name="test_creer_validation_erreurs" time="0.481" /><testcase classname="tests.test_iteration7.TestCategoriesAdmin" name="test_supprimer_avec_produits" time="0.800" /><testcase classname="tests.test_iteration7.TestCategoriesAdmin" name="test_supprimer_404" time="0.166" /><testcase classname="tests.test_iteration7.TestCategoriesAdmin" name="test_supprimer_rbac" time="0.498" /><testcase classname="tests.test_iteration17.TestThemeClient" name="test_default_theme_est_systeme_pour_nouveau_compte" time="0.702" /><testcase classname="tests.test_iteration17.TestThemeClient" name="test_set_theme_sombre_and_reread" time="0.331" /><testcase classname="tests.test_iteration17.TestThemeClient" name="test_set_theme_clair" time="0.286" /><testcase classname="tests.test_iteration17.TestThemeClient" name="test_set_theme_systeme" time="0.328" /><testcase classname="tests.test_iteration17.TestThemeClient" name="test_theme_invalide_422" time="0.180" /><testcase classname="tests.test_iteration17.TestThemeClient" name="test_theme_default_when_absent" time="0.294" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_401_sans_token" time="0.184" /><testcase classname="tests.test_iteration9.TestProfil" name="test_nom_trop_court" time="6.193" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_403_client" time="0.657" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_403_livreur" time="0.680" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_shape_ventes" time="0.544" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_recue_ne_compte_pas" time="0.892" /><testcase classname="tests.test_iteration4.TestVentesJour" name="test_livree_incremente" time="1.472" /><testcase classname="tests.test_iteration12.TestNonRegression" name="test_zones_public" time="0.143" /><testcase classname="tests.test_iteration12.TestNonRegression" name="test_admin_zones_crud" time="0.827" /><testcase classname="tests.test_iteration12.TestNonRegression" name="test_admin_rapport_xlsx" time="0.329" /><testcase classname="tests.test_iteration12.TestNonRegression" name="test_admin_rapport_pdf" time="0.560" /><testcase classname="tests.test_iteration9.TestProfil" name="test_telephone_trop_court" time="0.795" /><testcase classname="tests.test_iteration12.TestNonRegression" name="test_admin_commandes" time="0.426" /><testcase classname="tests.test_iteration9.TestProfil" name="test_telephone_deja_pris" time="0.822" /><testcase classname="tests.test_iteration9.TestProfil" name="test_email_deja_pris" time="30.412"><failure message="requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/verifier-otp (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf8b994dfebd0&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=15)'))">self = &lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf8b994dfebd0&gt;
+
+    def _new_conn(self) -&gt; socket.socket:
+        """Establish a socket connection and set nodelay settings on it.
+    
+        :return: New socket connection.
+        """
+        try:
+&gt;           sock = connection.create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/util/connection.py:85: in create_connection
+    raise err
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+address = ('commande-rose.preview.emergentagent.com', 443), timeout = 15
+source_address = None, socket_options = [(6, 1, 1)]
+
+    def create_connection(
+        address: tuple[str, int],
+        timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+        source_address: tuple[str, int] | None = None,
+        socket_options: _TYPE_SOCKET_OPTIONS | None = None,
+    ) -&gt; socket.socket:
+        """Connect to *address* and return the socket object.
+    
+        Convenience function.  Connect to *address* (a 2-tuple ``(host,
+        port)``) and return the socket object.  Passing the optional
+        *timeout* parameter will set the timeout on the socket instance
+        before attempting to connect.  If no *timeout* is supplied, the
+        global default timeout setting returned by :func:`socket.getdefaulttimeout`
+        is used.  If *source_address* is set it must be a tuple of (host, port)
+        for the socket to bind as a source address before making the connection.
+        An host of '' or port 0 tells the OS to use the default.
+        """
+    
+        host, port = address
+        if host.startswith("["):
+            host = host.strip("[]")
+        err = None
+    
+        # Using the value from allowed_gai_family() in the context of getaddrinfo lets
+        # us select whether to work with IPv4 DNS records, IPv6 records, or both.
+        # The original create_connection function always returns all records.
+        family = allowed_gai_family()
+    
+        try:
+            host.encode("idna")
+        except UnicodeError:
+            raise LocationParseError(f"'{host}', label empty or too long") from None
+    
+        for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket.socket(af, socktype, proto)
+    
+                # If provided, set socket level options before connecting.
+                _set_socket_options(sock, socket_options)
+    
+                if timeout is not _DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+&gt;               sock.connect(sa)
+E               TimeoutError: timed out
+
+/root/.venv/lib/python3.11/site-packages/urllib3/util/connection.py:73: TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xf8b994e5b190&gt;
+method = 'POST', url = '/api/auth/verifier-otp'
+body = b'{"telephone": "0995858322", "code": "2900"}'
+headers = {'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'Content-Length': '43', 'Content-Type': 'application/json'}
+retries = Retry(total=0, connect=None, read=False, redirect=None, status=None)
+redirect = False, assert_same_host = False
+timeout = Timeout(connect=15, read=15, total=None), pool_timeout = None
+release_conn = False, chunked = False, body_pos = None, preload_content = False
+decode_content = False, response_kw = {}
+
+    def urlopen(  # type: ignore[override]
+        self,
+        method: str,
+        url: str,
+        body: _TYPE_BODY | None = None,
+        headers: typing.Mapping[str, str] | None = None,
+        retries: Retry | bool | int | None = None,
+        redirect: bool = True,
+        assert_same_host: bool = True,
+        timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+        pool_timeout: int | None = None,
+        release_conn: bool | None = None,
+        chunked: bool = False,
+        body_pos: _TYPE_BODY_POSITION | None = None,
+        preload_content: bool = True,
+        decode_content: bool = True,
+        **response_kw: typing.Any,
+    ) -&gt; BaseHTTPResponse:
+        """
+        Get a connection from the pool and perform an HTTP request. This is the
+        lowest level call for making a request, so you'll need to specify all
+        the raw details.
+    
+        .. note::
+    
+           More commonly, it's appropriate to use a convenience method
+           such as :meth:`request`.
+    
+        .. note::
+    
+           `release_conn` will only behave as expected if
+           `preload_content=False` because we want to make
+           `preload_content=False` the default behaviour someday soon without
+           breaking backwards compatibility.
+    
+        :param method:
+            HTTP request method (such as GET, POST, PUT, etc.)
+    
+        :param url:
+            The URL to perform the request on.
+    
+        :param body:
+            Data to send in the request body, either :class:`str`, :class:`bytes`,
+            an iterable of :class:`str`/:class:`bytes`, or a file-like object.
+    
+        :param headers:
+            Dictionary of custom headers to send, such as User-Agent,
+            If-None-Match, etc. If None, pool headers are used. If provided,
+            these headers completely replace any pool-specific headers.
+    
+        :param retries:
+            Configure the number of retries to allow before raising a
+            :class:`~urllib3.exceptions.MaxRetryError` exception.
+    
+            If ``None`` (default) will retry 3 times, see ``Retry.DEFAULT``. Pass a
+            :class:`~urllib3.util.retry.Retry` object for fine-grained control
+            over different types of retries.
+            Pass an integer number to retry connection errors that many times,
+            but no other types of errors. Pass zero to never retry.
+    
+            If ``False``, then retries are disabled and any exception is raised
+            immediately. Also, instead of raising a MaxRetryError on redirects,
+            the redirect response will be returned.
+    
+        :type retries: :class:`~urllib3.util.retry.Retry`, False, or an int.
+    
+        :param redirect:
+            If True, automatically handle redirects (status codes 301, 302,
+            303, 307, 308). Each redirect counts as a retry. Disabling retries
+            will disable redirect, too.
+    
+        :param assert_same_host:
+            If ``True``, will make sure that the host of the pool requests is
+            consistent else will raise HostChangedError. When ``False``, you can
+            use the pool on an HTTP proxy and request foreign hosts.
+    
+        :param timeout:
+            If specified, overrides the default timeout for this one
+            request. It may be a float (in seconds) or an instance of
+            :class:`urllib3.util.Timeout`.
+    
+        :param pool_timeout:
+            If set and the pool is set to block=True, then this method will
+            block for ``pool_timeout`` seconds and raise EmptyPoolError if no
+            connection is available within the time period.
+    
+        :param bool preload_content:
+            If True, the response's body will be preloaded into memory.
+    
+        :param bool decode_content:
+            If True, will attempt to decode the body based on the
+            'content-encoding' header.
+    
+        :param release_conn:
+            If False, then the urlopen call will not release the connection
+            back into the pool once a response is received (but will release if
+            you read the entire contents of the response such as when
+            `preload_content=True`). This is useful if you're not preloading
+            the response's content immediately. You will need to call
+            ``r.release_conn()`` on the response ``r`` to return the connection
+            back into the pool. If None, it takes the value of ``preload_content``
+            which defaults to ``True``.
+    
+        :param bool chunked:
+            If True, urllib3 will send the body using chunked transfer
+            encoding. Otherwise, urllib3 will send the body using the standard
+            content-length form. Defaults to False.
+    
+        :param int body_pos:
+            Position to seek to in file-like body in the event of a retry or
+            redirect. Typically this won't need to be set because urllib3 will
+            auto-populate the value when needed.
+        """
+        # Ensure that the URL we're connecting to is properly encoded
+        if url.startswith("/"):
+            # URLs starting with / are inherently schemeless.
+            url = to_str(_encode_target(url))
+            destination_scheme = None
+        else:
+            parsed_url = parse_url(url)
+            destination_scheme = parsed_url.scheme
+            url = to_str(parsed_url.url)
+    
+        if headers is None:
+            headers = self.headers
+    
+        if not isinstance(retries, Retry):
+            retries = Retry.from_int(retries, redirect=redirect, default=self.retries)
+    
+        if release_conn is None:
+            release_conn = preload_content
+    
+        # Check host
+        if assert_same_host and not self.is_same_host(url):
+            raise HostChangedError(self, url, retries)
+    
+        conn = None
+    
+        # Track whether `conn` needs to be released before
+        # returning/raising/recursing. Update this variable if necessary, and
+        # leave `release_conn` constant throughout the function. That way, if
+        # the function recurses, the original value of `release_conn` will be
+        # passed down into the recursive call, and its value will be respected.
+        #
+        # See issue #651 [1] for details.
+        #
+        # [1] &lt;https://github.com/urllib3/urllib3/issues/651&gt;
+        release_this_conn = release_conn
+    
+        http_tunnel_required = connection_requires_http_tunnel(
+            self.proxy, self.proxy_config, destination_scheme
+        )
+    
+        # Merge the proxy headers. Only done when not using HTTP CONNECT. We
+        # have to copy the headers dict so we can safely change it without those
+        # changes being reflected in anyone else's copy.
+        if not http_tunnel_required:
+            headers = headers.copy()  # type: ignore[attr-defined]
+            headers.update(self.proxy_headers)  # type: ignore[union-attr]
+    
+        # Must keep the exception bound to a separate variable or else Python 3
+        # complains about UnboundLocalError.
+        err = None
+    
+        # Keep track of whether we cleanly exited the except block. This
+        # ensures we do proper cleanup in finally.
+        clean_exit = False
+    
+        # Rewind body position, if needed. Record current position
+        # for future rewinds in the event of a redirect/retry.
+        body_pos = set_file_position(body, body_pos)
+    
+        try:
+            # Request a connection from the queue.
+            timeout_obj = self._get_timeout(timeout)
+            conn = self._get_conn(timeout=pool_timeout)
+    
+            conn.timeout = timeout_obj.connect_timeout  # type: ignore[assignment]
+    
+            # Is this a closed/new connection that requires CONNECT tunnelling?
+            if self.proxy is not None and http_tunnel_required and conn.is_closed:
+                try:
+                    self._prepare_proxy(conn)
+                except (BaseSSLError, OSError, SocketTimeout) as e:
+                    self._raise_timeout(
+                        err=e, url=self.proxy.url, timeout_value=conn.timeout
+                    )
+                    raise
+    
+            # If we're going to release the connection in ``finally:``, then
+            # the response doesn't need to know about the connection. Otherwise
+            # it will also try to release it and we'll have a double-release
+            # mess.
+            response_conn = conn if not release_conn else None
+    
+            # Make the request on the HTTPConnection object
+&gt;           response = self._make_request(
+                conn,
+                method,
+                url,
+                timeout=timeout_obj,
+                body=body,
+                headers=headers,
+                chunked=chunked,
+                retries=retries,
+                response_conn=response_conn,
+                preload_content=preload_content,
+                decode_content=decode_content,
+                **response_kw,
+            )
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:788: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:488: in _make_request
+    raise new_e
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:464: in _make_request
+    self._validate_conn(conn)
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:1106: in _validate_conn
+    conn.connect()
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:759: in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf8b994dfebd0&gt;
+
+    def _new_conn(self) -&gt; socket.socket:
+        """Establish a socket connection and set nodelay settings on it.
+    
+        :return: New socket connection.
+        """
+        try:
+            sock = connection.create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+        except socket.gaierror as e:
+            raise NameResolutionError(self.host, self, e) from e
+        except SocketTimeout as e:
+&gt;           raise ConnectTimeoutError(
+                self,
+                f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
+            ) from e
+E           urllib3.exceptions.ConnectTimeoutError: (&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf8b994dfebd0&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=15)')
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:213: ConnectTimeoutError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xf8b9a81a9f90&gt;
+request = &lt;PreparedRequest [POST]&gt;, stream = False, timeout = 15, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+&gt;           resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:696: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:842: in urlopen
+    retries = retries.increment(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Retry(total=0, connect=None, read=False, redirect=None, status=None)
+method = 'POST', url = '/api/auth/verifier-otp', response = None
+error = ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf8b994dfebd0&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=15)')
+_pool = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xf8b994e5b190&gt;
+_stacktrace = &lt;traceback object at 0xf8b994f2aa80&gt;
+
+    def increment(
+        self,
+        method: str | None = None,
+        url: str | None = None,
+        response: BaseHTTPResponse | None = None,
+        error: Exception | None = None,
+        _pool: ConnectionPool | None = None,
+        _stacktrace: TracebackType | None = None,
+    ) -&gt; Self:
+        """Return a new Retry object with incremented retry counters.
+    
+        :param response: A response object, or None, if the server did not
+            return a response.
+        :type response: :class:`~urllib3.response.BaseHTTPResponse`
+        :param Exception error: An error encountered during the request, or
+            None if the response was received successfully.
+    
+        :return: A new ``Retry`` object.
+        """
+        if self.total is False and error:
+            # Disabled, indicate to re-raise the error.
+            raise reraise(type(error), error, _stacktrace)
+    
+        total = self.total
+        if total is not None:
+            total -= 1
+    
+        connect = self.connect
+        read = self.read
+        redirect = self.redirect
+        status_count = self.status
+        other = self.other
+        cause = "unknown"
+        status = None
+        redirect_location = None
+    
+        if error and self._is_connection_error(error):
+            # Connect retry?
+            if connect is False:
+                raise reraise(type(error), error, _stacktrace)
+            elif connect is not None:
+                connect -= 1
+    
+        elif error and self._is_read_error(error):
+            # Read retry?
+            if read is False or method is None or not self._is_method_retryable(method):
+                raise reraise(type(error), error, _stacktrace)
+            elif read is not None:
+                read -= 1
+    
+        elif error:
+            # Other retry?
+            if other is not None:
+                other -= 1
+    
+        elif response and response.get_redirect_location():
+            # Redirect retry?
+            if redirect is not None:
+                redirect -= 1
+            cause = "too many redirects"
+            response_redirect_location = response.get_redirect_location()
+            if response_redirect_location:
+                redirect_location = response_redirect_location
+            status = response.status
+    
+        else:
+            # Incrementing because of a server error like a 500 in
+            # status_forcelist and the given method is in the allowed_methods
+            cause = ResponseError.GENERIC_ERROR
+            if response and response.status:
+                if status_count is not None:
+                    status_count -= 1
+                cause = ResponseError.SPECIFIC_ERROR.format(status_code=response.status)
+                status = response.status
+    
+        history = self.history + (
+            RequestHistory(method, url, error, status, redirect_location),
+        )
+    
+        new_retry = self.new(
+            total=total,
+            connect=connect,
+            read=read,
+            redirect=redirect,
+            status=status_count,
+            other=other,
+            history=history,
+        )
+    
+        if new_retry.is_exhausted():
+            reason = error or ResponseError(cause)
+&gt;           raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/verifier-otp (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf8b994dfebd0&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=15)'))
+
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:543: MaxRetryError
+
+During handling of the above exception, another exception occurred:
+
+self = &lt;test_iteration9.TestProfil object at 0xf8b9b21b7ed0&gt;
+tokens = {'super': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyNThmYzhiNC00YTNhLTRlZDgtYWRjYS0zYzU2OTlmYjc0MzAiLCJleHAiOj...5MTUzYjFlMi0yNzAzLTQ4NmQtYWY2Yi03MTJjOWI4YTQzYjIiLCJleHAiOjE3OTIxNjQ0NDF9.nlsO0Y-cnZMfThQaKuXRkIfDUakSJnkFTwXhrIEk1U8'}
+
+    def test_email_deja_pris(self, tokens):
+        # Set an email on our test user then create a second user and try same email
+&gt;       tel1, tok1, uid1 = _create_test_client()
+                           ^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_iteration9.py:130: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+backend/tests/test_iteration9.py:65: in _create_test_client
+    r2 = requests.post(f"{API}/auth/verifier-otp",
+/root/.venv/lib/python3.11/site-packages/requests/api.py:134: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:71: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:651: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:784: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xf8b9a81a9f90&gt;
+request = &lt;PreparedRequest [POST]&gt;, stream = False, timeout = 15, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+            resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+    
+        except (ProtocolError, OSError) as err:
+            raise ConnectionError(err, request=request)
+    
+        except MaxRetryError as e:
+            if isinstance(e.reason, ConnectTimeoutError):
+                # TODO: Remove this in 3.0.0: see #2811
+                if not isinstance(e.reason, NewConnectionError):
+&gt;                   raise ConnectTimeout(e, request=request)
+E                   requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/verifier-otp (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xf8b994dfebd0&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=15)'))
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:717: ConnectTimeout</failure></testcase><testcase classname="tests.test_iteration14.TestPreferences" name="test_moi_expose_preferences" time="21.560"><failure message="requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/moi (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb684826fa10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))">self = &lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb684826fa10&gt;
+
+    def _new_conn(self) -&gt; socket.socket:
+        """Establish a socket connection and set nodelay settings on it.
+    
+        :return: New socket connection.
+        """
+        try:
+&gt;           sock = connection.create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/util/connection.py:85: in create_connection
+    raise err
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+address = ('commande-rose.preview.emergentagent.com', 443), timeout = 10
+source_address = None, socket_options = [(6, 1, 1)]
+
+    def create_connection(
+        address: tuple[str, int],
+        timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+        source_address: tuple[str, int] | None = None,
+        socket_options: _TYPE_SOCKET_OPTIONS | None = None,
+    ) -&gt; socket.socket:
+        """Connect to *address* and return the socket object.
+    
+        Convenience function.  Connect to *address* (a 2-tuple ``(host,
+        port)``) and return the socket object.  Passing the optional
+        *timeout* parameter will set the timeout on the socket instance
+        before attempting to connect.  If no *timeout* is supplied, the
+        global default timeout setting returned by :func:`socket.getdefaulttimeout`
+        is used.  If *source_address* is set it must be a tuple of (host, port)
+        for the socket to bind as a source address before making the connection.
+        An host of '' or port 0 tells the OS to use the default.
+        """
+    
+        host, port = address
+        if host.startswith("["):
+            host = host.strip("[]")
+        err = None
+    
+        # Using the value from allowed_gai_family() in the context of getaddrinfo lets
+        # us select whether to work with IPv4 DNS records, IPv6 records, or both.
+        # The original create_connection function always returns all records.
+        family = allowed_gai_family()
+    
+        try:
+            host.encode("idna")
+        except UnicodeError:
+            raise LocationParseError(f"'{host}', label empty or too long") from None
+    
+        for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket.socket(af, socktype, proto)
+    
+                # If provided, set socket level options before connecting.
+                _set_socket_options(sock, socket_options)
+    
+                if timeout is not _DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+&gt;               sock.connect(sa)
+E               TimeoutError: timed out
+
+/root/.venv/lib/python3.11/site-packages/urllib3/util/connection.py:73: TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xfb684826ff10&gt;
+method = 'GET', url = '/api/auth/moi', body = None
+headers = {'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-aliv...jOWI4YTQzYjIiLCJleHAiOjE3OTIxNjQ0NjB9.RiVRKiBYB77A1Sm-Am3XWwmWaAtLBd7r5oxudSMw6j4', 'Content-Type': 'application/json'}
+retries = Retry(total=0, connect=None, read=False, redirect=None, status=None)
+redirect = False, assert_same_host = False
+timeout = Timeout(connect=10, read=10, total=None), pool_timeout = None
+release_conn = False, chunked = False, body_pos = None, preload_content = False
+decode_content = False, response_kw = {}
+
+    def urlopen(  # type: ignore[override]
+        self,
+        method: str,
+        url: str,
+        body: _TYPE_BODY | None = None,
+        headers: typing.Mapping[str, str] | None = None,
+        retries: Retry | bool | int | None = None,
+        redirect: bool = True,
+        assert_same_host: bool = True,
+        timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+        pool_timeout: int | None = None,
+        release_conn: bool | None = None,
+        chunked: bool = False,
+        body_pos: _TYPE_BODY_POSITION | None = None,
+        preload_content: bool = True,
+        decode_content: bool = True,
+        **response_kw: typing.Any,
+    ) -&gt; BaseHTTPResponse:
+        """
+        Get a connection from the pool and perform an HTTP request. This is the
+        lowest level call for making a request, so you'll need to specify all
+        the raw details.
+    
+        .. note::
+    
+           More commonly, it's appropriate to use a convenience method
+           such as :meth:`request`.
+    
+        .. note::
+    
+           `release_conn` will only behave as expected if
+           `preload_content=False` because we want to make
+           `preload_content=False` the default behaviour someday soon without
+           breaking backwards compatibility.
+    
+        :param method:
+            HTTP request method (such as GET, POST, PUT, etc.)
+    
+        :param url:
+            The URL to perform the request on.
+    
+        :param body:
+            Data to send in the request body, either :class:`str`, :class:`bytes`,
+            an iterable of :class:`str`/:class:`bytes`, or a file-like object.
+    
+        :param headers:
+            Dictionary of custom headers to send, such as User-Agent,
+            If-None-Match, etc. If None, pool headers are used. If provided,
+            these headers completely replace any pool-specific headers.
+    
+        :param retries:
+            Configure the number of retries to allow before raising a
+            :class:`~urllib3.exceptions.MaxRetryError` exception.
+    
+            If ``None`` (default) will retry 3 times, see ``Retry.DEFAULT``. Pass a
+            :class:`~urllib3.util.retry.Retry` object for fine-grained control
+            over different types of retries.
+            Pass an integer number to retry connection errors that many times,
+            but no other types of errors. Pass zero to never retry.
+    
+            If ``False``, then retries are disabled and any exception is raised
+            immediately. Also, instead of raising a MaxRetryError on redirects,
+            the redirect response will be returned.
+    
+        :type retries: :class:`~urllib3.util.retry.Retry`, False, or an int.
+    
+        :param redirect:
+            If True, automatically handle redirects (status codes 301, 302,
+            303, 307, 308). Each redirect counts as a retry. Disabling retries
+            will disable redirect, too.
+    
+        :param assert_same_host:
+            If ``True``, will make sure that the host of the pool requests is
+            consistent else will raise HostChangedError. When ``False``, you can
+            use the pool on an HTTP proxy and request foreign hosts.
+    
+        :param timeout:
+            If specified, overrides the default timeout for this one
+            request. It may be a float (in seconds) or an instance of
+            :class:`urllib3.util.Timeout`.
+    
+        :param pool_timeout:
+            If set and the pool is set to block=True, then this method will
+            block for ``pool_timeout`` seconds and raise EmptyPoolError if no
+            connection is available within the time period.
+    
+        :param bool preload_content:
+            If True, the response's body will be preloaded into memory.
+    
+        :param bool decode_content:
+            If True, will attempt to decode the body based on the
+            'content-encoding' header.
+    
+        :param release_conn:
+            If False, then the urlopen call will not release the connection
+            back into the pool once a response is received (but will release if
+            you read the entire contents of the response such as when
+            `preload_content=True`). This is useful if you're not preloading
+            the response's content immediately. You will need to call
+            ``r.release_conn()`` on the response ``r`` to return the connection
+            back into the pool. If None, it takes the value of ``preload_content``
+            which defaults to ``True``.
+    
+        :param bool chunked:
+            If True, urllib3 will send the body using chunked transfer
+            encoding. Otherwise, urllib3 will send the body using the standard
+            content-length form. Defaults to False.
+    
+        :param int body_pos:
+            Position to seek to in file-like body in the event of a retry or
+            redirect. Typically this won't need to be set because urllib3 will
+            auto-populate the value when needed.
+        """
+        # Ensure that the URL we're connecting to is properly encoded
+        if url.startswith("/"):
+            # URLs starting with / are inherently schemeless.
+            url = to_str(_encode_target(url))
+            destination_scheme = None
+        else:
+            parsed_url = parse_url(url)
+            destination_scheme = parsed_url.scheme
+            url = to_str(parsed_url.url)
+    
+        if headers is None:
+            headers = self.headers
+    
+        if not isinstance(retries, Retry):
+            retries = Retry.from_int(retries, redirect=redirect, default=self.retries)
+    
+        if release_conn is None:
+            release_conn = preload_content
+    
+        # Check host
+        if assert_same_host and not self.is_same_host(url):
+            raise HostChangedError(self, url, retries)
+    
+        conn = None
+    
+        # Track whether `conn` needs to be released before
+        # returning/raising/recursing. Update this variable if necessary, and
+        # leave `release_conn` constant throughout the function. That way, if
+        # the function recurses, the original value of `release_conn` will be
+        # passed down into the recursive call, and its value will be respected.
+        #
+        # See issue #651 [1] for details.
+        #
+        # [1] &lt;https://github.com/urllib3/urllib3/issues/651&gt;
+        release_this_conn = release_conn
+    
+        http_tunnel_required = connection_requires_http_tunnel(
+            self.proxy, self.proxy_config, destination_scheme
+        )
+    
+        # Merge the proxy headers. Only done when not using HTTP CONNECT. We
+        # have to copy the headers dict so we can safely change it without those
+        # changes being reflected in anyone else's copy.
+        if not http_tunnel_required:
+            headers = headers.copy()  # type: ignore[attr-defined]
+            headers.update(self.proxy_headers)  # type: ignore[union-attr]
+    
+        # Must keep the exception bound to a separate variable or else Python 3
+        # complains about UnboundLocalError.
+        err = None
+    
+        # Keep track of whether we cleanly exited the except block. This
+        # ensures we do proper cleanup in finally.
+        clean_exit = False
+    
+        # Rewind body position, if needed. Record current position
+        # for future rewinds in the event of a redirect/retry.
+        body_pos = set_file_position(body, body_pos)
+    
+        try:
+            # Request a connection from the queue.
+            timeout_obj = self._get_timeout(timeout)
+            conn = self._get_conn(timeout=pool_timeout)
+    
+            conn.timeout = timeout_obj.connect_timeout  # type: ignore[assignment]
+    
+            # Is this a closed/new connection that requires CONNECT tunnelling?
+            if self.proxy is not None and http_tunnel_required and conn.is_closed:
+                try:
+                    self._prepare_proxy(conn)
+                except (BaseSSLError, OSError, SocketTimeout) as e:
+                    self._raise_timeout(
+                        err=e, url=self.proxy.url, timeout_value=conn.timeout
+                    )
+                    raise
+    
+            # If we're going to release the connection in ``finally:``, then
+            # the response doesn't need to know about the connection. Otherwise
+            # it will also try to release it and we'll have a double-release
+            # mess.
+            response_conn = conn if not release_conn else None
+    
+            # Make the request on the HTTPConnection object
+&gt;           response = self._make_request(
+                conn,
+                method,
+                url,
+                timeout=timeout_obj,
+                body=body,
+                headers=headers,
+                chunked=chunked,
+                retries=retries,
+                response_conn=response_conn,
+                preload_content=preload_content,
+                decode_content=decode_content,
+                **response_kw,
+            )
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:788: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:488: in _make_request
+    raise new_e
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:464: in _make_request
+    self._validate_conn(conn)
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:1106: in _validate_conn
+    conn.connect()
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:759: in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb684826fa10&gt;
+
+    def _new_conn(self) -&gt; socket.socket:
+        """Establish a socket connection and set nodelay settings on it.
+    
+        :return: New socket connection.
+        """
+        try:
+            sock = connection.create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+        except socket.gaierror as e:
+            raise NameResolutionError(self.host, self, e) from e
+        except SocketTimeout as e:
+&gt;           raise ConnectTimeoutError(
+                self,
+                f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
+            ) from e
+E           urllib3.exceptions.ConnectTimeoutError: (&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb684826fa10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)')
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:213: ConnectTimeoutError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xfb684828ae90&gt;
+request = &lt;PreparedRequest [GET]&gt;, stream = False, timeout = 10, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+&gt;           resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:696: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:842: in urlopen
+    retries = retries.increment(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Retry(total=0, connect=None, read=False, redirect=None, status=None)
+method = 'GET', url = '/api/auth/moi', response = None
+error = ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb684826fa10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)')
+_pool = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xfb684826ff10&gt;
+_stacktrace = &lt;traceback object at 0xfb684826f700&gt;
+
+    def increment(
+        self,
+        method: str | None = None,
+        url: str | None = None,
+        response: BaseHTTPResponse | None = None,
+        error: Exception | None = None,
+        _pool: ConnectionPool | None = None,
+        _stacktrace: TracebackType | None = None,
+    ) -&gt; Self:
+        """Return a new Retry object with incremented retry counters.
+    
+        :param response: A response object, or None, if the server did not
+            return a response.
+        :type response: :class:`~urllib3.response.BaseHTTPResponse`
+        :param Exception error: An error encountered during the request, or
+            None if the response was received successfully.
+    
+        :return: A new ``Retry`` object.
+        """
+        if self.total is False and error:
+            # Disabled, indicate to re-raise the error.
+            raise reraise(type(error), error, _stacktrace)
+    
+        total = self.total
+        if total is not None:
+            total -= 1
+    
+        connect = self.connect
+        read = self.read
+        redirect = self.redirect
+        status_count = self.status
+        other = self.other
+        cause = "unknown"
+        status = None
+        redirect_location = None
+    
+        if error and self._is_connection_error(error):
+            # Connect retry?
+            if connect is False:
+                raise reraise(type(error), error, _stacktrace)
+            elif connect is not None:
+                connect -= 1
+    
+        elif error and self._is_read_error(error):
+            # Read retry?
+            if read is False or method is None or not self._is_method_retryable(method):
+                raise reraise(type(error), error, _stacktrace)
+            elif read is not None:
+                read -= 1
+    
+        elif error:
+            # Other retry?
+            if other is not None:
+                other -= 1
+    
+        elif response and response.get_redirect_location():
+            # Redirect retry?
+            if redirect is not None:
+                redirect -= 1
+            cause = "too many redirects"
+            response_redirect_location = response.get_redirect_location()
+            if response_redirect_location:
+                redirect_location = response_redirect_location
+            status = response.status
+    
+        else:
+            # Incrementing because of a server error like a 500 in
+            # status_forcelist and the given method is in the allowed_methods
+            cause = ResponseError.GENERIC_ERROR
+            if response and response.status:
+                if status_count is not None:
+                    status_count -= 1
+                cause = ResponseError.SPECIFIC_ERROR.format(status_code=response.status)
+                status = response.status
+    
+        history = self.history + (
+            RequestHistory(method, url, error, status, redirect_location),
+        )
+    
+        new_retry = self.new(
+            total=total,
+            connect=connect,
+            read=read,
+            redirect=redirect,
+            status=status_count,
+            other=other,
+            history=history,
+        )
+    
+        if new_retry.is_exhausted():
+            reason = error or ResponseError(cause)
+&gt;           raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/moi (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb684826fa10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))
+
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:543: MaxRetryError
+
+During handling of the above exception, another exception occurred:
+
+self = &lt;test_iteration14.TestPreferences object at 0xfb6849d7a7d0&gt;
+client_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTUzYjFlMi0yNzAzLTQ4NmQtYWY2Yi03MTJjOWI4YTQzYjIiLCJleHAiOjE3OTIxNjQ0NjB9.RiVRKiBYB77A1Sm-Am3XWwmWaAtLBd7r5oxudSMw6j4'
+
+    def test_moi_expose_preferences(self, client_token):
+&gt;       r = requests.get(f"{API}/auth/moi", headers=_headers(client_token), timeout=10)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_iteration14.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:87: in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:71: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:651: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:784: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xfb684828ae90&gt;
+request = &lt;PreparedRequest [GET]&gt;, stream = False, timeout = 10, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+            resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+    
+        except (ProtocolError, OSError) as err:
+            raise ConnectionError(err, request=request)
+    
+        except MaxRetryError as e:
+            if isinstance(e.reason, ConnectTimeoutError):
+                # TODO: Remove this in 3.0.0: see #2811
+                if not isinstance(e.reason, NewConnectionError):
+&gt;                   raise ConnectTimeout(e, request=request)
+E                   requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/moi (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb684826fa10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:717: ConnectTimeout</failure></testcase><testcase classname="tests.test_iteration14.TestPreferences" name="test_put_preferences_persiste_en" time="20.094"><failure message="requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/preferences (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb6848cdad10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))">self = &lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb6848cdad10&gt;
+
+    def _new_conn(self) -&gt; socket.socket:
+        """Establish a socket connection and set nodelay settings on it.
+    
+        :return: New socket connection.
+        """
+        try:
+&gt;           sock = connection.create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/util/connection.py:85: in create_connection
+    raise err
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+address = ('commande-rose.preview.emergentagent.com', 443), timeout = 10
+source_address = None, socket_options = [(6, 1, 1)]
+
+    def create_connection(
+        address: tuple[str, int],
+        timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+        source_address: tuple[str, int] | None = None,
+        socket_options: _TYPE_SOCKET_OPTIONS | None = None,
+    ) -&gt; socket.socket:
+        """Connect to *address* and return the socket object.
+    
+        Convenience function.  Connect to *address* (a 2-tuple ``(host,
+        port)``) and return the socket object.  Passing the optional
+        *timeout* parameter will set the timeout on the socket instance
+        before attempting to connect.  If no *timeout* is supplied, the
+        global default timeout setting returned by :func:`socket.getdefaulttimeout`
+        is used.  If *source_address* is set it must be a tuple of (host, port)
+        for the socket to bind as a source address before making the connection.
+        An host of '' or port 0 tells the OS to use the default.
+        """
+    
+        host, port = address
+        if host.startswith("["):
+            host = host.strip("[]")
+        err = None
+    
+        # Using the value from allowed_gai_family() in the context of getaddrinfo lets
+        # us select whether to work with IPv4 DNS records, IPv6 records, or both.
+        # The original create_connection function always returns all records.
+        family = allowed_gai_family()
+    
+        try:
+            host.encode("idna")
+        except UnicodeError:
+            raise LocationParseError(f"'{host}', label empty or too long") from None
+    
+        for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket.socket(af, socktype, proto)
+    
+                # If provided, set socket level options before connecting.
+                _set_socket_options(sock, socket_options)
+    
+                if timeout is not _DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+&gt;               sock.connect(sa)
+E               TimeoutError: timed out
+
+/root/.venv/lib/python3.11/site-packages/urllib3/util/connection.py:73: TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xfb6848cda350&gt;
+method = 'PUT', url = '/api/auth/preferences'
+body = b'{"langue": "en", "notifSuivi": false, "notifPromos": true, "notifNouveautes": false}'
+headers = {'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-aliv...3OTIxNjQ0NjB9.RiVRKiBYB77A1Sm-Am3XWwmWaAtLBd7r5oxudSMw6j4', 'Content-Type': 'application/json', 'Content-Length': '84'}
+retries = Retry(total=0, connect=None, read=False, redirect=None, status=None)
+redirect = False, assert_same_host = False
+timeout = Timeout(connect=10, read=10, total=None), pool_timeout = None
+release_conn = False, chunked = False, body_pos = None, preload_content = False
+decode_content = False, response_kw = {}
+
+    def urlopen(  # type: ignore[override]
+        self,
+        method: str,
+        url: str,
+        body: _TYPE_BODY | None = None,
+        headers: typing.Mapping[str, str] | None = None,
+        retries: Retry | bool | int | None = None,
+        redirect: bool = True,
+        assert_same_host: bool = True,
+        timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+        pool_timeout: int | None = None,
+        release_conn: bool | None = None,
+        chunked: bool = False,
+        body_pos: _TYPE_BODY_POSITION | None = None,
+        preload_content: bool = True,
+        decode_content: bool = True,
+        **response_kw: typing.Any,
+    ) -&gt; BaseHTTPResponse:
+        """
+        Get a connection from the pool and perform an HTTP request. This is the
+        lowest level call for making a request, so you'll need to specify all
+        the raw details.
+    
+        .. note::
+    
+           More commonly, it's appropriate to use a convenience method
+           such as :meth:`request`.
+    
+        .. note::
+    
+           `release_conn` will only behave as expected if
+           `preload_content=False` because we want to make
+           `preload_content=False` the default behaviour someday soon without
+           breaking backwards compatibility.
+    
+        :param method:
+            HTTP request method (such as GET, POST, PUT, etc.)
+    
+        :param url:
+            The URL to perform the request on.
+    
+        :param body:
+            Data to send in the request body, either :class:`str`, :class:`bytes`,
+            an iterable of :class:`str`/:class:`bytes`, or a file-like object.
+    
+        :param headers:
+            Dictionary of custom headers to send, such as User-Agent,
+            If-None-Match, etc. If None, pool headers are used. If provided,
+            these headers completely replace any pool-specific headers.
+    
+        :param retries:
+            Configure the number of retries to allow before raising a
+            :class:`~urllib3.exceptions.MaxRetryError` exception.
+    
+            If ``None`` (default) will retry 3 times, see ``Retry.DEFAULT``. Pass a
+            :class:`~urllib3.util.retry.Retry` object for fine-grained control
+            over different types of retries.
+            Pass an integer number to retry connection errors that many times,
+            but no other types of errors. Pass zero to never retry.
+    
+            If ``False``, then retries are disabled and any exception is raised
+            immediately. Also, instead of raising a MaxRetryError on redirects,
+            the redirect response will be returned.
+    
+        :type retries: :class:`~urllib3.util.retry.Retry`, False, or an int.
+    
+        :param redirect:
+            If True, automatically handle redirects (status codes 301, 302,
+            303, 307, 308). Each redirect counts as a retry. Disabling retries
+            will disable redirect, too.
+    
+        :param assert_same_host:
+            If ``True``, will make sure that the host of the pool requests is
+            consistent else will raise HostChangedError. When ``False``, you can
+            use the pool on an HTTP proxy and request foreign hosts.
+    
+        :param timeout:
+            If specified, overrides the default timeout for this one
+            request. It may be a float (in seconds) or an instance of
+            :class:`urllib3.util.Timeout`.
+    
+        :param pool_timeout:
+            If set and the pool is set to block=True, then this method will
+            block for ``pool_timeout`` seconds and raise EmptyPoolError if no
+            connection is available within the time period.
+    
+        :param bool preload_content:
+            If True, the response's body will be preloaded into memory.
+    
+        :param bool decode_content:
+            If True, will attempt to decode the body based on the
+            'content-encoding' header.
+    
+        :param release_conn:
+            If False, then the urlopen call will not release the connection
+            back into the pool once a response is received (but will release if
+            you read the entire contents of the response such as when
+            `preload_content=True`). This is useful if you're not preloading
+            the response's content immediately. You will need to call
+            ``r.release_conn()`` on the response ``r`` to return the connection
+            back into the pool. If None, it takes the value of ``preload_content``
+            which defaults to ``True``.
+    
+        :param bool chunked:
+            If True, urllib3 will send the body using chunked transfer
+            encoding. Otherwise, urllib3 will send the body using the standard
+            content-length form. Defaults to False.
+    
+        :param int body_pos:
+            Position to seek to in file-like body in the event of a retry or
+            redirect. Typically this won't need to be set because urllib3 will
+            auto-populate the value when needed.
+        """
+        # Ensure that the URL we're connecting to is properly encoded
+        if url.startswith("/"):
+            # URLs starting with / are inherently schemeless.
+            url = to_str(_encode_target(url))
+            destination_scheme = None
+        else:
+            parsed_url = parse_url(url)
+            destination_scheme = parsed_url.scheme
+            url = to_str(parsed_url.url)
+    
+        if headers is None:
+            headers = self.headers
+    
+        if not isinstance(retries, Retry):
+            retries = Retry.from_int(retries, redirect=redirect, default=self.retries)
+    
+        if release_conn is None:
+            release_conn = preload_content
+    
+        # Check host
+        if assert_same_host and not self.is_same_host(url):
+            raise HostChangedError(self, url, retries)
+    
+        conn = None
+    
+        # Track whether `conn` needs to be released before
+        # returning/raising/recursing. Update this variable if necessary, and
+        # leave `release_conn` constant throughout the function. That way, if
+        # the function recurses, the original value of `release_conn` will be
+        # passed down into the recursive call, and its value will be respected.
+        #
+        # See issue #651 [1] for details.
+        #
+        # [1] &lt;https://github.com/urllib3/urllib3/issues/651&gt;
+        release_this_conn = release_conn
+    
+        http_tunnel_required = connection_requires_http_tunnel(
+            self.proxy, self.proxy_config, destination_scheme
+        )
+    
+        # Merge the proxy headers. Only done when not using HTTP CONNECT. We
+        # have to copy the headers dict so we can safely change it without those
+        # changes being reflected in anyone else's copy.
+        if not http_tunnel_required:
+            headers = headers.copy()  # type: ignore[attr-defined]
+            headers.update(self.proxy_headers)  # type: ignore[union-attr]
+    
+        # Must keep the exception bound to a separate variable or else Python 3
+        # complains about UnboundLocalError.
+        err = None
+    
+        # Keep track of whether we cleanly exited the except block. This
+        # ensures we do proper cleanup in finally.
+        clean_exit = False
+    
+        # Rewind body position, if needed. Record current position
+        # for future rewinds in the event of a redirect/retry.
+        body_pos = set_file_position(body, body_pos)
+    
+        try:
+            # Request a connection from the queue.
+            timeout_obj = self._get_timeout(timeout)
+            conn = self._get_conn(timeout=pool_timeout)
+    
+            conn.timeout = timeout_obj.connect_timeout  # type: ignore[assignment]
+    
+            # Is this a closed/new connection that requires CONNECT tunnelling?
+            if self.proxy is not None and http_tunnel_required and conn.is_closed:
+                try:
+                    self._prepare_proxy(conn)
+                except (BaseSSLError, OSError, SocketTimeout) as e:
+                    self._raise_timeout(
+                        err=e, url=self.proxy.url, timeout_value=conn.timeout
+                    )
+                    raise
+    
+            # If we're going to release the connection in ``finally:``, then
+            # the response doesn't need to know about the connection. Otherwise
+            # it will also try to release it and we'll have a double-release
+            # mess.
+            response_conn = conn if not release_conn else None
+    
+            # Make the request on the HTTPConnection object
+&gt;           response = self._make_request(
+                conn,
+                method,
+                url,
+                timeout=timeout_obj,
+                body=body,
+                headers=headers,
+                chunked=chunked,
+                retries=retries,
+                response_conn=response_conn,
+                preload_content=preload_content,
+                decode_content=decode_content,
+                **response_kw,
+            )
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:788: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:488: in _make_request
+    raise new_e
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:464: in _make_request
+    self._validate_conn(conn)
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:1106: in _validate_conn
+    conn.connect()
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:759: in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb6848cdad10&gt;
+
+    def _new_conn(self) -&gt; socket.socket:
+        """Establish a socket connection and set nodelay settings on it.
+    
+        :return: New socket connection.
+        """
+        try:
+            sock = connection.create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+        except socket.gaierror as e:
+            raise NameResolutionError(self.host, self, e) from e
+        except SocketTimeout as e:
+&gt;           raise ConnectTimeoutError(
+                self,
+                f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
+            ) from e
+E           urllib3.exceptions.ConnectTimeoutError: (&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb6848cdad10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)')
+
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:213: ConnectTimeoutError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xfb6848cd9450&gt;
+request = &lt;PreparedRequest [PUT]&gt;, stream = False, timeout = 10, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+&gt;           resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:696: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:842: in urlopen
+    retries = retries.increment(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Retry(total=0, connect=None, read=False, redirect=None, status=None)
+method = 'PUT', url = '/api/auth/preferences', response = None
+error = ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb6848cdad10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)')
+_pool = &lt;urllib3.connectionpool.HTTPSConnectionPool object at 0xfb6848cda350&gt;
+_stacktrace = &lt;traceback object at 0xfb6848cda700&gt;
+
+    def increment(
+        self,
+        method: str | None = None,
+        url: str | None = None,
+        response: BaseHTTPResponse | None = None,
+        error: Exception | None = None,
+        _pool: ConnectionPool | None = None,
+        _stacktrace: TracebackType | None = None,
+    ) -&gt; Self:
+        """Return a new Retry object with incremented retry counters.
+    
+        :param response: A response object, or None, if the server did not
+            return a response.
+        :type response: :class:`~urllib3.response.BaseHTTPResponse`
+        :param Exception error: An error encountered during the request, or
+            None if the response was received successfully.
+    
+        :return: A new ``Retry`` object.
+        """
+        if self.total is False and error:
+            # Disabled, indicate to re-raise the error.
+            raise reraise(type(error), error, _stacktrace)
+    
+        total = self.total
+        if total is not None:
+            total -= 1
+    
+        connect = self.connect
+        read = self.read
+        redirect = self.redirect
+        status_count = self.status
+        other = self.other
+        cause = "unknown"
+        status = None
+        redirect_location = None
+    
+        if error and self._is_connection_error(error):
+            # Connect retry?
+            if connect is False:
+                raise reraise(type(error), error, _stacktrace)
+            elif connect is not None:
+                connect -= 1
+    
+        elif error and self._is_read_error(error):
+            # Read retry?
+            if read is False or method is None or not self._is_method_retryable(method):
+                raise reraise(type(error), error, _stacktrace)
+            elif read is not None:
+                read -= 1
+    
+        elif error:
+            # Other retry?
+            if other is not None:
+                other -= 1
+    
+        elif response and response.get_redirect_location():
+            # Redirect retry?
+            if redirect is not None:
+                redirect -= 1
+            cause = "too many redirects"
+            response_redirect_location = response.get_redirect_location()
+            if response_redirect_location:
+                redirect_location = response_redirect_location
+            status = response.status
+    
+        else:
+            # Incrementing because of a server error like a 500 in
+            # status_forcelist and the given method is in the allowed_methods
+            cause = ResponseError.GENERIC_ERROR
+            if response and response.status:
+                if status_count is not None:
+                    status_count -= 1
+                cause = ResponseError.SPECIFIC_ERROR.format(status_code=response.status)
+                status = response.status
+    
+        history = self.history + (
+            RequestHistory(method, url, error, status, redirect_location),
+        )
+    
+        new_retry = self.new(
+            total=total,
+            connect=connect,
+            read=read,
+            redirect=redirect,
+            status=status_count,
+            other=other,
+            history=history,
+        )
+    
+        if new_retry.is_exhausted():
+            reason = error or ResponseError(cause)
+&gt;           raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/preferences (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb6848cdad10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))
+
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:543: MaxRetryError
+
+During handling of the above exception, another exception occurred:
+
+self = &lt;test_iteration14.TestPreferences object at 0xfb6849d7af50&gt;
+client_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTUzYjFlMi0yNzAzLTQ4NmQtYWY2Yi03MTJjOWI4YTQzYjIiLCJleHAiOjE3OTIxNjQ0NjB9.RiVRKiBYB77A1Sm-Am3XWwmWaAtLBd7r5oxudSMw6j4'
+
+    def test_put_preferences_persiste_en(self, client_token):
+        body = {"langue": "en", "notifSuivi": False, "notifPromos": True, "notifNouveautes": False}
+&gt;       r = requests.put(f"{API}/auth/preferences", headers=_headers(client_token), json=body, timeout=10)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/test_iteration14.py:107: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:151: in put
+    return request("put", url, data=data, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:71: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:651: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:784: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;requests.adapters.HTTPAdapter object at 0xfb6848cd9450&gt;
+request = &lt;PreparedRequest [PUT]&gt;, stream = False, timeout = 10, verify = True
+cert = None, proxies = OrderedDict()
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: _t.TimeoutType = None,
+        verify: _t.VerifyType = True,
+        cert: _t.CertType = None,
+        proxies: dict[str, str] | None = None,
+    ) -&gt; Response:
+        """Sends PreparedRequest object. Returns Response object.
+    
+        :param request: The :class:`PreparedRequest &lt;PreparedRequest&gt;` being sent.
+        :param stream: (optional) Whether to stream the request content.
+        :param timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) &lt;timeouts&gt;` tuple.
+        :type timeout: float or tuple or urllib3 Timeout object
+        :param verify: (optional) Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use
+        :param cert: (optional) Any user-provided SSL certificate to be trusted.
+        :param proxies: (optional) The proxies dictionary to apply to the request.
+        :rtype: requests.Response
+        """
+    
+        assert _is_prepared(request)
+    
+        try:
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        except LocationValueError as e:
+            raise InvalidURL(e, request=request)
+    
+        self.cert_verify(conn, request.url, verify, cert)
+        url = self.request_url(request, proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
+    
+        chunked = not (request.body is None or "Content-Length" in request.headers)
+    
+        if isinstance(timeout, tuple):
+            try:
+                connect, read = timeout
+                resolved_timeout = TimeoutSauce(connect=connect, read=read)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
+        elif isinstance(timeout, TimeoutSauce):
+            resolved_timeout = timeout
+        else:
+            resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)
+    
+        try:
+            resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,  # type: ignore[arg-type]  # urllib3 stubs don't accept Iterable[bytes | str]
+                headers=request.headers,  # type: ignore[arg-type]  # urllib3#3072
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=resolved_timeout,
+                chunked=chunked,
+            )
+    
+        except (ProtocolError, OSError) as err:
+            raise ConnectionError(err, request=request)
+    
+        except MaxRetryError as e:
+            if isinstance(e.reason, ConnectTimeoutError):
+                # TODO: Remove this in 3.0.0: see #2811
+                if not isinstance(e.reason, NewConnectionError):
+&gt;                   raise ConnectTimeout(e, request=request)
+E                   requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='commande-rose.preview.emergentagent.com', port=443): Max retries exceeded with url: /api/auth/preferences (Caused by ConnectTimeoutError(&lt;HTTPSConnection(host='commande-rose.preview.emergentagent.com', port=443) at 0xfb6848cdad10&gt;, 'Connection to commande-rose.preview.emergentagent.com timed out. (connect timeout=10)'))
+
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:717: ConnectTimeout</failure></testcase><testcase classname="tests.test_iteration9.TestProfil" name="test_sans_jeton_401" time="11.554" /><testcase classname="tests.test_iteration14.TestPreferences" name="test_put_preferences_retour_fr" time="0.455" /><testcase classname="tests.test_iteration14.TestPreferences" name="test_langue_invalide_422" time="0.229" /><testcase classname="tests.test_iteration14.TestPreferences" name="test_preferences_sans_token_401" time="0.367" /><testcase classname="tests.test_iteration9.TestProfil" name="test_role_actif_non_modifiables" time="0.871" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_commande_creation_ok" time="0.842" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_admin_change_statut_ok" time="0.630" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_sans_token_401" time="0.137" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_admin_assigner_livreur_ok" time="0.447" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_client_403" time="0.509" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_type_refuse" time="0.766" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_livreur_encaisser_ok" time="1.042" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_trop_gros" time="0.848" /><testcase classname="tests.test_iteration4.TestPushNonBloquant" name="test_commande_annulee_ok" time="0.303" /><testcase classname="tests.test_iteration6.TestRbacSuperAdminRoutes" name="test_sans_jeton_401" time="0.342" /><testcase classname="tests.test_iteration3.TestPhotos" name="test_upload_png_ok_et_lecture" time="1.494" /><testcase classname="tests.test_iteration6.TestRbacSuperAdminRoutes" name="test_admin_normal_403_partout" time="1.953" /><testcase classname="tests.test_iteration7.TestSuppressionCompte" name="test_suppression_client_anonymise_commandes" time="1.315" /><testcase classname="tests.test_iteration6.TestRbacSuperAdminRoutes" name="test_livreur_403" time="0.309" /><testcase classname="tests.test_iteration6.TestRbacSuperAdminRoutes" name="test_client_403" time="0.259" /><testcase classname="tests.test_iteration6.TestRbacSuperAdminRoutes" name="test_super_admin_200_sur_toutes_les_routes" time="0.154" /><testcase classname="tests.test_iteration9.TestMotDePasse" name="test_change_mdp_ok" time="2.492" /><testcase classname="tests.test_iteration7.TestSuppressionCompte" name="test_admin_ne_peut_pas_supprimer_son_compte" time="1.720" /><testcase classname="tests.test_iteration7.TestSuppressionCompte" name="test_livreur_ne_peut_pas_supprimer_son_compte" time="0.109" /><testcase classname="tests.test_iteration7.TestSuppressionCompte" name="test_superadmin_ne_peut_pas_supprimer_son_compte" time="0.244" /><testcase classname="tests.test_iteration7.TestSuppressionCompte" name="test_sans_jeton_401" time="0.154" /><testcase classname="tests.test_iteration9.TestMotDePasse" name="test_actuel_incorrect" time="1.072" /><testcase classname="tests.test_iteration9.TestMotDePasse" name="test_nouveau_trop_court" time="1.016" /><testcase classname="tests.test_iteration9.TestSuppression" name="test_delete_active_refuse" time="3.976" /><testcase classname="tests.test_iteration9.TestMotDePasse" name="test_sans_jeton_401" time="0.139" /><testcase classname="tests.test_iteration9.TestMotDePasse" name="test_compte_google_sans_mdp_peut_en_definir" time="0.835" /><testcase classname="tests.test_iteration14.TestNonRegression" name="test_mes_commandes_ok" time="0.759" /><testcase classname="tests.test_iteration9.TestSuppression" name="test_delete_archivee_ok" time="4.104" /><testcase classname="tests.test_iteration14.TestNonRegression" name="test_mes_archives_ok" time="0.300" /><testcase classname="tests.test_iteration14.TestNonRegression" name="test_zones_publiques" time="0.154" /><testcase classname="tests.test_iteration14.TestNonRegression" name="test_config_publique" time="0.290" /><testcase classname="tests.test_iteration16.TestLivreurArchivage" name="test_archiver_refuse_course_non_terminee" time="1.845" /><testcase classname="tests.test_iteration16.TestLivreurArchivage" name="test_archiver_accepte_livree" time="1.677" /><testcase classname="tests.test_iteration9.TestSuppression" name="test_delete_404" time="0.144" /><testcase classname="tests.test_iteration9.TestSuppression" name="test_rbac_delete" time="0.549" /><testcase classname="tests.test_iteration16.TestLivreurArchivage" name="test_masquer_refuse_si_non_archivee" time="0.839" /><testcase classname="tests.test_iteration9.TestSuppression" name="test_superadmin_peut_supprimer" time="1.901" /><testcase classname="tests.test_iteration16.TestLivreurArchivage" name="test_masquer_apres_archivage_et_isolation_admin" time="4.081" /><testcase classname="tests.test_iteration3.TestAuthTelephone" name="test_telephone_sans_token_401" time="0.168" /><testcase classname="tests.test_iteration3.TestAuthTelephone" name="test_telephone_trop_court_400" time="0.553" /><testcase classname="tests.test_iteration3.TestAuthTelephone" name="test_telephone_deja_pris_400" time="0.153" /><testcase classname="tests.test_iteration3.TestAuthTelephone" name="test_telephone_ok_puis_restauration" time="0.364" /><testcase classname="tests.test_iteration7.TestSuperadminUnique" name="test_ancien_compte_0800000000_absent" time="0.123" /><testcase classname="tests.test_iteration7.TestSuperadminUnique" name="test_forged_jwt_super_ok" time="1.263" /><testcase classname="tests.test_iteration7.TestSuperadminUnique" name="test_admin_normal_refuse_superadmin" time="11.323" /><testcase classname="tests.test_iteration7.TestSuperadminUnique" name="test_un_seul_superadmin_en_base" time="0.003" /><testcase classname="tests.test_iteration15.TestCreateProduitEnAvant" name="test_create_produit_sans_enAvant_defaults_false" time="0.644" /><testcase classname="tests.test_iteration15.TestCreateProduitEnAvant" name="test_create_produit_avec_enAvant_true" time="0.258" /><testcase classname="tests.test_iteration15.TestCreateProduitEnAvant" name="test_zzz_cleanup_created_products" time="0.341" /><testcase classname="tests.test_iteration11.TestArchivageAuto" name="test_archiver_anciennes_livree_ok_et_recente_reste" time="16.854" /><testcase classname="tests.test_iteration11.TestArchivageAuto" name="test_termineeAt_pose_par_patch_statut" time="0.862" /><testcase classname="tests.test_iteration16.TestSecuriteLivreur" name="test_autre_livreur_ne_peut_pas_archiver" time="3.137" /><testcase classname="tests.test_iteration11.TestArchivageAuto" name="test_termineeAt_pose_par_annulation_client" time="0.849" /><testcase classname="tests.test_iteration16.TestSecuriteLivreur" name="test_client_403_sur_livreur_routes" time="0.468" /><testcase classname="tests.test_iteration4.TestRegisterPush" name="test_body_manquant_422" time="0.168" /><testcase classname="tests.test_iteration4.TestRegisterPush" name="test_body_invalide_422" time="0.181" /><testcase classname="tests.test_iteration16.TestSecuriteLivreur" name="test_admin_403_sur_livreur_routes" time="1.113" /><testcase classname="tests.test_iteration4.TestRegisterPush" name="test_placeholder_key_500" time="0.184" /><testcase classname="tests.test_iteration6.TestSuppression" name="test_ne_peut_supprimer_soi_meme" time="1.761" /><testcase classname="tests.test_iteration6.TestSuppression" name="test_id_inexistant_404" time="0.356" /><testcase classname="tests.test_iteration6.TestSuppression" name="test_supprimer_client_404" time="0.526" /><testcase classname="tests.test_iteration6.TestCreationAdmin" name="test_creer_admin_puis_login_et_403_superadmin" time="2.568" /><testcase classname="tests.test_iteration14.TestSecuriteArchivage" name="test_404_sur_id_autre_client" time="1.035" /><testcase classname="tests.test_iteration6.TestCreationAdmin" name="test_rejets_validation" time="0.463" /><testcase classname="tests.test_iteration14.TestSecuriteArchivage" name="test_sans_token_401" time="0.638" /><testcase classname="tests.test_iteration6.TestCreationAdmin" name="test_email_duplique" time="0.771" /><testcase classname="tests.test_iteration15.TestGetProduitsEnAvant" name="test_get_produits_expose_enAvant" time="0.178" /><testcase classname="tests.test_iteration15.TestGetProduitsEnAvant" name="test_au_moins_un_produit_en_avant" time="0.168" /><testcase classname="tests.test_iteration15.TestRbacClientCannotModify" name="test_client_post_produit_forbidden" time="0.780" /><testcase classname="tests.test_iteration16.TestNonRegressionAdminRapport" name="test_admin_rapport_xlsx" time="1.036" /><testcase classname="tests.test_iteration15.TestRbacClientCannotModify" name="test_client_put_produit_forbidden" time="0.305" /><testcase classname="tests.test_iteration16.TestNonRegressionAdminRapport" name="test_admin_rapport_pdf" time="0.737" /><testcase classname="tests.test_iteration17.TestThemeSecurite" name="test_put_sans_token_401_ou_403" time="0.416" /><testcase classname="tests.test_iteration17.TestThemeSecurite" name="test_get_moi_sans_token_401_ou_403" time="0.181" /><testcase classname="tests.test_iteration3.TestAuthSession" name="test_session_invalid_401" time="0.432" /><testcase classname="tests.test_iteration17.TestThemeAdminLivreurNonInvasif" name="test_admin_prefs_incluent_theme_et_defaut" time="0.479" /><testcase classname="tests.test_iteration3.TestAuthSession" name="test_session_body_manquant_422" time="0.136" /><testcase classname="tests.test_iteration3" name="test_non_regression_config" time="0.317" /><testcase classname="tests.test_iteration17.TestThemeAdminLivreurNonInvasif" name="test_livreur_prefs_incluent_theme_et_defaut" time="0.582" /><testcase classname="tests.test_iteration3" name="test_non_regression_produits_sans_base64" time="0.167" /><testcase classname="tests.test_iteration14.TestArchivageClient" name="test_cycle_complet_et_isolation_admin" time="8.194" /><testcase classname="tests.test_iteration6.TestBasculerActif" name="test_flux_complet" time="3.705" /><testcase classname="tests.test_iteration6.TestBasculerActif" name="test_bascule_livreur_suit_fiche" time="0.996" /><testcase classname="tests.test_iteration16.TestAdminLangue" name="test_admin_peut_changer_langue" time="1.951" /><testcase classname="tests.test_iteration6.TestHierarchie" name="test_super_admin_acces_routes_admin" time="1.885" /><testcase classname="tests.test_iteration6.TestCreationLivreur" name="test_creer_livreur_puis_login_et_courses" time="1.136" /><testcase classname="tests.test_iteration15.TestUpdateProduitEnAvant" name="test_toggle_enAvant_on_existing_product" time="1.604" /><testcase classname="tests.test_iteration6.TestNonRegressionRoutesAdmin" name="test_admin_normal_toujours_admin" time="0.664" /><testcase classname="tests.test_iteration15.TestZZZRestauration" name="test_restore_final_state" time="0.463" /><testcase classname="tests.test_iteration7.TestCategoriesPublic" name="test_get_categories_public" time="0.168" /></testsuite></testsuites>

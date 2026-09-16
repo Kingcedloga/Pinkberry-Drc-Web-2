@@ -4,12 +4,13 @@ import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { ActivityIndicator, LogBox, Platform, View } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthProvider } from "@/src/auth";
+import { EcranDemarrage } from "@/src/components/EcranDemarrage";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { GestionPush, ouvrirDepuisNotification } from "@/src/components/GestionPush";
 import { SurveillanceCommandes } from "@/src/components/SurveillanceCommandes";
@@ -17,7 +18,6 @@ import "@/src/gras";
 import { LangueProvider } from "@/src/i18n";
 import { PanierProvider } from "@/src/panier";
 import { queryClient } from "@/src/query-client";
-import { colors } from "@/src/theme";
 import { ThemeProvider, useTheme } from "@/src/theme-contexte";
 import { TauxProvider } from "@/src/taux";
 import { ToastProvider } from "@/src/toast";
@@ -88,11 +88,7 @@ export default function RootLayout() {
   }, [router]);
 
   if (!policesPretes && !erreurPolices) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.surfaceSecondary, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color={colors.brandPrimary} size="large" />
-      </View>
-    );
+    return <EcranDemarrage testID="ecran-demarrage-polices" />;
   }
 
   // One app level ErrorBoundary; a render crash shows a reload screen

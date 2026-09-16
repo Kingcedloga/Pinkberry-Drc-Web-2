@@ -1,8 +1,9 @@
+import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
@@ -123,7 +124,7 @@ export default function Dashboard() {
 
       {commandesQ.isLoading ? (
         <View style={styles.centre}>
-          <ActivityIndicator color={colors.brandPrimary} size="large" />
+          <Chargement taille={52} />
         </View>
       ) : (
         <FlatList

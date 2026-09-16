@@ -1,7 +1,8 @@
+import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { FlatList, Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -80,7 +81,7 @@ export default function Livreurs() {
 
       {q.isLoading ? (
         <View style={styles.centre}>
-          <ActivityIndicator color={colors.brandPrimary} size="large" />
+          <Chargement taille={52} />
         </View>
       ) : (
         <FlatList

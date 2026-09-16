@@ -1,50 +1,76 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Bouton } from "@/src/components/Bouton";
-import { Logo } from "@/src/components/Logo";
-import { colors, fonts, spacing, stylesDynamiques } from "@/src/theme";
+import { EnteteMarque, MotifCoin, Vague } from "@/src/components/DecorAuth";
+import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 
-const HERO = require("@/assets/images/livreur-pinkberry.png");
+const HERO = require("@/assets/images/livreur-pinkberry-v2.webp");
 
 export default function Bienvenue() {
-  useTheme();
-  const router = useRouter();
+  const { scheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+
+  const flotte = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = (toValue: number) =>
+      Animated.timing(flotte, { toValue, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true });
+    const boucle = Animated.loop(Animated.sequence([anim(1), anim(0)]));
+    boucle.start();
+    return () => boucle.stop();
+  }, [flotte]);
+
+  const monte = flotte.interpolate({ inputRange: [0, 1], outputRange: [8, -12] });
+  const largeurCarte = Math.min(width - spacing.md * 2, 520);
+  const largeurHero = largeurCarte * 1.24;
 
   return (
     <View testID="ecran-bienvenue" style={styles.ecran}>
-      <View style={[styles.contenu, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }]}>
-        <Logo taille={34} />
+      <View
+        style={[
+          styles.carte,
+          { width: largeurCarte, marginTop: insets.top + spacing.sm, marginBottom: insets.bottom + spacing.sm },
+        ]}
+      >
+        <EnteteMarque />
 
-        <View style={styles.heroZone}>
-          <Image source={HERO} style={styles.hero} contentFit="contain" transition={300} />
+        <View style={styles.illustration}>
+          <MotifCoin couleur={scheme === "dark" ? colors.brandSecondary : colors.brandPrimary} />
+          <Animated.View style={[styles.heroBloc, { transform: [{ translateY: monte }] }]}>
+            <Image
+              testID="image-livreur"
+              source={HERO}
+              style={{ width: largeurHero, height: largeurHero * 0.7 }}
+              contentFit="contain"
+              transition={400}
+            />
+          </Animated.View>
+          <Vague largeur={largeurCarte} couleur={colors.surface} />
         </View>
 
-        <View style={styles.bloc}>
-          <Text style={styles.titre}>Le vrai frozen yogurt, livré chez toi à Kinshasa</Text>
-          <Text style={styles.sous}>
-            Pots de crème, smoothies et garnitures fraîches. Commandez, suivez votre livreur, payez en cash.
-          </Text>
-        </View>
+        <View style={styles.bas}>
+          <Text style={styles.slogan}>Le vrai frozen yogurt, livré chez toi à Kinshasa</Text>
 
-        <View style={styles.actions}>
-          <Bouton
+          <Pressable
             testID="btn-creer-compte"
-            label="Créer un compte"
-            icone="user-plus"
             onPress={() => router.push("/inscription")}
-          />
-          <Bouton
+            style={({ pressed }) => [styles.cta, pressed && styles.pressee]}
+          >
+            <Text style={styles.ctaTexte}>Créer un compte</Text>
+          </Pressable>
+
+          <Pressable
             testID="btn-deja-compte"
-            label="J'ai déjà un compte"
-            variant="secondaire"
             onPress={() => router.push("/connexion")}
-          />
+            style={({ pressed }) => [styles.ctaSecondaire, pressed && styles.pressee]}
+          >
+            <Text style={styles.ctaSecondaireTexte}>J&apos;ai déjà un compte</Text>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -52,12 +78,54 @@ export default function Bienvenue() {
 }
 
 const styles = stylesDynamiques(() => StyleSheet.create({
-  ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
-  contenu: { flex: 1, paddingHorizontal: spacing.xl, gap: spacing.xl },
-  heroZone: { flex: 1, alignItems: "center", justifyContent: "center" },
-  hero: { width: "100%", maxWidth: 360, aspectRatio: 670 / 656 },
-  bloc: { gap: spacing.sm },
-  titre: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.onSurface },
-  sous: { fontFamily: fonts.text, fontSize: 15, lineHeight: 22, color: colors.muted },
-  actions: { marginTop: "auto", gap: spacing.md },
+  ecran: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: colors.surfaceSecondary,
+    paddingHorizontal: spacing.md,
+  },
+  carte: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 34,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  illustration: {
+    flex: 1,
+    minHeight: 260,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.brandTertiary,
+    overflow: "hidden",
+  },
+  heroBloc: { alignItems: "center", justifyContent: "center", marginBottom: spacing.xs },
+  bas: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, paddingTop: spacing.sm, gap: spacing.sm },
+  slogan: {
+    fontFamily: fonts.display,
+    fontSize: 19,
+    lineHeight: 25,
+    fontWeight: poids.fort,
+    color: colors.onSurface,
+    textAlign: "center",
+    marginBottom: spacing.xs,
+  },
+  cta: {
+    minHeight: 54,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+  },
+  ctaTexte: { fontFamily: fonts.display, fontSize: 16, fontWeight: poids.fort, color: colors.onBrandPrimary },
+  ctaSecondaire: {
+    minHeight: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+  },
+  ctaSecondaireTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: poids.fort, color: colors.brandPrimary },
+  pressee: { opacity: 0.85 },
 }));

@@ -1,9 +1,10 @@
+import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
@@ -112,7 +113,7 @@ export default function DetailCourse() {
   if (q.isLoading || !cmd) {
     return (
       <View style={[styles.ecran, styles.centre]}>
-        <ActivityIndicator color={colors.brandPrimary} size="large" />
+        <Chargement taille={52} />
       </View>
     );
   }

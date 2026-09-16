@@ -1,0 +1,54 @@
+{
+  "summary": "Itération 18 — Nouvelle image livreur v2.webp + refonte Bienvenue + spinner logo Chargement. (1) BIENVENUE : testID='ecran-bienvenue' et testID='image-livreur' présents, HERO = require('@/assets/images/livreur-pinkberry-v2.webp') confirmé dans app/(auth)/bienvenue.tsx:13, l'ancienne 'livreur-pinkberry.png' n'apparaît PLUS dans le DOM (grep 'livreur-pinkberry.png' → 0 hit dans /app/frontend/app + /app/frontend/src). Éléments visuels : logo Pinkberry (Logo taille=30), pastille 'Kinshasa' avec icône map-pin, surtitre 'LE VRAI FROZEN YOGURT', titre 'Livré chez toi / frais et crémeux' (avec accent rose), sous-titre 'Pots de crème...', 3 atouts (Frozen yogurt frais, Livré en 25-45 min, Paiement cash) — tous visibles à l'écran, comptes texte = 1 pour chaque. Boutons testID='btn-creer-compte' → navigation vers /inscription (URL confirmée), testID='btn-deja-compte' → /connexion. Halo gradient rose + bulle blanche + bonhomme 3D animé (Animated.loop translateY -10↔6). (2) RESPONSIVE : 360x640 → docH=680 (bouton J'ai déjà un compte finit à y=680 → 40px hors viewport initial, léger scroll acceptable) ; 390x844 → tout tient exactement (scrollH=844, btn2 à y=828) ; 1280x900 → tout tient (btn2 à y=884, image centrée dans halo 260px de haut). Aucun chevauchement détecté. (3) SPINNER LOGO : Chargement.tsx (Swirl du logo + Animated rotate 0-360° durée 1100ms linear) confirmé présent dans 16 fichiers (grep 'Chargement' → app/index.tsx, app/_layout.tsx, app/client/archives.tsx, (client)/accueil.tsx, (client)/commandes.tsx, (admin)/dashboard.tsx, (admin)/catalogue.tsx, (admin)/zones.tsx, (admin)/livreurs.tsx, (admin)/personnel.tsx, admin/archives.tsx, (livreur)/courses.tsx, (livreur)/course/[id].tsx, livreur/archives.tsx, suivi/[id].tsx, src/components/EcranRapport.tsx). Testé avec route interception (+1400ms sur /api/produits, commandes, zones, categories, courses, admin, livreur) : spinner testID='chargement' détecté sur /accueil (loop 3), /commandes (loop 0), /client/archives (loop 0) — screenshots capturés (spirale rose du logo qui tourne). ActivityIndicator ne subsiste QUE dans src/components/Bouton.tsx (état loading du CTA) et src/components/BoutonGoogle.tsx (bouton Google auth) — conforme à la demande 'plus aucun ActivityIndicator attendu hors boutons'. (4) MODE SOMBRE — /bienvenue APRÈS déconnexion : ANOMALIE fonctionnelle. Scénario : login client 0990000001, /client/parametres → btn-theme-sombre → toast 'Préférences enregistrées', deconnexion via btn-deconnexion-client, redirection sur /bienvenue. Résultat : le fond de /bienvenue = rgb(251, 246, 249) (colors.surfaceSecondary MODE CLAIR), titre = rgb(42, 23, 33) (texte foncé, palette claire), screenshot montre un dégradé rose CLAIR (brandTertiary → surfaceSecondary) et non le dégradé sombre attendu (surfaceTertiary → surfaceSecondary). CAUSE probable : la préférence 'sombre' est stockée côté serveur/compte via PUT /auth/preferences, mais le contexte de thème n'est repeuplé qu'au prochain login. Après logout, useTheme() retombe sur 'systeme' (défaut du ThemeProvider non authentifié), qui vaut 'clair' sur ce navigateur preview. Le code de bienvenue.tsx utilise bien `scheme === 'dark'` pour choisir le gradient, donc le rendu sera correct SI le thème local est effectivement 'sombre'. Il faut soit persister le scheme choisi en AsyncStorage/localStorage local (non-lié au compte) soit ne pas le réinitialiser au logout. (5) BACKEND REGRESSION : suite complète pytest 200 tests, 198 passed / 2 failed en 210s : test_iteration9::TestArchivage::test_archiver_livree_ok et test_iteration11::TestZones::test_rbac_zones — les DEUX = ConnectTimeout HTTPS transitoires (flaky réseau documentés dans le contexte iter15/16/17). Ré-exécutés en isolation → 2 passed en 5.10s. Backend 100% sain. (6) TAUX DE CHANGE : non modifié (aucune manipulation de setting/taux_change durant les tests). (7) ÉTAT FINAL RESTAURÉ : client démo remis en theme='systeme' via btn-theme-systeme, langue déjà 'fr' (btn-langue-client-fr non détecté → déjà actif). Admin et livreur non modifiés. Aucune commande créée. Aucun mot de passe changé. Zones inchangées.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "app/(auth)/bienvenue.tsx",
+        "issue": "Après une déconnexion depuis un compte en thème 'sombre', /bienvenue s'affiche en mode CLAIR (fond rgb(251,246,249), gradient brandTertiary→surfaceSecondary, textes foncés). Le scheme n'est pas persisté localement au logout : le ThemeProvider retombe sur 'systeme' → 'clair' sur ce navigateur. Attendu par la demande : la page Bienvenue suit le thème sombre (fond sombre, textes clairs, dégradé rose conservé, aucune zone blanche).",
+        "testID": "ecran-bienvenue",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/bienvenue @ 360x640",
+        "issues": ["Le bouton 'J'ai déjà un compte' s'étend jusqu'à y=680 alors que le viewport fait 640 → ~40px sous la ligne de flottaison. Léger scroll requis sur les très petits écrans, acceptable mais à noter."]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/pytest_iter18.xml",
+    "/app/backend/tests/test_iteration17.py",
+    "/app/backend/tests/test_iteration16.py",
+    "/app/backend/tests/test_iteration15.py",
+    "/app/backend/tests/test_iteration14.py",
+    "/app/backend/tests/test_iteration12.py",
+    "/app/backend/tests/test_iteration11.py",
+    "/app/backend/tests/test_iteration9.py"
+  ],
+  "action_items": [
+    "Corriger la persistance locale du thème pour que /bienvenue affiche le mode sombre après une déconnexion. Options : (a) sauver le dernier `scheme` choisi dans AsyncStorage (clé ex. 'pb_theme_local') et l'hydrater dans ThemeProvider avant même l'auth ; (b) ne pas réinitialiser `scheme` en state au logout — conserver la valeur en mémoire jusqu'au prochain login OU jusqu'à ce qu'un autre compte pousse une nouvelle préférence. Fichier : /app/frontend/src/theme-contexte.tsx (initialisation du provider + gestion du logout dans /src/auth-*).",
+    "(Optionnel) Sur les très petits écrans (~360x640), envisager un léger paddingTop/gap réduit sur .contenu ou un `heroZone` avec minHeight plus bas pour éviter le ~40px de scroll du second CTA."
+  ],
+  "critical_code_review_comments": [
+    "app/(auth)/bienvenue.tsx : composition très propre — LinearGradient de fond + bulle décorative + Logo + pastille ville + heroZone (halo + image 3D animée) + bloc texte + atouts pills + 2 CTA. Le prop `scheme === 'dark'` du gradient est bon mais il faut qu'un scheme sombre remonte réellement au ThemeProvider sur cette route (cf. issue ci-dessus). L'Animated.loop translateY est bien nettoyé (return () => boucle.stop()). Le largeurHero = min(width - lg*2, 420) marche sur tous les viewports testés.",
+    "src/components/Chargement.tsx : petit composant clean, Animated.loop d'un timing linear 1100ms, useNativeDriver:true (fallback JS Web déjà connu et sans impact), testID par défaut = 'chargement' → parfait pour la scan. Bien de laisser passer un `taille` et `libelle` optionnels.",
+    "Backend server.py : suite pytest complète confirme la stabilité des 200 tests couverts par les itérations précédentes ; les 2 échecs sont strictement des ConnectTimeout Cloudflare (déjà documentés). Aucun changement backend nécessaire pour cette itération 18 (uniquement frontend visuel + composant Chargement)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (198/200 en parallèle ; 2 flakes ConnectTimeout PASS en isolation → 200/200)",
+    "frontend": "75% (Bienvenue image v2 + refonte visuelle + navigation ✅ ; responsive ✅ ; spinner logo Chargement ✅ ; mode sombre /bienvenue après logout ❌)"
+  },
+  "seed_data_creation": "Aucune seed créée. Restauration finale du client démo : theme='systeme' (via btn-theme-systeme), langue='fr' (déjà active). Admin et livreur non touchés. Aucune commande créée durant les tests.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Itération 18 : nouvelle image livreur v2.webp bien intégrée, refonte Bienvenue OK (halo rose + image 3D animée + 3 pastilles d'atouts + 2 CTA), spinner logo Chargement bien utilisé sur les 16 fichiers demandés (validé visuellement sur /accueil, /commandes, /client/archives — spirale rose du logo qui tourne). ActivityIndicator ne subsiste que dans les composants Bouton et BoutonGoogle (conforme). 1 BUG à corriger : /bienvenue ne suit PAS le thème sombre après déconnexion (le scheme retombe sur 'systeme' → clair). Suggestion : persister le scheme choisi côté client (AsyncStorage) et hydrater le ThemeProvider dès le boot, avant l'auth — fichier ciblé /app/frontend/src/theme-contexte.tsx. Backend inchangé, suite 200/200 en isolation, 2 flakes ConnectTimeout connues (iter9/iter11). Compte client démo restauré (systeme + fr).",
+  "rca_of_issue": "BUG /bienvenue mode sombre après logout — RCA : Le composant ThemeProvider (/app/frontend/src/theme-contexte.tsx) initialise `scheme` à partir de deux sources : (a) la préférence utilisateur retournée par GET /auth/moi après login, (b) le défaut 'systeme' pour un utilisateur non authentifié. Après un logout, l'état auth est vidé donc le provider retombe sur (b). Sur le navigateur preview, prefers-color-scheme = light, d'où le rendu clair sur /bienvenue. Reproduction : (1) se connecter client 0990000001, (2) /client/parametres → btn-theme-sombre, (3) btn-deconnexion-client → /bienvenue, (4) constater fond rgb(251,246,249) et textes foncés au lieu du gradient sombre. Mitigation : ajouter une couche de persistance locale (AsyncStorage / localStorage sous une clé `pb_theme_local`) mise à jour à chaque changerTheme() ET lue à l'init du ThemeProvider avant même le fetch /auth/moi. Ainsi /bienvenue (public) suit toujours le dernier scheme choisi sur l'appareil."
+}

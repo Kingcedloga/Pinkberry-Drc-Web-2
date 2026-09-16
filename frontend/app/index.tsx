@@ -1,10 +1,9 @@
 import { Redirect } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
 
+import { EcranDemarrage } from "@/src/components/EcranDemarrage";
 import { useAuth } from "@/src/auth";
 import { CLE_TEL_REPORTE } from "@/src/prefs";
-import { colors } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { storage } from "@/src/utils/storage";
 
@@ -17,16 +16,7 @@ export default function Index() {
     (async () => setReporte(!!(await storage.getItem<string>(CLE_TEL_REPORTE, ""))))();
   }, []);
 
-  if (loading || reporte === null) {
-    return (
-      <View
-        testID="ecran-chargement"
-        style={{ flex: 1, backgroundColor: colors.surfaceSecondary, alignItems: "center", justifyContent: "center" }}
-      >
-        <ActivityIndicator color={colors.brandPrimary} size="large" />
-      </View>
-    );
-  }
+  if (loading || reporte === null) return <EcranDemarrage testID="ecran-chargement" />;
 
   if (!user) return <Redirect href="/bienvenue" />;
   if (user.role === "admin" || user.role === "superadmin") return <Redirect href="/dashboard" />;

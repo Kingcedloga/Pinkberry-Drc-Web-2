@@ -2,10 +2,11 @@ import { File, Paths } from "expo-file-system";
 import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { obtenirToken } from "@/src/api";
+import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
@@ -171,7 +172,7 @@ export function EcranRapport({
             icone="download"
             onPress={() => telecharger("pdf")}
           />
-          {enCours ? <ActivityIndicator color={colors.brandPrimary} /> : null}
+          {enCours ? <Chargement taille={30} /> : null}
         </View>
       </ScrollView>
     </View>

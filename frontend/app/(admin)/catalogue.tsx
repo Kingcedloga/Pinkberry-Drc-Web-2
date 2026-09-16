@@ -1,9 +1,9 @@
+import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Linking,
   Modal,
@@ -288,7 +288,7 @@ export default function Catalogue() {
 
       {q.isLoading ? (
         <View style={styles.centre}>
-          <ActivityIndicator color={colors.brandPrimary} size="large" />
+          <Chargement taille={52} />
         </View>
       ) : (
         <FlatList

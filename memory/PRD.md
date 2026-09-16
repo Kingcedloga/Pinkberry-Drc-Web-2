@@ -350,6 +350,37 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   antérieure au SDK 57, cache Expo Go, ou réseau lent pendant le téléchargement du bundle de dev.
 - Tests : 190/190 backend.
 
+## Page Bienvenue v3 + spinner logo — 16/09/2026 (v2.4)
+- Nouvelle image `assets/images/livreur-pinkberry-v2.webp` (livreur 3D sur scooter rose, fond
+  transparent) à la place de `livreur-pinkberry.png`.
+- **Refonte `app/(auth)/bienvenue.tsx`** inspirée de la référence fournie : carte à coins arrondis,
+  en-tête centré (spirale `Swirl` + « pinkberry » + trait fin + sous-titre « LIVRAISON »), zone
+  illustration en aplat rose pâle (`brandTertiary`) avec motif de lignes SVG en coin haut droit,
+  illustration imposante animée (flottement `Animated.loop`), vague SVG (couleur `surface`) entre
+  l'illustration et le bas, slogan puis CTA « Créer un compte » (rose plein) et « J'ai déjà un compte ».
+  Compatible clair/sombre (via `stylesDynamiques`) et responsive 360 → 1280 px.
+- **Spinner logo** : `src/components/Chargement.tsx` (spirale du logo en rotation) remplace
+  `ActivityIndicator` dans 16 écrans (accueil, commandes, archives client/admin/livreur, dashboard,
+  catalogue, zones, livreurs, personnel, suivi, course, rapports, index, chargement des polices).
+  `ActivityIndicator` ne subsiste que dans les boutons.
+- Tests : 200/200 backend, refonte validée en clair et sombre, persistance du thème après
+  déconnexion confirmée (itérations 18 et 19).
+
+## Écran de démarrage + Connexion/Inscription stylés — 16/09/2026 (v2.5)
+- `src/components/DecorAuth.tsx` (partagé) : `MotifCoin`, `Vague`, `EnteteMarque` (spirale +
+  « pinkberry » + trait + « LIVRAISON », option `anime` pour faire tourner la spirale) et
+  `CarteAuth` (carte blanche arrondie plein écran des écrans d'authentification).
+- `src/components/EcranDemarrage.tsx` : écran de démarrage reprenant la mise en page Bienvenue
+  (logo qui tourne, illustration flottante sur aplat rose, vague, slogan + « Chargement… »).
+  Branché dans `app/index.tsx` (testID `ecran-chargement`) et dans `app/_layout.tsx` pendant le
+  chargement des polices (testID `ecran-demarrage-polices`) — n'utilise pas les safe-area insets
+  car rendu avant `SafeAreaProvider`.
+- `app/(auth)/connexion.tsx` et `app/(auth)/inscription.tsx` réécrits dans `CarteAuth` :
+  en-tête de marque centré, titres centrés, bouton retour rond en position absolue, formulaires
+  inchangés (KeyboardAwareScrollView conservé). `bienvenue.tsx` réutilise désormais `DecorAuth`.
+- Tests : itération 20 — splash, connexion, inscription, responsive 360→1280 et mode sombre
+  validés ; 200/200 backend.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { FlatList, Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
+import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
@@ -85,7 +86,7 @@ export default function Zones() {
 
       {q.isLoading ? (
         <View style={styles.centre}>
-          <ActivityIndicator color={colors.brandPrimary} size="large" />
+          <Chargement taille={52} />
         </View>
       ) : (
         <FlatList

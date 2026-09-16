@@ -1,8 +1,9 @@
+import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
@@ -41,7 +42,7 @@ export default function SuiviCommande() {
   if (q.isLoading || !cmd) {
     return (
       <View style={[styles.ecran, styles.centre]}>
-        <ActivityIndicator color={colors.brandPrimary} size="large" />
+        <Chargement taille={52} />
       </View>
     );
   }

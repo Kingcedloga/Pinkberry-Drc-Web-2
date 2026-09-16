@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
+import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useT, type CleTexte } from "@/src/i18n";
 import { usd } from "@/src/money";
@@ -61,7 +62,7 @@ export default function Commandes() {
 
       {q.isLoading ? (
         <View style={styles.centre}>
-          <ActivityIndicator color={colors.brandPrimary} size="large" />
+          <Chargement taille={52} />
         </View>
       ) : (
         <FlatList

@@ -1,9 +1,9 @@
+import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   ScrollView,
@@ -111,7 +111,7 @@ export default function Accueil() {
 
       {produitsQ.isLoading ? (
         <View style={styles.centre}>
-          <ActivityIndicator color={colors.brandPrimary} size="large" />
+          <Chargement taille={52} />
         </View>
       ) : produitsQ.isError ? (
         <View style={styles.centre}>
