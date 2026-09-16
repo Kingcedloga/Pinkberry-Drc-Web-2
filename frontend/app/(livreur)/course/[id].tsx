@@ -9,11 +9,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 export default function DetailCourse() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -229,7 +231,7 @@ export default function DetailCourse() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   centre: { alignItems: "center", justifyContent: "center" },
   entete: {
@@ -264,4 +266,4 @@ const styles = StyleSheet.create({
   montantFc: { fontFamily: fonts.text, fontSize: 12, color: colors.muted, marginTop: -spacing.xs },
   termine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   termineTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.success },
-});
+}));

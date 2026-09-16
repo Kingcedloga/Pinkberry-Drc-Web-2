@@ -1,7 +1,7 @@
 import React from "react";
 import { FlatList, Pressable, StyleSheet, Text } from "react-native";
 
-import { colors, fonts, radius, spacing } from "@/src/theme";
+import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 
 export function Chips({
   options,
@@ -39,7 +39,7 @@ export function Chips({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   row: { height: 56, flexGrow: 0 },
   contenu: { gap: spacing.sm, paddingHorizontal: spacing.lg, alignItems: "center" },
   chip: {
@@ -54,4 +54,4 @@ const styles = StyleSheet.create({
   chipActif: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
   chipInactif: { backgroundColor: colors.surface, borderColor: colors.border },
   texte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700" },
-});
+}));

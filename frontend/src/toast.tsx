@@ -3,7 +3,7 @@ import { Animated, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icone } from "@/src/components/Icone";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 
 type Type = "succes" | "erreur" | "info";
 type Notification = { id: number; message: string; type: Type; titre?: string };
@@ -92,7 +92,7 @@ export function useToast(): ToastValue {
   return ctx;
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   zone: {
     position: "absolute",
     left: spacing.lg,
@@ -114,4 +114,4 @@ const styles = StyleSheet.create({
   bloc: { flex: 1, gap: 1 },
   titre: { color: colors.onBrandPrimary, fontFamily: fonts.display, fontSize: 14 },
   texte: { color: colors.onBrandPrimary, fontFamily: fonts.text, fontSize: 13, fontWeight: "700" },
-});
+}));

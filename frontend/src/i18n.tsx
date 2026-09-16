@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
-import { CLE_LANGUE } from "@/src/prefs";
+import { CLE_LANGUE, CLE_THEME } from "@/src/prefs";
 import { storage } from "@/src/utils/storage";
 
 export type Langue = "fr" | "en";
@@ -38,6 +38,10 @@ const FR = {
 
   "params.titre": "Paramètres",
   "params.langue": "Langue",
+  "params.theme": "Thème",
+  "params.themeClair": "Clair",
+  "params.themeSombre": "Sombre",
+  "params.themeSysteme": "Système",
   "params.notifications": "Notifications",
   "params.notifSuivi": "Suivi de commande",
   "params.notifSuiviDetail": "Préparation, départ du livreur et livraison",
@@ -211,6 +215,10 @@ const EN: Record<keyof typeof FR, string> = {
 
   "params.titre": "Settings",
   "params.langue": "Language",
+  "params.theme": "Theme",
+  "params.themeClair": "Light",
+  "params.themeSombre": "Dark",
+  "params.themeSysteme": "System",
   "params.notifications": "Notifications",
   "params.notifSuivi": "Order updates",
   "params.notifSuiviDetail": "Preparation, rider on the way and delivery",
@@ -360,8 +368,11 @@ export type CleTexte = keyof typeof FR;
 
 const DICTIONNAIRES: Record<Langue, Record<CleTexte, string>> = { fr: FR, en: EN };
 
+export type ThemeChoisi = "clair" | "sombre" | "systeme";
+
 export type Preferences = {
   langue: Langue;
+  theme: ThemeChoisi;
   notifSuivi: boolean;
   notifPromos: boolean;
   notifNouveautes: boolean;
@@ -369,6 +380,7 @@ export type Preferences = {
 
 export const PREFS_DEFAUT: Preferences = {
   langue: "fr",
+  theme: "systeme",
   notifSuivi: true,
   notifPromos: true,
   notifNouveautes: true,
@@ -391,7 +403,13 @@ export function LangueProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       const locale = await storage.getItem<string>(CLE_LANGUE, "");
-      if (locale === "fr" || locale === "en") setPrefs((p) => ({ ...p, langue: locale }));
+      const theme = await storage.getItem<string>(CLE_THEME, "");
+      setPrefs((p) => ({
+        ...p,
+        langue: locale === "fr" || locale === "en" ? locale : p.langue,
+        theme:
+          theme === "clair" || theme === "sombre" || theme === "systeme" ? (theme as ThemeChoisi) : p.theme,
+      }));
     })();
   }, []);
 
@@ -401,6 +419,7 @@ export function LangueProvider({ children }: { children: React.ReactNode }) {
     if (distantes) {
       setPrefs({ ...PREFS_DEFAUT, ...distantes });
       storage.setItem(CLE_LANGUE, distantes.langue ?? "fr");
+      storage.setItem(CLE_THEME, distantes.theme ?? "systeme");
     }
   }, [user]);
 
@@ -409,6 +428,7 @@ export function LangueProvider({ children }: { children: React.ReactNode }) {
       const suivantes = { ...prefs, ...maj };
       setPrefs(suivantes);
       await storage.setItem(CLE_LANGUE, suivantes.langue);
+      await storage.setItem(CLE_THEME, suivantes.theme);
       if (user) await apiFetch("/auth/preferences", { method: "PUT", body: suivantes });
     },
     [prefs, user],

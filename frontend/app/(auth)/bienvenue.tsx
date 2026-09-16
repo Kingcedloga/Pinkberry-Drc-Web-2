@@ -6,11 +6,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
 import { Logo } from "@/src/components/Logo";
-import { colors, fonts, spacing } from "@/src/theme";
+import { colors, fonts, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 
 const HERO = require("@/assets/images/livreur-pinkberry.png");
 
 export default function Bienvenue() {
+  useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -49,7 +51,7 @@ export default function Bienvenue() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   contenu: { flex: 1, paddingHorizontal: spacing.xl, gap: spacing.xl },
   heroZone: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -58,4 +60,4 @@ const styles = StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 15, lineHeight: 22, color: colors.muted },
   actions: { marginTop: "auto", gap: spacing.md },
-});
+}));

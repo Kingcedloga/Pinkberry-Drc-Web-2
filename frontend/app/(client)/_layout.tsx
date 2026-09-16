@@ -7,10 +7,12 @@ import { Icone } from "@/src/components/Icone";
 import { useT } from "@/src/i18n";
 import { ONGLETS_NATIFS } from "@/src/nav";
 import { colors, fonts } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 
 const { Icon, Label } = NativeTabs.Trigger;
 
 export default function ClientLayout() {
+  useTheme();
   const t = useT();
 
   if (ONGLETS_NATIFS) {

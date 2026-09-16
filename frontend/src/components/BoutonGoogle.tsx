@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-import { colors, fonts, radius, spacing } from "@/src/theme";
+import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 
 /** Logo Google officiel : couleurs de marque identiques en clair et sombre. */
 function LogoGoogle({ taille = 20 }: { taille?: number }) {
@@ -70,7 +70,7 @@ export function BoutonGoogle({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   bouton: {
     minHeight: 52,
     borderRadius: radius.pill,
@@ -82,4 +82,4 @@ const styles = StyleSheet.create({
   },
   contenu: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   label: { fontFamily: fonts.text, fontSize: 15, fontWeight: "700", color: colors.onSurface },
-});
+}));

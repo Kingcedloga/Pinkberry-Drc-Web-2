@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-import { colors, fonts } from "@/src/theme";
+import { colors, fonts, stylesDynamiques } from "@/src/theme";
 
 /**
  * Marque Pinkberry : spirale (yogourt glacé) surmontée de deux feuilles,
@@ -54,7 +54,7 @@ export function Logo({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ligne: { flexDirection: "row", alignItems: "center", gap: 7 },
   mot: { fontFamily: fonts.display, letterSpacing: -0.5 },
-});
+}));

@@ -10,7 +10,8 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
 import { hauteurOngletsNatifs } from "@/src/nav";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 type Compte = {
@@ -26,6 +27,7 @@ type Compte = {
 };
 
 export default function Personnel() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
@@ -263,7 +265,7 @@ export default function Personnel() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -336,4 +338,4 @@ const styles = StyleSheet.create({
   optionActive: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
   optionTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "700", color: colors.muted },
   optionTexteActive: { color: colors.onBrandPrimary },
-});
+}));

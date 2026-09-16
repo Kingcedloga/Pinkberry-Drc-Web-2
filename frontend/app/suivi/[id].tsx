@@ -11,11 +11,13 @@ import { Carte } from "@/src/components/Carte";
 import { Etapes } from "@/src/components/Etapes";
 import { useT } from "@/src/i18n";
 import { Etoiles } from "@/src/components/Etoiles";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 export default function SuiviCommande() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -231,7 +233,7 @@ export default function SuiviCommande() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   centre: { alignItems: "center", justifyContent: "center" },
   entete: {
@@ -336,4 +338,4 @@ const styles = StyleSheet.create({
   },
   dialogueTitre: { fontFamily: fonts.display, fontSize: 20, color: colors.onSurface, textAlign: "center" },
   dialogueTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, textAlign: "center" },
-});
+}));

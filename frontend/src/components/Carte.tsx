@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import WebView from "react-native-webview";
 
-import { colors, fonts, radius, spacing } from "@/src/theme";
+import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 
 export type Point = { lat: number; lng: number };
 
@@ -86,7 +86,7 @@ export function Carte({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   wrap: { borderRadius: radius.xl, overflow: "hidden", backgroundColor: colors.surfaceSecondary },
   fallback: {
     borderRadius: radius.xl,
@@ -99,4 +99,4 @@ const styles = StyleSheet.create({
   fallbackTitre: { fontFamily: fonts.display, fontSize: 18, color: colors.onSurface },
   fallbackTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   fallbackNote: { fontFamily: fonts.text, fontSize: 11, color: colors.muted, marginTop: spacing.xs },
-});
+}));

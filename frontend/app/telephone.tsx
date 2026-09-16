@@ -10,11 +10,13 @@ import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
 import { Logo } from "@/src/components/Logo";
 import { CLE_TEL_REPORTE } from "@/src/prefs";
-import { colors, fonts, radius, spacing } from "@/src/theme";
+import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 import { storage } from "@/src/utils/storage";
 
 export default function DemandeTelephone() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -86,7 +88,7 @@ export default function DemandeTelephone() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   contenu: { paddingHorizontal: spacing.xl, gap: spacing.lg },
   titre: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
@@ -102,4 +104,4 @@ const styles = StyleSheet.create({
   infoTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.brandPrimary },
   lien: { alignItems: "center", minHeight: 44, justifyContent: "center" },
   lienTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "700", color: colors.brandPrimary },
-});
+}));

@@ -10,7 +10,8 @@ import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Logo } from "@/src/components/Logo";
 import { hauteurOngletsNatifs } from "@/src/nav";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
@@ -31,6 +32,7 @@ const SUIVANTS: Record<string, string[]> = {
 };
 
 export default function Dashboard() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -327,7 +329,7 @@ export default function Dashboard() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -460,4 +462,4 @@ const styles = StyleSheet.create({
   },
   livreurChipActif: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
   livreurChipTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.onSurface },
-});
+}));

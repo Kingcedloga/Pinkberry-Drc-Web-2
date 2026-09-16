@@ -9,10 +9,12 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
 import { hauteurOngletsNatifs } from "@/src/nav";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 export default function Zones() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
@@ -187,7 +189,7 @@ export default function Zones() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md, gap: spacing.xs },
   enteteHaut: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
@@ -247,4 +249,4 @@ const styles = StyleSheet.create({
   },
   dialogueTitre: { fontFamily: fonts.display, fontSize: 20, color: colors.onSurface, textAlign: "center" },
   dialogueTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, textAlign: "center" },
-});
+}));

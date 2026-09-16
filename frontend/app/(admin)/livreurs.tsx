@@ -10,10 +10,12 @@ import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { hauteurOngletsNatifs } from "@/src/nav";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 export default function Livreurs() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
@@ -139,7 +141,7 @@ export default function Livreurs() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -193,4 +195,4 @@ const styles = StyleSheet.create({
   },
   feuilleContenu: { padding: spacing.xl, gap: spacing.md },
   feuilleTitre: { fontFamily: fonts.display, fontSize: 21, color: colors.onSurface },
-});
+}));

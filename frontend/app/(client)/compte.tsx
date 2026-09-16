@@ -10,10 +10,12 @@ import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Logo } from "@/src/components/Logo";
 import { useT } from "@/src/i18n";
 import { hauteurOngletsNatifs } from "@/src/nav";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 export default function Compte() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -149,7 +151,7 @@ export default function Compte() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   contenu: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.lg },
   carte: {
@@ -210,4 +212,4 @@ const styles = StyleSheet.create({
   },
   boiteTitre: { fontFamily: fonts.display, fontSize: 20, color: colors.onSurface, textAlign: "center" },
   boiteTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, textAlign: "center" },
-});
+}));

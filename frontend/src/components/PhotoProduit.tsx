@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
 import { urlImage } from "@/src/images";
-import { colors, radius as radiusTokens } from "@/src/theme";
+import { colors, radius as radiusTokens, stylesDynamiques } from "@/src/theme";
 
 /** Photo d'un produit, avec visuel par défaut si aucune image n'est enregistrée. */
 export function PhotoProduit({
@@ -40,7 +40,7 @@ export function PhotoProduit({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   image: { backgroundColor: colors.brandTertiary },
   defaut: { backgroundColor: colors.brandTertiary, alignItems: "center", justifyContent: "center" },
-});
+}));

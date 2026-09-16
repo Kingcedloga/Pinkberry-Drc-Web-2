@@ -5,7 +5,7 @@ import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { demanderPush, etatPush, type EtatPush } from "@/src/push";
-import { colors, fonts, radius, spacing } from "@/src/theme";
+import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useToast } from "@/src/toast";
 
 /**
@@ -62,7 +62,7 @@ export function CarteNotifications({ texte }: { texte: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   carte: {
     backgroundColor: colors.brandTertiary,
     borderRadius: radius.xl,
@@ -73,4 +73,4 @@ const styles = StyleSheet.create({
   ligne: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   titre: { flex: 1, fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   texte: { fontFamily: fonts.text, fontSize: 13, color: colors.muted },
-});
+}));

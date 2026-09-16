@@ -331,6 +331,25 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   Note : `test_iteration9`/`test_iteration11` peuvent échouer en exécution parallèle (données
   partagées) mais passent en isolation.
 
+## Mode sombre — 16/09/2026 (v2.3)
+- **Préférence `theme`** (`clair` / `sombre` / `systeme`) ajoutée à `PreferencesIn` et `PREFS_DEFAUT`
+  côté backend (`PUT /api/auth/preferences`), persistée sur le compte et en local (`pb_theme`).
+- **Palette sombre** dans `src/theme.ts` (`dark` : fond `#1A1016`, cartes `#241820`, bordures
+  `#3A2B34`, textes clairs ; rose `#E6156F` et vert `#8DC63F` conservés comme accents).
+  `colors` est désormais un Proxy qui résout la couleur à la lecture, et
+  `stylesDynamiques(() => StyleSheet.create({...}))` recalcule (et met en cache) la feuille pour
+  chaque thème — équivalent des variables CSS + `data-theme` en React Native.
+  Les 47 fichiers d'écrans/composants ont été convertis par `scripts/theme-dynamique.py` ; chaque
+  écran appelle `useTheme()` (contexte `src/theme-contexte.tsx`) pour se redessiner au changement.
+- **Réglage Thème** : composant `src/components/ChoixTheme.tsx` (`btn-theme-clair` /
+  `btn-theme-sombre` / `btn-theme-systeme`) dans les Paramètres client, admin et le nouvel écran
+  `app/livreur/parametres.tsx` (accessible via l'icône engrenage de l'app livreur).
+  `StatusBar` et `Appearance` suivent le thème actif.
+- **Expo Go Android** (« new update available, downloading ») : diagnostic — le manifeste et le bundle
+  Android sont servis correctement (200, ~12 Mo en ~11 s). Causes côté appareil : version d'Expo Go
+  antérieure au SDK 57, cache Expo Go, ou réseau lent pendant le téléchargement du bundle de dev.
+- Tests : 190/190 backend.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

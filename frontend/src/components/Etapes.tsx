@@ -3,7 +3,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { useT, type CleTexte } from "@/src/i18n";
-import { colors, fonts, spacing } from "@/src/theme";
+import { colors, fonts, spacing, stylesDynamiques } from "@/src/theme";
 
 export const ETAPES = [
   { cle: "recue", icone: "check" },
@@ -58,7 +58,7 @@ export function Etapes({ statut }: { statut: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   wrap: { gap: 0 },
   ligne: { flexDirection: "row", gap: spacing.md },
   colonne: { alignItems: "center", width: 30 },
@@ -67,4 +67,4 @@ const styles = StyleSheet.create({
   texteBloc: { flex: 1, paddingBottom: spacing.lg },
   label: { fontFamily: fonts.text, fontSize: 15, fontWeight: "700", marginTop: 5 },
   encours: { fontFamily: fonts.text, fontSize: 12, color: colors.success, fontWeight: "700" },
-});
+}));

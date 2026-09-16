@@ -6,7 +6,7 @@ import { type Produit } from "@/src/components/FeuilleProduit";
 import { Icone } from "@/src/components/Icone";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
-import { colors, fonts, poids, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useMontant } from "@/src/taux";
 
 /**
@@ -87,7 +87,7 @@ export function BanniereRecommandes({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   banniere: {
     borderRadius: radius.xl,
     paddingVertical: spacing.lg,
@@ -139,4 +139,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

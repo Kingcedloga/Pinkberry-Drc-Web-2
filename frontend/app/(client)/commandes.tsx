@@ -9,7 +9,8 @@ import { Icone } from "@/src/components/Icone";
 import { useT, type CleTexte } from "@/src/i18n";
 import { usd } from "@/src/money";
 import { hauteurOngletsNatifs } from "@/src/nav";
-import { colors, fonts, poids, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 export function couleurStatut(statut: string) {
@@ -20,6 +21,7 @@ export function couleurStatut(statut: string) {
 }
 
 export default function Commandes() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -121,7 +123,7 @@ export default function Commandes() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -174,4 +176,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
   },
   archiverTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.brandPrimary },
-});
+}));

@@ -258,7 +258,13 @@ async def require_livreur(user=Depends(get_current_user)) -> Dict[str, Any]:
     return user
 
 
-PREFS_DEFAUT = {"langue": "fr", "notifSuivi": True, "notifPromos": True, "notifNouveautes": True}
+PREFS_DEFAUT = {
+    "langue": "fr",
+    "theme": "systeme",
+    "notifSuivi": True,
+    "notifPromos": True,
+    "notifNouveautes": True,
+}
 
 
 def public_user(u: Dict[str, Any]) -> Dict[str, Any]:
@@ -412,6 +418,7 @@ class ConfigIn(BaseModel):
 
 class PreferencesIn(BaseModel):
     langue: Literal["fr", "en"] = "fr"
+    theme: Literal["clair", "sombre", "systeme"] = "systeme"
     notifSuivi: bool = True
     notifPromos: bool = True
     notifNouveautes: bool = True

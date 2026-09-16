@@ -23,7 +23,8 @@ import { Champ } from "@/src/components/Champ";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usd } from "@/src/money";
 import { hauteurOngletsNatifs } from "@/src/nav";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
@@ -45,6 +46,7 @@ const GARNITURES = [
 ];
 
 export default function Catalogue() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
@@ -523,7 +525,7 @@ export default function Catalogue() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -656,4 +658,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   switchLabel: { fontFamily: fonts.text, fontSize: 14, fontWeight: "700", color: colors.onSurface },
-});
+}));

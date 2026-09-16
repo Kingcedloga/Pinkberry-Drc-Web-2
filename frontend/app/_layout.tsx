@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
+import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, LogBox, Platform, View } from "react-native";
@@ -17,6 +18,7 @@ import { LangueProvider } from "@/src/i18n";
 import { PanierProvider } from "@/src/panier";
 import { queryClient } from "@/src/query-client";
 import { colors } from "@/src/theme";
+import { ThemeProvider, useTheme } from "@/src/theme-contexte";
 import { TauxProvider } from "@/src/taux";
 import { ToastProvider } from "@/src/toast";
 
@@ -44,6 +46,19 @@ if (Platform.OS === "android") {
     importance: Notifications.AndroidImportance.MAX,
     sound: "default",
   });
+}
+
+/** La pile est isolée pour suivre le thème actif (clair / sombre). */
+function PileEcrans() {
+  const { colors: palette, scheme } = useTheme();
+  return (
+    <>
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <Stack
+        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.surfaceSecondary } }}
+      />
+    </>
+  );
 }
 
 export default function RootLayout() {
@@ -90,15 +105,17 @@ export default function RootLayout() {
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
                 <LangueProvider>
+                  <ThemeProvider>
                   <PanierProvider>
                     <ToastProvider>
                       <TauxProvider>
                         <SurveillanceCommandes />
                         <GestionPush />
-                        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceSecondary } }} />
+                        <PileEcrans />
                       </TauxProvider>
                     </ToastProvider>
                   </PanierProvider>
+                  </ThemeProvider>
                 </LangueProvider>
               </AuthProvider>
             </QueryClientProvider>

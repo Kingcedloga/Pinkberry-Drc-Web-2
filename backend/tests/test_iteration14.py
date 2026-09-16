@@ -107,11 +107,12 @@ class TestPreferences:
         r = requests.put(f"{API}/auth/preferences", headers=_headers(client_token), json=body, timeout=10)
         assert r.status_code == 200, r.text
         renvoye = r.json()
-        assert renvoye == body
+        # `theme` s'ajoute aux preferences depuis l'iteration 17.
+        assert {k: renvoye[k] for k in body} == body
 
-        # Persistance : /auth/moi doit renvoyer exactement le même dict
+        # Persistance : /auth/moi doit renvoyer les memes valeurs
         moi = requests.get(f"{API}/auth/moi", headers=_headers(client_token), timeout=10).json()
-        assert moi["preferences"] == body
+        assert {k: moi["preferences"][k] for k in body} == body
 
     def test_put_preferences_retour_fr(self, client_token):
         body = {"langue": "fr", "notifSuivi": True, "notifPromos": True, "notifNouveautes": True}

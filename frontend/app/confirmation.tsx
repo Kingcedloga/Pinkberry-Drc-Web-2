@@ -10,11 +10,13 @@ import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useConfigApp, useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 export default function Confirmation() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -140,7 +142,7 @@ export default function Confirmation() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -196,4 +198,4 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     ...softShadow,
   },
-});
+}));

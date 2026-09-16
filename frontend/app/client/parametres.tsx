@@ -8,9 +8,11 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
+import { ChoixTheme } from "@/src/components/ChoixTheme";
 import { Icone, type NomIcone } from "@/src/components/Icone";
 import { useLangue, type CleTexte, type Langue } from "@/src/i18n";
-import { colors, fonts, poids, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 /** Lien partagé aux amis : remplacé par le lien Play Store / App Store dès qu'il existe. */
@@ -85,6 +87,7 @@ function LigneInterrupteur({
 }
 
 export default function ParametresClient() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -242,6 +245,10 @@ export default function ParametresClient() {
           </View>
         ) : (
           <>
+            <Section titre={t("params.theme")}>
+              <ChoixTheme onChange={() => toast.show(t("params.enregistre"), "succes")} />
+            </Section>
+
             <Section titre={t("params.langue")}>
               <View style={styles.langues}>
                 {(["fr", "en"] as Langue[]).map((code) => {
@@ -337,7 +344,7 @@ export default function ParametresClient() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -399,4 +406,4 @@ const styles = StyleSheet.create({
   langueTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: poids.fort, color: colors.brandPrimary },
   langueTexteActif: { color: colors.onBrandPrimary },
   aide: { fontFamily: fonts.text, fontSize: 12, fontWeight: poids.corps, color: colors.muted },
-});
+}));

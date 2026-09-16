@@ -9,7 +9,7 @@ import { obtenirToken } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
-import { colors, fonts, poids, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useToast } from "@/src/toast";
 
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -178,7 +178,7 @@ export function EcranRapport({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -221,4 +221,4 @@ const styles = StyleSheet.create({
   },
   chipActif: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
   chipTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.titre, color: colors.muted },
-});
+}));

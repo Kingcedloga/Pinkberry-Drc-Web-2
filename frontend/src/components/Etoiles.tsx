@@ -2,7 +2,7 @@ import { Icone } from "@/src/components/Icone";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
-import { colors, spacing } from "@/src/theme";
+import { colors, spacing, stylesDynamiques } from "@/src/theme";
 
 export function Etoiles({
   valeur,
@@ -36,7 +36,7 @@ export function Etoiles({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   row: { flexDirection: "row", gap: spacing.sm, justifyContent: "center" },
   cible: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
-});
+}));

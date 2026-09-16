@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { ArticlePanier, Garniture } from "@/src/panier";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useMontant } from "@/src/taux";
 
 export type Produit = {
@@ -174,7 +174,7 @@ export function FeuilleProduit({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   zoneFermeture: { flex: 1 },
   feuille: {
@@ -251,4 +251,4 @@ const styles = StyleSheet.create({
   qValeur: { fontFamily: fonts.display, fontSize: 20, color: colors.onSurface, minWidth: 28, textAlign: "center" },
   cta: { paddingTop: spacing.md, gap: spacing.xs },
   ctaFc: { textAlign: "center", fontFamily: fonts.text, fontSize: 12, color: colors.muted },
-});
+}));

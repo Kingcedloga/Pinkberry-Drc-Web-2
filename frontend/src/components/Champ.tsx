@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import type { KeyboardTypeOptions } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
-import { colors, fonts, radius, spacing } from "@/src/theme";
+import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 
 export function Champ({
   label,
@@ -62,7 +62,7 @@ export function Champ({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   bloc: { gap: spacing.xs },
   label: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.muted },
   champ: { position: "relative", justifyContent: "center" },
@@ -87,4 +87,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

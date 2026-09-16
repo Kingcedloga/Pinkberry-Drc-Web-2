@@ -24,13 +24,15 @@ import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { hauteurOngletsNatifs } from "@/src/nav";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 const CATEGORIES_DEFAUT = ["Tous"];
 
 export default function Accueil() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
@@ -228,7 +230,7 @@ export default function Accueil() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     backgroundColor: colors.surface,
@@ -353,4 +355,4 @@ const styles = StyleSheet.create({
   badgeTexte: { fontFamily: fonts.display, fontSize: 15, color: colors.brandPrimary },
   barreTexte: { flex: 1, fontFamily: fonts.text, fontSize: 15, fontWeight: "800", color: colors.onBrandPrimary },
   barreTotal: { fontFamily: fonts.display, fontSize: 17, color: colors.onBrandPrimary },
-});
+}));

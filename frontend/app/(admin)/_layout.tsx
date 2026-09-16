@@ -7,10 +7,12 @@ import { Icone } from "@/src/components/Icone";
 import { useAuth } from "@/src/auth";
 import { ONGLETS_NATIFS } from "@/src/nav";
 import { colors, fonts } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 
 const { Icon, Label } = NativeTabs.Trigger;
 
 export default function AdminLayout() {
+  useTheme();
   const { user } = useAuth();
   const estSuper = user?.role === "superadmin";
 

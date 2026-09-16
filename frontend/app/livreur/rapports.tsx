@@ -1,8 +1,10 @@
 import React from "react";
 
 import { EcranRapport } from "@/src/components/EcranRapport";
+import { useTheme } from "@/src/theme-contexte";
 
 export default function RapportsLivreur() {
+  useTheme();
   return (
     <EcranRapport
       titre="Mes courses"

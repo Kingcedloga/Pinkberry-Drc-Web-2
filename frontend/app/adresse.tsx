@@ -13,12 +13,14 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 type Zone = { id: string; commune: string; active: boolean };
 
 export default function FormulaireAdresse() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -215,7 +217,7 @@ export default function FormulaireAdresse() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -300,4 +302,4 @@ const styles = StyleSheet.create({
   tagVertTexte: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.onSuccess },
   tagGris: { backgroundColor: colors.surfaceTertiary, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radius.pill },
   tagGrisTexte: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.muted },
-});
+}));

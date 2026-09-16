@@ -10,10 +10,12 @@ import { Bouton } from "@/src/components/Bouton";
 import { BoutonGoogle } from "@/src/components/BoutonGoogle";
 import { Champ } from "@/src/components/Champ";
 import { Logo } from "@/src/components/Logo";
-import { colors, fonts, radius, spacing } from "@/src/theme";
+import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 export default function Connexion() {
+  useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { connexion, connexionGoogle } = useAuth();
@@ -116,7 +118,7 @@ export default function Connexion() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   contenu: { paddingHorizontal: spacing.xl, gap: spacing.lg },
   retour: { width: 44, height: 44, justifyContent: "center" },
@@ -132,4 +134,4 @@ const styles = StyleSheet.create({
   demoTexte: { fontFamily: fonts.text, fontSize: 12, color: colors.onSurface },
   lien: { alignItems: "center", minHeight: 44, justifyContent: "center" },
   lienTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "700", color: colors.brandPrimary },
-});
+}));

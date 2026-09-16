@@ -9,10 +9,12 @@ import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { useT, type CleTexte } from "@/src/i18n";
 import { usd } from "@/src/money";
-import { colors, fonts, poids, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 export default function ArchivesClient() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -137,7 +139,7 @@ export default function ArchivesClient() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -202,4 +204,4 @@ const styles = StyleSheet.create({
   },
   boiteTitre: { fontFamily: fonts.display, fontSize: 20, fontWeight: poids.fort, color: colors.onSurface, textAlign: "center" },
   boiteTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.corps, color: colors.muted, textAlign: "center" },
-});
+}));

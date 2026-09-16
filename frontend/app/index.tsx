@@ -5,9 +5,11 @@ import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "@/src/auth";
 import { CLE_TEL_REPORTE } from "@/src/prefs";
 import { colors } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { storage } from "@/src/utils/storage";
 
 export default function Index() {
+  useTheme();
   const { user, loading } = useAuth();
   const [reporte, setReporte] = useState<boolean | null>(null);
 

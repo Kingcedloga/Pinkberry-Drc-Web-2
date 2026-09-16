@@ -9,7 +9,8 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { usd } from "@/src/money";
-import { colors, fonts, poids, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 const LIBELLES: Record<string, string> = {
@@ -22,6 +23,7 @@ const LIBELLES: Record<string, string> = {
 };
 
 export default function Courses() {
+  useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, deconnexion } = useAuth();
@@ -69,6 +71,13 @@ export default function Courses() {
             style={styles.iconeBtn}
           >
             <Icone name="archive" size={20} color={colors.brandPrimary} />
+          </Pressable>
+          <Pressable
+            testID="btn-livreur-parametres"
+            onPress={() => router.push("/livreur/parametres")}
+            style={styles.iconeBtn}
+          >
+            <Icone name="settings" size={20} color={colors.brandPrimary} />
           </Pressable>
           <Pressable
             testID="btn-livreur-deconnexion"
@@ -165,7 +174,7 @@ export default function Courses() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
     flexDirection: "row",
@@ -224,4 +233,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
   },
   archiverTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.brandPrimary },
-});
+}));

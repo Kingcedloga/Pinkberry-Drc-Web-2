@@ -2,7 +2,7 @@ import { Icone } from "@/src/components/Icone";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 
-import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
+import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 
 type Variant = "primaire" | "secondaire" | "contour" | "succes" | "danger";
 
@@ -68,7 +68,7 @@ export function Bouton({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = stylesDynamiques(() => StyleSheet.create({
   base: {
     minHeight: 52,
     borderRadius: radius.pill,
@@ -80,4 +80,4 @@ const styles = StyleSheet.create({
   contenu: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   label: { fontFamily: fonts.text, fontSize: 16, fontWeight: "700" },
   labelPetit: { fontSize: 14 },
-});
+}));
