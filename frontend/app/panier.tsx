@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
@@ -13,6 +14,7 @@ import { useMontant } from "@/src/taux";
 export default function Panier() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
   const { usd, fc } = useMontant();
   const { articles, changerQuantite, retirer, sousTotal, nbArticles } = usePanier();
 
@@ -22,17 +24,17 @@ export default function Panier() {
         <Pressable testID="btn-retour-panier" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
           <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
-        <Text style={styles.titre}>Mon panier</Text>
+        <Text style={styles.titre}>{t("panier.titre")}</Text>
         <View style={styles.iconeBtn} />
       </View>
 
       {articles.length === 0 ? (
         <View style={styles.centre}>
           <Icone name="shopping-cart" size={46} color={colors.brandTertiary} />
-          <Text style={styles.vide}>Votre panier est vide</Text>
+          <Text style={styles.vide}>{t("panier.vide")}</Text>
           <Bouton
             testID="btn-retour-catalogue"
-            label="Retour au catalogue"
+            label={t("panier.retourCatalogue")}
             variant="secondaire"
             onPress={() => router.replace("/accueil")}
           />
@@ -52,7 +54,7 @@ export default function Panier() {
                     {a.nom}
                   </Text>
                   <Text style={styles.options} numberOfLines={2}>
-                    {[a.taille, ...a.garnitures.map((g) => g.nom)].filter(Boolean).join(" · ") || "Sans option"}
+                    {[a.taille, ...a.garnitures.map((g) => g.nom)].filter(Boolean).join(" · ") || t("panier.sansOption")}
                   </Text>
                   <Text style={styles.prix}>
                     {usd(a.prixUnitaire * a.quantite)} <Text style={styles.prixFc}>≈ {fc(a.prixUnitaire * a.quantite)}</Text>
@@ -86,7 +88,7 @@ export default function Panier() {
 
           <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>
             <View style={styles.ligneTotal}>
-              <Text style={styles.sousTotalLabel}>Sous-total ({nbArticles} articles)</Text>
+              <Text style={styles.sousTotalLabel}>{t("panier.sousTotal", { n: nbArticles })}</Text>
               <View>
                 <Text testID="panier-sous-total" style={styles.sousTotalValeur}>
                   {usd(sousTotal)}
@@ -96,7 +98,7 @@ export default function Panier() {
             </View>
             <Bouton
               testID="btn-choisir-adresse"
-              label="Choisir l'adresse de livraison"
+              label={t("panier.choisirAdresse")}
               icone="map-pin"
               onPress={() => router.push("/adresse")}
             />

@@ -4,12 +4,15 @@ import React from "react";
 import { Platform } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
+import { useT } from "@/src/i18n";
 import { ONGLETS_NATIFS } from "@/src/nav";
 import { colors, fonts } from "@/src/theme";
 
 const { Icon, Label } = NativeTabs.Trigger;
 
 export default function ClientLayout() {
+  const t = useT();
+
   if (ONGLETS_NATIFS) {
     return (
       <NativeTabs
@@ -19,15 +22,15 @@ export default function ClientLayout() {
       >
         <NativeTabs.Trigger name="accueil">
           <Icon sf={{ default: "house", selected: "house.fill" }} />
-          <Label>Accueil</Label>
+          <Label>{t("onglet.accueil")}</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="commandes">
           <Icon sf={{ default: "bag", selected: "bag.fill" }} />
-          <Label>Commandes</Label>
+          <Label>{t("onglet.commandes")}</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="compte">
           <Icon sf={{ default: "person", selected: "person.fill" }} />
-          <Label>Compte</Label>
+          <Label>{t("onglet.compte")}</Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     );
@@ -51,18 +54,18 @@ export default function ClientLayout() {
     >
       <Tabs.Screen
         name="accueil"
-        options={{ title: "Accueil", tabBarIcon: ({ color }) => <Icone name="home" size={22} color={color} /> }}
+        options={{ title: t("onglet.accueil"), tabBarIcon: ({ color }) => <Icone name="home" size={22} color={color} /> }}
       />
       <Tabs.Screen
         name="commandes"
         options={{
-          title: "Commandes",
+          title: t("onglet.commandes"),
           tabBarIcon: ({ color }) => <Icone name="shopping-bag" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="compte"
-        options={{ title: "Compte", tabBarIcon: ({ color }) => <Icone name="user" size={22} color={color} /> }}
+        options={{ title: t("onglet.compte"), tabBarIcon: ({ color }) => <Icone name="user" size={22} color={color} /> }}
       />
     </Tabs>
   );

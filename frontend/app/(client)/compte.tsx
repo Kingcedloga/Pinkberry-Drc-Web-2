@@ -8,6 +8,7 @@ import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Logo } from "@/src/components/Logo";
+import { useT } from "@/src/i18n";
 import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useToast } from "@/src/toast";
@@ -16,6 +17,7 @@ export default function Compte() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
+  const t = useT();
   const { user, deconnexion, supprimerCompte } = useAuth();
   const [confirmation, setConfirmation] = useState<1 | 2 | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -60,28 +62,35 @@ export default function Compte() {
         <View style={styles.carteInfo}>
           <View style={styles.ligneInfo}>
             <Icone name="dollar-sign" size={18} color={colors.brandPrimary} />
-            <Text style={styles.infoTexte}>Paiement en espèces à la livraison</Text>
+            <Text style={styles.infoTexte}>{t("compte.paiement")}</Text>
           </View>
           <View style={styles.ligneInfo}>
             <Icone name="map-pin" size={18} color={colors.brandPrimary} />
-            <Text style={styles.infoTexte}>Zones : Gombe, Limete, Ngaliema, Lingwala</Text>
+            <Text style={styles.infoTexte}>{t("compte.zones")}</Text>
           </View>
           <View style={styles.ligneInfo}>
             <Icone name="clock" size={18} color={colors.brandPrimary} />
-            <Text style={styles.infoTexte}>Livraison en 25 à 45 minutes</Text>
+            <Text style={styles.infoTexte}>{t("compte.livraison")}</Text>
           </View>
         </View>
 
         <Bouton
+          testID="btn-parametres-client"
+          label={t("compte.parametres")}
+          variant="secondaire"
+          icone="settings"
+          onPress={() => router.push("/client/parametres")}
+        />
+        <Bouton
           testID="btn-mes-commandes"
-          label="Mes commandes"
+          label={t("compte.mesCommandes")}
           variant="secondaire"
           icone="shopping-bag"
           onPress={() => router.push("/commandes")}
         />
         <Bouton
           testID="btn-deconnexion"
-          label="Se déconnecter"
+          label={t("compte.deconnexion")}
           variant="danger"
           icone="log-out"
           onPress={async () => {
@@ -91,7 +100,7 @@ export default function Compte() {
         />
         <Pressable testID="btn-supprimer-compte" onPress={() => setConfirmation(1)} style={styles.lienSuppression}>
           <Icone name="trash-2" size={16} color={colors.muted} />
-          <Text style={styles.lienTexte}>Supprimer mon compte</Text>
+          <Text style={styles.lienTexte}>{t("compte.supprimerCompte")}</Text>
         </Pressable>
       </ScrollView>
 

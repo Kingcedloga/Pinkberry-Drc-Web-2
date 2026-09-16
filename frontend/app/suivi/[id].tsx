@@ -9,6 +9,7 @@ import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { Etapes } from "@/src/components/Etapes";
+import { useT } from "@/src/i18n";
 import { Etoiles } from "@/src/components/Etoiles";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useMontant } from "@/src/taux";
@@ -18,6 +19,7 @@ export default function SuiviCommande() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
+  const t = useT();
   const qc = useQueryClient();
   const { usd, fc } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,7 +54,7 @@ export default function SuiviCommande() {
       setConfirmAnnuler(false);
       qc.invalidateQueries({ queryKey: ["commande", id] });
       qc.invalidateQueries({ queryKey: ["mes-commandes"] });
-      toast.show("Commande annulée", "succes");
+      toast.show(t("suivi.annulee"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -64,7 +66,7 @@ export default function SuiviCommande() {
       qc.invalidateQueries({ queryKey: ["commande", id] });
       qc.invalidateQueries({ queryKey: ["mes-commandes"] });
       setNotationOuverte(false);
-      toast.show("Merci pour votre commande !", "succes");
+      toast.show(t("suivi.merci"), "succes");
       router.replace("/accueil");
     } catch (e: any) {
       toast.show(e.message, "erreur");
@@ -101,8 +103,8 @@ export default function SuiviCommande() {
 
         {arrive && peutPayer ? (
           <View testID="bloc-livraison" style={styles.blocLivraison}>
-            <Text style={styles.livraisonTitre}>Le livreur est arrivé</Text>
-            <Text style={styles.livraisonLabel}>Montant à régler en espèces</Text>
+            <Text style={styles.livraisonTitre}>{t("suivi.arrive")}</Text>
+            <Text style={styles.livraisonLabel}>{t("suivi.montantEspeces")}</Text>
             <Text testID="montant-cash" style={styles.montant}>
               {usd(cmd.total)}
             </Text>
@@ -111,7 +113,7 @@ export default function SuiviCommande() {
             </Text>
             <Bouton
               testID="btn-jai-paye"
-              label="J'ai payé le livreur"
+              label={t("suivi.jaiPaye")}
               variant="succes"
               icone="check-circle"
               onPress={() => setNotationOuverte(true)}
@@ -120,11 +122,11 @@ export default function SuiviCommande() {
         ) : null}
 
         <View style={styles.carte}>
-          <Text style={styles.carteTitre}>Progression</Text>
+          <Text style={styles.carteTitre}>{t("suivi.progression")}</Text>
           {cmd.statut === "annulee" ? (
             <View style={styles.annulee}>
               <Icone name="x-circle" size={18} color={colors.error} />
-              <Text style={styles.annuleeTexte}>Commande annulée</Text>
+              <Text style={styles.annuleeTexte}>{t("suivi.annulee")}</Text>
             </View>
           ) : (
             <Etapes statut={cmd.statut} />
@@ -160,12 +162,12 @@ export default function SuiviCommande() {
         ) : (
           <View style={styles.carte}>
             <Text style={styles.carteTitre}>Votre livreur</Text>
-            <Text style={styles.attente}>Un livreur vous sera assigné dans quelques instants…</Text>
+            <Text style={styles.attente}>{t("suivi.attenteLivreur")}</Text>
           </View>
         )}
 
         <View style={styles.carte}>
-          <Text style={styles.carteTitre}>Détail</Text>
+          <Text style={styles.carteTitre}>{t("suivi.detail")}</Text>
           {cmd.items.map((i: any, idx: number) => (
             <View key={idx} style={styles.itemRow}>
               <Text style={styles.itemNom}>
@@ -177,11 +179,11 @@ export default function SuiviCommande() {
           ))}
           <View style={styles.separateur} />
           <View style={styles.itemRow}>
-            <Text style={styles.itemNom}>Frais de livraison</Text>
+            <Text style={styles.itemNom}>{t("suivi.frais")}</Text>
             <Text style={styles.itemPrix}>{usd(cmd.fraisLivraison)}</Text>
           </View>
           <View style={styles.itemRow}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{t("suivi.total")}</Text>
             <Text style={styles.totalValeur}>{usd(cmd.total)}</Text>
           </View>
           <Text style={styles.adresseTexte}>
@@ -192,7 +194,7 @@ export default function SuiviCommande() {
         {annulable ? (
           <Bouton
             testID="btn-annuler-commande"
-            label="Annuler la commande"
+            label={t("suivi.annuler")}
             variant="danger"
             icone="x"
             onPress={() => setConfirmAnnuler(true)}
@@ -203,12 +205,12 @@ export default function SuiviCommande() {
       <Modal visible={confirmAnnuler} transparent animationType="fade" onRequestClose={() => setConfirmAnnuler(false)}>
         <View style={styles.voile}>
           <View testID="modal-annulation" style={styles.dialogue}>
-            <Text style={styles.dialogueTitre}>Annuler la commande ?</Text>
-            <Text style={styles.dialogueTexte}>Cette action est définitive. Votre panier ne sera pas rétabli.</Text>
-            <Bouton testID="btn-confirmer-annulation" label="Oui, annuler" variant="danger" onPress={annuler} />
+            <Text style={styles.dialogueTitre}>{t("suivi.annulerTitre")}</Text>
+            <Text style={styles.dialogueTexte}>{t("suivi.annulerTexte")}</Text>
+            <Bouton testID="btn-confirmer-annulation" label={t("suivi.ouiAnnuler")} variant="danger" onPress={annuler} />
             <Bouton
               testID="btn-garder-commande"
-              label="Non, garder"
+              label={t("suivi.nonGarder")}
               variant="contour"
               onPress={() => setConfirmAnnuler(false)}
             />

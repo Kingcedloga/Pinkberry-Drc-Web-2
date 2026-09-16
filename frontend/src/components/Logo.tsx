@@ -49,7 +49,7 @@ export function Logo({
   return (
     <View testID={testID} style={styles.ligne}>
       <Swirl taille={taille * 1.35} couleur={couleur} />
-      <Text style={[styles.mot, { fontSize: taille, color: couleur }]}>pinkberry</Text>
+      <Text style={[styles.mot, { fontSize: taille, color: couleur }]}>Pinkberry</Text>
     </View>
   );
 }

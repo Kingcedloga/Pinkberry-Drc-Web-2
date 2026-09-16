@@ -258,6 +258,9 @@ async def require_livreur(user=Depends(get_current_user)) -> Dict[str, Any]:
     return user
 
 
+PREFS_DEFAUT = {"langue": "fr", "notifSuivi": True, "notifPromos": True, "notifNouveautes": True}
+
+
 def public_user(u: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": u["id"],
@@ -268,6 +271,7 @@ def public_user(u: Dict[str, Any]) -> Dict[str, Any]:
         "verifie": u.get("verifie", False),
         "livreurId": u.get("livreurId"),
         "actif": u.get("actif", True),
+        "preferences": {**PREFS_DEFAUT, **(u.get("preferences") or {})},
     }
 
 
@@ -403,6 +407,13 @@ class ZoneIn(BaseModel):
 
 class ConfigIn(BaseModel):
     tauxFC: float
+
+
+class PreferencesIn(BaseModel):
+    langue: Literal["fr", "en"] = "fr"
+    notifSuivi: bool = True
+    notifPromos: bool = True
+    notifNouveautes: bool = True
 
 
 class AssignIn(BaseModel):
@@ -555,6 +566,14 @@ async def changer_motdepasse(body: MotDePasseIn, user=Depends(get_current_user))
         raise HTTPException(status_code=400, detail="Mot de passe actuel incorrect")
     await db.users.update_one({"id": user["id"]}, {"$set": {"motDePasseHash": hash_pwd(body.nouveau)}})
     return {"ok": True}
+
+
+@api_router.put("/auth/preferences")
+async def modifier_preferences(body: PreferencesIn, user=Depends(get_current_user)):
+    """Langue et notifications du client, conservees sur son compte."""
+    prefs = body.model_dump()
+    await db.users.update_one({"id": user["id"]}, {"$set": {"preferences": prefs}})
+    return prefs
 
 
 @api_router.delete("/auth/moi")
@@ -802,6 +821,10 @@ MESSAGES_PUSH = {
 async def notifier_client(cmd: Dict[str, Any], statut: str) -> None:
     modele = MESSAGES_PUSH.get(statut)
     if not modele:
+        return
+    dest = await db.users.find_one({"id": cmd["userId"]}, {"_id": 0, "preferences": 1})
+    prefs = {**PREFS_DEFAUT, **((dest or {}).get("preferences") or {})}
+    if not prefs.get("notifSuivi", True):
         return
     titre, message = modele
     try:
@@ -1193,9 +1216,66 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
 
 @api_router.get("/commandes/mes")
 async def mes_commandes(user=Depends(get_current_user)):
-    cmds = await db.commandes.find({"userId": user["id"]}, {"_id": 0}).to_list(200)
-    cmds.sort(key=lambda c: c["createdAt"], reverse=True)
+    cmds = (
+        await db.commandes.find(
+            {"userId": user["id"], "clientArchivee": {"$ne": True}, "clientMasquee": {"$ne": True}}, {"_id": 0}
+        )
+        .sort("createdAt", -1)
+        .to_list(200)
+    )
     return await enrichir_lot(cmds)
+
+
+@api_router.get("/commandes/mes/archives")
+async def mes_commandes_archivees(user=Depends(get_current_user)):
+    cmds = (
+        await db.commandes.find(
+            {"userId": user["id"], "clientArchivee": True, "clientMasquee": {"$ne": True}}, {"_id": 0}
+        )
+        .sort("clientArchiveeAt", -1)
+        .to_list(200)
+    )
+    return await enrichir_lot(cmds)
+
+
+async def _commande_du_client(cmd_id: str, user: Dict[str, Any]) -> Dict[str, Any]:
+    cmd = await db.commandes.find_one({"id": cmd_id, "userId": user["id"]}, {"_id": 0})
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+    return cmd
+
+
+@api_router.post("/commandes/{cmd_id}/archiver")
+async def client_archiver(cmd_id: str, user=Depends(get_current_user)):
+    cmd = await _commande_du_client(cmd_id, user)
+    if cmd.get("statut") not in ("livree", "annulee"):
+        raise HTTPException(status_code=400, detail="Seule une commande terminee peut etre archivee")
+    await db.commandes.update_one(
+        {"id": cmd_id}, {"$set": {"clientArchivee": True, "clientArchiveeAt": iso(now_utc())}}
+    )
+    return {"ok": True}
+
+
+@api_router.post("/commandes/{cmd_id}/desarchiver")
+async def client_desarchiver(cmd_id: str, user=Depends(get_current_user)):
+    await _commande_du_client(cmd_id, user)
+    await db.commandes.update_one(
+        {"id": cmd_id}, {"$set": {"clientArchivee": False}, "$unset": {"clientArchiveeAt": ""}}
+    )
+    return {"ok": True}
+
+
+@api_router.delete("/commandes/{cmd_id}/masquer")
+async def client_masquer(cmd_id: str, user=Depends(get_current_user)):
+    """Retire la commande de la vue du client. Elle reste intacte cote admin
+    (rapports et comptabilite)."""
+    cmd = await _commande_du_client(cmd_id, user)
+    if not cmd.get("clientArchivee"):
+        raise HTTPException(status_code=400, detail="Archivez la commande avant de la supprimer")
+    await db.commandes.update_one(
+        {"id": cmd_id}, {"$set": {"clientMasquee": True, "clientMasqueeAt": iso(now_utc())}}
+    )
+    return {"ok": True}
 
 
 @api_router.get("/commandes/{cmd_id}")

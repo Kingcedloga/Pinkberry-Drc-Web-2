@@ -2,13 +2,14 @@ import { Icone } from "@/src/components/Icone";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { useT, type CleTexte } from "@/src/i18n";
 import { colors, fonts, spacing } from "@/src/theme";
 
 export const ETAPES = [
-  { cle: "recue", label: "Commande reçue", icone: "check" },
-  { cle: "en_preparation", label: "En préparation", icone: "coffee" },
-  { cle: "en_route", label: "Livreur en route", icone: "navigation" },
-  { cle: "livree", label: "Livré", icone: "gift" },
+  { cle: "recue", icone: "check" },
+  { cle: "en_preparation", icone: "coffee" },
+  { cle: "en_route", icone: "navigation" },
+  { cle: "livree", icone: "gift" },
 ];
 
 export function indexEtape(statut: string) {
@@ -20,6 +21,7 @@ export function indexEtape(statut: string) {
 }
 
 export function Etapes({ statut }: { statut: string }) {
+  const t = useT();
   const actuel = indexEtape(statut);
   return (
     <View testID="fil-etapes" style={styles.wrap}>
@@ -44,7 +46,9 @@ export function Etapes({ statut }: { statut: string }) {
               ) : null}
             </View>
             <View style={styles.texteBloc}>
-              <Text style={[styles.label, { color: fait ? colors.onSurface : colors.muted }]}>{e.label}</Text>
+              <Text style={[styles.label, { color: fait ? colors.onSurface : colors.muted }]}>
+                {t(`etape.${e.cle}` as CleTexte)}
+              </Text>
               {encours ? <Text style={styles.encours}>En cours…</Text> : null}
             </View>
           </View>

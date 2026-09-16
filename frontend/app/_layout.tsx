@@ -12,6 +12,8 @@ import { AuthProvider } from "@/src/auth";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { GestionPush, ouvrirDepuisNotification } from "@/src/components/GestionPush";
 import { SurveillanceCommandes } from "@/src/components/SurveillanceCommandes";
+import "@/src/gras";
+import { LangueProvider } from "@/src/i18n";
 import { PanierProvider } from "@/src/panier";
 import { queryClient } from "@/src/query-client";
 import { colors } from "@/src/theme";
@@ -87,15 +89,17 @@ export default function RootLayout() {
           <KeyboardProvider>
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
-                <PanierProvider>
-                  <ToastProvider>
-                    <TauxProvider>
-                      <SurveillanceCommandes />
-                      <GestionPush />
-                      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceSecondary } }} />
-                    </TauxProvider>
-                  </ToastProvider>
-                </PanierProvider>
+                <LangueProvider>
+                  <PanierProvider>
+                    <ToastProvider>
+                      <TauxProvider>
+                        <SurveillanceCommandes />
+                        <GestionPush />
+                        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceSecondary } }} />
+                      </TauxProvider>
+                    </ToastProvider>
+                  </PanierProvider>
+                </LangueProvider>
               </AuthProvider>
             </QueryClientProvider>
           </KeyboardProvider>

@@ -20,6 +20,7 @@ import { Chips } from "@/src/components/Chips";
 import { FeuilleProduit, Produit } from "@/src/components/FeuilleProduit";
 import { Logo } from "@/src/components/Logo";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { hauteurOngletsNatifs } from "@/src/nav";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
@@ -33,6 +34,7 @@ export default function Accueil() {
   const router = useRouter();
   const { user } = useAuth();
   const toast = useToast();
+  const t = useT();
   const { usd, fc } = useMontant();
   const { ajouter, nbArticles, sousTotal } = usePanier();
 
@@ -75,7 +77,7 @@ export default function Accueil() {
         image: i.image,
       }),
     );
-    toast.show("Panier rempli avec votre ancienne commande", "succes");
+    toast.show(t("accueil.panierRempli"), "succes");
   };
 
   return (
@@ -94,7 +96,7 @@ export default function Accueil() {
             testID="input-recherche"
             value={recherche}
             onChangeText={setRecherche}
-            placeholder="Rechercher un pot, un smoothie…"
+            placeholder={t("accueil.rechercher")}
             placeholderTextColor={colors.muted}
             style={styles.recherche}
           />
@@ -108,9 +110,9 @@ export default function Accueil() {
         </View>
       ) : produitsQ.isError ? (
         <View style={styles.centre}>
-          <Text style={styles.vide}>Impossible de charger le catalogue</Text>
+          <Text style={styles.vide}>{t("accueil.erreur")}</Text>
           <Pressable testID="btn-recharger" onPress={() => produitsQ.refetch()} style={styles.recharger}>
-            <Text style={styles.rechargerTexte}>Recharger</Text>
+            <Text style={styles.rechargerTexte}>{t("accueil.recharger")}</Text>
           </Pressable>
         </View>
       ) : (
@@ -127,7 +129,7 @@ export default function Accueil() {
           ListHeaderComponent={
             aRecommander.length > 0 ? (
               <View testID="section-recommander" style={styles.recoSection}>
-                <Text style={styles.sectionTitre}>Recommander</Text>
+                <Text style={styles.sectionTitre}>{t("accueil.recommander")}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recoRow}>
                   {aRecommander.map((c) => (
                     <View key={c.id} testID={`carte-reco-${c.numero}`} style={styles.recoCarte}>
@@ -142,21 +144,21 @@ export default function Accueil() {
                         style={styles.recoBtn}
                       >
                         <Icone name="refresh-cw" size={13} color={colors.onBrandPrimary} />
-                        <Text style={styles.recoBtnTexte}>Recommander</Text>
+                        <Text style={styles.recoBtnTexte}>{t("accueil.recommander")}</Text>
                       </Pressable>
                     </View>
                   ))}
                 </ScrollView>
-                <Text style={styles.sectionTitre}>Notre carte</Text>
+                <Text style={styles.sectionTitre}>{t("accueil.notreCarte")}</Text>
               </View>
             ) : (
-              <Text style={[styles.sectionTitre, styles.sectionSeule]}>Notre carte</Text>
+              <Text style={[styles.sectionTitre, styles.sectionSeule]}>{t("accueil.notreCarte")}</Text>
             )
           }
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="ice-cream" size={42} color={colors.brandTertiary} />
-              <Text style={styles.vide}>Aucun produit dans cette catégorie</Text>
+              <Text style={styles.vide}>{t("accueil.aucunProduit")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -175,7 +177,7 @@ export default function Accueil() {
                 <Text style={styles.produitPrix}>
                   {usd(item.prix)} <Text style={styles.produitFc}>≈ {fc(item.prix)}</Text>
                 </Text>
-                {!item.disponible ? <Text style={styles.rupture}>En rupture</Text> : null}
+                {!item.disponible ? <Text style={styles.rupture}>{t("accueil.rupture")}</Text> : null}
               </View>
               <View style={styles.plus}>
                 <Icone name="plus" size={20} color={colors.onBrandPrimary} />
@@ -200,7 +202,7 @@ export default function Accueil() {
           <View style={styles.badge}>
             <Text style={styles.badgeTexte}>{nbArticles}</Text>
           </View>
-          <Text style={styles.barreTexte}>Voir mon panier</Text>
+          <Text style={styles.barreTexte}>{t("accueil.voirPanier")}</Text>
           <Text style={styles.barreTotal}>{usd(sousTotal)}</Text>
         </Pressable>
       ) : null}
@@ -211,7 +213,7 @@ export default function Accueil() {
         onClose={() => setProduitOuvert(null)}
         onAjouter={(a) => {
           ajouter(a);
-          toast.show("Ajouté au panier", "succes");
+          toast.show(t("accueil.ajoute"), "succes");
         }}
       />
     </View>

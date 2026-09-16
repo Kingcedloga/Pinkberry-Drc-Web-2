@@ -84,6 +84,9 @@ export const radius = { sm: 8, md: 16, lg: 20, xl: 24, pill: 999 };
 
 export const fonts = { display: "Fredoka", text: "Nunito" };
 
+// Poids typographiques (interface volontairement affirmée)
+export const poids = { corps: "600", titre: "700", fort: "800" } as const;
+
 export const softShadow = {
   shadowColor: light.shadowPink,
   shadowOpacity: 0.16,

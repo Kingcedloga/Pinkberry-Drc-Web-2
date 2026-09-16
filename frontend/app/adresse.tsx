@@ -11,6 +11,7 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
+import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useToast } from "@/src/toast";
@@ -21,6 +22,7 @@ export default function FormulaireAdresse() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
+  const t = useT();
   const { user } = useAuth();
   const { setAdresse } = usePanier();
 
@@ -56,13 +58,13 @@ export default function FormulaireAdresse() {
         setGpsRefuse(true);
       }
       if (statut !== "granted") {
-        toast.show("Position refusée, saisissez l'adresse manuellement", "erreur");
+        toast.show(t("adresse.gpsRefuse"), "erreur");
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       setGpsRefuse(false);
-      toast.show("Position GPS enregistrée", "succes");
+      toast.show(t("adresse.gpsOk"), "succes");
     } catch {
       toast.show("Impossible d'obtenir votre position", "erreur");
     } finally {
@@ -81,14 +83,14 @@ export default function FormulaireAdresse() {
         <Pressable testID="btn-retour-adresse" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
           <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
-        <Text style={styles.titre}>Adresse de livraison</Text>
+        <Text style={styles.titre}>{t("adresse.titre")}</Text>
         <View style={styles.iconeBtn} />
       </View>
 
       <KeyboardAwareScrollView bottomOffset={120} contentContainerStyle={styles.contenu}>
         <Bouton
           testID="btn-position-gps"
-          label={coords ? "Position GPS enregistrée" : "Utiliser ma position actuelle"}
+          label={coords ? t("adresse.gpsOk") : t("adresse.gpsUtiliser")}
           icone="crosshair"
           variant={coords ? "succes" : "secondaire"}
           loading={gpsEnCours}
@@ -98,11 +100,11 @@ export default function FormulaireAdresse() {
         {gpsRefuse ? (
           <View testID="bloc-gps-refuse" style={styles.alerteRouge}>
             <Text style={styles.alerteRougeTexte}>
-              L&apos;accès à la position est bloqué. Activez-le dans les réglages ou saisissez l&apos;adresse à la main.
+              {t("adresse.gpsBloque")}
             </Text>
             <Bouton
               testID="btn-ouvrir-reglages"
-              label="Ouvrir les réglages"
+              label={t("adresse.ouvrirReglages")}
               variant="contour"
               petit
               onPress={() => Linking.openSettings()}
@@ -111,10 +113,10 @@ export default function FormulaireAdresse() {
         ) : null}
 
         <View style={styles.bloc}>
-          <Text style={styles.label}>Commune</Text>
+          <Text style={styles.label}>{t("adresse.commune")}</Text>
           <Pressable testID="select-commune" onPress={() => setListeOuverte(true)} style={styles.select}>
             <Text style={[styles.selectTexte, !commune && { color: colors.muted }]}>
-              {commune || "Choisir votre commune"}
+              {commune || t("adresse.choisirCommune")}
             </Text>
             <Icone name="chevron-down" size={20} color={colors.muted} />
           </Pressable>
@@ -124,21 +126,21 @@ export default function FormulaireAdresse() {
           couverte ? (
             <View testID="zone-couverte" style={styles.alerteVerte}>
               <Icone name="check-circle" size={18} color={colors.success} />
-              <Text style={styles.alerteVerteTexte}>Super, on livre à {commune} !</Text>
+              <Text style={styles.alerteVerteTexte}>{t("adresse.onLivre", { commune })}</Text>
             </View>
           ) : (
             <View testID="zone-non-couverte" style={styles.alerteRouge}>
-              <Text style={styles.alerteRougeTitre}>Désolé, on ne livre pas encore à {commune}.</Text>
-              <Text style={styles.alerteRougeTexte}>Zones couvertes : {couvertes.join(", ")}</Text>
+              <Text style={styles.alerteRougeTitre}>{t("adresse.onLivrePas", { commune })}</Text>
+              <Text style={styles.alerteRougeTexte}>{t("adresse.zonesCouvertes", { zones: couvertes.join(", ") })}</Text>
             </View>
           )
         ) : null}
 
-        <Champ label="Avenue / Rue" testID="input-avenue" value={avenue} onChangeText={setAvenue} placeholder="Av. de la Justice" />
-        <Champ label="Numéro" testID="input-numero" value={numero} onChangeText={setNumero} placeholder="12B" />
+        <Champ label={t("adresse.avenue")} testID="input-avenue" value={avenue} onChangeText={setAvenue} placeholder="Av. de la Justice" />
+        <Champ label={t("adresse.numero")} testID="input-numero" value={numero} onChangeText={setNumero} placeholder="12B" />
 
         <View style={styles.bloc}>
-          <Text style={styles.label}>Nom de l&apos;adresse</Text>
+          <Text style={styles.label}>{t("adresse.nomAdresse")}</Text>
           <View style={styles.labelsRow}>
             {["Maison", "Bureau", "Autre"].map((l) => (
               <Pressable
@@ -154,15 +156,15 @@ export default function FormulaireAdresse() {
         </View>
 
         <Champ
-          label="Point de repère (important)"
+          label={t("adresse.repere")}
           testID="input-repere"
           value={repere}
           onChangeText={setRepere}
-          placeholder="Ex. près de la pharmacie Kin, en face de l'école"
+          placeholder={t("adresse.reperePlaceholder")}
           multiline
         />
         <Champ
-          label="Téléphone de contact"
+          label={t("adresse.telephone")}
           testID="input-telephone-contact"
           value={telephone}
           onChangeText={setTelephone}
@@ -173,7 +175,7 @@ export default function FormulaireAdresse() {
 
       <KeyboardStickyView offset={{ closed: 0, opened: spacing.lg }}>
         <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>
-          <Bouton testID="btn-continuer-adresse" label="Continuer" disabled={!peutContinuer} onPress={continuer} />
+          <Bouton testID="btn-continuer-adresse" label={t("adresse.continuer")} disabled={!peutContinuer} onPress={continuer} />
         </View>
       </KeyboardStickyView>
 
@@ -181,7 +183,7 @@ export default function FormulaireAdresse() {
         <View style={styles.voile}>
           <Pressable style={{ flex: 1 }} onPress={() => setListeOuverte(false)} />
           <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
-            <Text style={styles.feuilleTitre}>Choisir la commune</Text>
+            <Text style={styles.feuilleTitre}>{t("adresse.choisirCommuneTitre")}</Text>
             <ScrollView>
               {zones.map((z) => (
                 <Pressable
@@ -196,11 +198,11 @@ export default function FormulaireAdresse() {
                   <Text style={styles.communeNom}>{z.commune}</Text>
                   {z.active ? (
                     <View style={styles.tagVert}>
-                      <Text style={styles.tagVertTexte}>Couverte</Text>
+                      <Text style={styles.tagVertTexte}>{t("adresse.couverte")}</Text>
                     </View>
                   ) : (
                     <View style={styles.tagGris}>
-                      <Text style={styles.tagGrisTexte}>Non couverte</Text>
+                      <Text style={styles.tagGrisTexte}>{t("adresse.nonCouverte")}</Text>
                     </View>
                   )}
                 </Pressable>

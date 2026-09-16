@@ -278,6 +278,27 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Reste en avertissement (non bloquant) : push iOS non configuré (il manque `GoogleService-Info.plist`
   et `expo.ios.googleServicesFile`) ; l'Android est configuré via `google-services.json`.
 
+## Espace client — 16/09/2026 (v2.0)
+- **Paramètres client** (`app/client/parametres.tsx`, route `/client/parametres`, accessible depuis
+  l'onglet Compte) : choix de langue FR/EN, 3 interrupteurs de notifications (suivi de commande,
+  promotions, nouveautés du menu), modification du profil, changement de mot de passe (icône œil via
+  `Champ`), accès aux archives et partage de l'application (`Share` natif / `navigator.share` sur web).
+- **Préférences serveur** : `PUT /api/auth/preferences` (langue + 3 notifs) stockées sur le document
+  utilisateur et renvoyées par `public_user`/`GET /auth/moi`. `notifier_client()` respecte
+  `notifSuivi` et n'envoie plus de push si le client l'a coupé.
+  Le lien de partage utilise `EXPO_PUBLIC_APP_STORE_URL` si défini (à remplir dès que les liens
+  Play Store / App Store existent), sinon le lien web de l'app.
+- **Internationalisation** : `src/i18n.tsx` (dictionnaires FR/EN + `LangueProvider` + `useT()` avec
+  interpolation `{var}`). Langue persistée localement (`pb_langue`) ET sur le compte. Écrans traduits :
+  Paramètres, Compte, Commandes, Archives, onglets, Accueil, Panier, Adresse, Confirmation, Suivi, Étapes.
+- **Archiver puis supprimer côté client** : `clientArchivee` / `clientMasquee` sur la commande.
+  `POST /api/commandes/{id}/archiver`, `POST /api/commandes/{id}/desarchiver`,
+  `DELETE /api/commandes/{id}/masquer` (uniquement si archivée) et `GET /api/commandes/mes/archives`.
+  `GET /api/commandes/mes` exclut les archivées et masquées. La suppression ne touche QUE la vue
+  client : la commande reste dans `/admin/commandes` et dans les rapports.
+- **Typographie plus affirmée** : `src/gras.ts` patche `Text.render` pour un poids 600 par défaut
+  (les styles explicites 700/800 restent prioritaires) et `theme.poids` expose `corps/titre/fort`.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

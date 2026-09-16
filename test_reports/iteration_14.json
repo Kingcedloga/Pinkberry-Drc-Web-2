@@ -1,0 +1,51 @@
+{
+  "summary": "Itération 14 — Paramètres client (préférences FR/EN + notifications + archivage client + isolation admin) validée à 100% backend et frontend. Suite pytest test_iteration14.py : 12/12 tests OK en ~5s (préférences PUT/GET, cycle archiver/desarchiver/masquer via /commandes/{id} et /mes/archives, ISOLATION ADMIN vérifiée = après DELETE /commandes/{id}/masquer la commande reste dans /admin/commandes ou /admin/commandes/archives ET son numéro reste présent dans le rapport xlsx admin — extraction du zip xlsx pour la recherche du numero), 422 sur langue invalide, 401 sans token, 404 sur commande d'un autre client, non-régression zones/config. Frontend mobile 390x844 : login client OK, bouton btn-parametres-client → ecran-parametres-client OK, les 9 testIDs attendus (btn-langue-fr/en, 3 switches, ligne-client-profil/motdepasse/archives/partage) sont présents, toggle switch → toast 'Préférences enregistrées' OK, passage FR→EN traduit l'écran Paramètres (Settings/Edit profile/Change password) ET l'écran Compte (Settings/My orders/Sign out) ET les 3 onglets (Home/Orders/Account), langue persistée après page.reload(). Profil formulaire complet (nom/email/téléphone/enregistrer). Mot de passe : les 3 champs + icône œil cliquable (bascule input type password ↔ text validée par attribut DOM), toast d'erreur 'ne correspondent pas' quand nouveau ≠ confirme (pas de changement effectif du mot de passe demo). Partage web : toast 'Lien copié' via navigator.clipboard OK. Historique : 33 boutons btn-archiver-* rendus uniquement sur les cartes de statut Annulée (extraits confirment 'Annulée' pour chaque). Archives : ecran-archives-client se charge, modal-supprimer-commande s'ouvre bien via btn-supprimer-*, btn-annuler-suppression-commande annule. Gras global : poids ≥800 relevé sur les titres, aucun crash observé. État initial restauré (préférences = defaults, langue=fr, mot de passe demo intact).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/commandes/mes",
+        "issue": "Le tri par createdAt s'exécute APRÈS `to_list(200)` (server.py:1219-1222) : quand un client cumule >200 commandes (cas du compte de démo qui en a 232), les commandes les plus récentes peuvent ne PAS apparaître. Impacte le compte demo mais aussi tout client actif. Correctif : ajouter `.sort('createdAt', -1)` sur le curseur Mongo avant `to_list(200)`. Même remarque pour /commandes/mes/archives (l.1228-1231)."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "expo-notifications (web preview)",
+        "issue": "Warning 'Listening to push token changes is not yet fully supported on web' — normal en preview web, non bloquant."
+      },
+      {
+        "component": "shadow* / pointerEvents deprecated",
+        "issue": "Warnings 'shadow*' style props are deprecated (use boxShadow) et 'props.pointerEvents' deprecated (use style.pointerEvents) — hérités du thème softShadow, non bloquants mais à nettoyer un jour."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration14.py",
+    "/app/test_reports/pytest/pytest_iter14.xml"
+  ],
+  "action_items": [
+    "Backend (mineur) : trier /commandes/mes et /commandes/mes/archives côté Mongo AVANT le to_list(200) pour éviter que les commandes récentes disparaissent quand un client a >200 commandes. Exemple : `db.commandes.find(filtre, {'_id':0}).sort('createdAt', -1).to_list(200)`.",
+    "Aucune autre action requise — toutes les demandes utilisateur (préférences, archivage client, isolation admin, profil, mot de passe, partage, gras) sont fonctionnelles."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py:571-576 PUT /auth/preferences : implémentation propre (PreferencesIn Pydantic + Literal['fr','en'] → 422 automatique sur valeur invalide, persistance via $set).",
+    "backend/server.py:1217-1272 (archivage client) : bonne séparation clientArchivee / clientMasquee, GET /commandes/{id} n'applique pas ces filtres donc l'admin peut toujours consulter — critique OK. /admin/commandes et /admin/commandes/archives ne filtrent PAS sur clientMasquee (l.1351, 1358) — c'est intentionnel pour la comptabilité et validé par le test.",
+    "frontend/src/i18n.tsx LangueProvider : reprise locale storage.CLE_LANGUE puis override par user.preferences dès que le user est chargé — pattern correct pour éviter le flash FR au démarrage EN.",
+    "frontend/app/client/parametres.tsx : gestion Share.share + fallback navigator.share + navigator.clipboard.writeText — bon pattern multi-plateforme.",
+    "frontend/src/components/Champ.tsx : eye toggle propre avec Pressable dédiée (testID `${testID}-oeil`), accessibilityLabel dynamique — RGAA-friendly.",
+    "frontend/src/gras.ts : monkey-patch Text.render idempotent (via __grasPinkberry) qui préserve la priorité du style explicite passé en prop — solution simple et non-invasive."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration14.py (nouveau)"
+  ],
+  "success_rate": {"backend": "100% (12/12 iteration_14)", "frontend": "100% (préférences + persistance + traduction FR↔EN + profil + MDP + partage + archivage + modal)"},
+  "seed_data_creation": "Aucune donnée persistante nouvelle. La commande de test créée par TestArchivageClient est laissée en base masquée côté client (comportement attendu de la feature — reste visible côté admin/compta). Préférences et mot de passe du compte demo restaurés (langue=fr, notifs=all True, motDePasse=client123 non modifié).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Itération 14 validée à 100%. La suite complète du repo `python -m pytest backend/tests -q` peut afficher quelques flakys dans test_pinkberry_api.py sous xdist loadscope (déjà noté itér. 12) — non liés aux changements de cette itération. Bug mineur du tri /commandes/mes à corriger côté serveur (voir action_items). Ne pas rejouer /bienvenue (validée itér. 13). Le compte demo client reste en 'fr' avec 'client123' — condition respectée."
+}

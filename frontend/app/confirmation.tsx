@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { colors, fonts, radius, softShadow, spacing } from "@/src/theme";
 import { useConfigApp, useMontant } from "@/src/taux";
@@ -18,6 +19,7 @@ export default function Confirmation() {
   const router = useRouter();
   const toast = useToast();
   const qc = useQueryClient();
+  const t = useT();
   const { usd, fc } = useMontant();
   const { fraisLivraison: FRAIS } = useConfigApp();
   const { articles, adresse, sousTotal, vider } = usePanier();
@@ -27,7 +29,7 @@ export default function Confirmation() {
 
   const passerCommande = async () => {
     if (!adresse) {
-      toast.show("Adresse manquante", "erreur");
+      toast.show(t("confirmation.adresseManquante"), "erreur");
       return;
     }
     setLoading(true);
@@ -50,7 +52,7 @@ export default function Confirmation() {
       });
       vider();
       qc.invalidateQueries({ queryKey: ["mes-commandes"] });
-      toast.show(`Commande ${cmd.numero} envoyée !`, "succes");
+      toast.show(t("confirmation.envoyee", { numero: cmd.numero }), "succes");
       router.replace(`/suivi/${cmd.id}`);
     } catch (e: any) {
       toast.show(e.message, "erreur");
@@ -65,7 +67,7 @@ export default function Confirmation() {
         <Pressable testID="btn-retour-confirmation" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
           <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>
-        <Text style={styles.titre}>Confirmer la commande</Text>
+        <Text style={styles.titre}>{t("confirmation.titre")}</Text>
         <View style={styles.iconeBtn} />
       </View>
 
@@ -73,19 +75,19 @@ export default function Confirmation() {
         <View style={styles.carte}>
           <View style={styles.carteTitreRow}>
             <Icone name="map-pin" size={16} color={colors.brandPrimary} />
-            <Text style={styles.carteTitre}>Livraison à {adresse?.label}</Text>
+            <Text style={styles.carteTitre}>{t("confirmation.livraisonA", { label: adresse?.label ?? "" })}</Text>
           </View>
           <Text style={styles.ligne}>
             {adresse?.avenue} n° {adresse?.numero}, {adresse?.commune}
           </Text>
-          <Text style={styles.repere}>Repère : {adresse?.repere}</Text>
-          <Text style={styles.ligne}>Contact : {adresse?.telephone}</Text>
+          <Text style={styles.repere}>{t("confirmation.repere", { repere: adresse?.repere ?? "" })}</Text>
+          <Text style={styles.ligne}>{t("confirmation.contact", { telephone: adresse?.telephone ?? "" })}</Text>
         </View>
 
         <View style={styles.carte}>
           <View style={styles.carteTitreRow}>
             <Icone name="shopping-bag" size={16} color={colors.brandPrimary} />
-            <Text style={styles.carteTitre}>Vos articles</Text>
+            <Text style={styles.carteTitre}>{t("confirmation.vosArticles")}</Text>
           </View>
           {articles.map((a) => (
             <View key={a.cle} style={styles.articleRow}>
@@ -100,21 +102,21 @@ export default function Confirmation() {
 
         <View testID="badge-paiement-cash" style={styles.badgeCash}>
           <Icone name="dollar-sign" size={18} color={colors.brandPrimary} />
-          <Text style={styles.badgeCashTexte}>Paiement à la livraison (cash)</Text>
+          <Text style={styles.badgeCashTexte}>{t("confirmation.cash")}</Text>
         </View>
 
         <View style={styles.carte}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Sous-total</Text>
+            <Text style={styles.totalLabel}>{t("confirmation.sousTotal")}</Text>
             <Text style={styles.totalValeur}>{usd(sousTotal)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Frais de livraison</Text>
+            <Text style={styles.totalLabel}>{t("confirmation.frais")}</Text>
             <Text style={styles.totalValeur}>{usd(FRAIS)}</Text>
           </View>
           <View style={styles.separateur} />
           <View style={styles.totalRow}>
-            <Text style={styles.grandTotalLabel}>Total à payer</Text>
+            <Text style={styles.grandTotalLabel}>{t("confirmation.total")}</Text>
             <View>
               <Text testID="confirmation-total" style={styles.grandTotalValeur}>
                 {usd(total)}
@@ -128,7 +130,7 @@ export default function Confirmation() {
       <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>
         <Bouton
           testID="btn-passer-commande"
-          label="Passer la commande"
+          label={t("confirmation.passer")}
           icone="check"
           loading={loading}
           onPress={passerCommande}
