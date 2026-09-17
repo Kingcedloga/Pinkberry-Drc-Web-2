@@ -450,8 +450,11 @@ class PaiementIn(BaseModel):
 @api_router.post("/auth/inscription")
 async def inscription(body: InscriptionIn):
     tel = norm_tel(body.telephone)
+    email = (body.email or "").strip().lower()
     if len(tel) < 9:
         raise HTTPException(status_code=400, detail="Numero de telephone invalide")
+    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+        raise HTTPException(status_code=400, detail="Une adresse email valide est requise")
     if len(body.motDePasse) < 6:
         raise HTTPException(status_code=400, detail="Mot de passe trop court (6 caracteres minimum)")
     existing = await db.users.find_one({"telephone": tel})
@@ -462,7 +465,7 @@ async def inscription(body: InscriptionIn):
         "id": existing["id"] if existing else str(uuid.uuid4()),
         "nom": body.nom.strip(),
         "telephone": tel,
-        "email": (body.email or "").strip() or None,
+        "email": email,
         "motDePasseHash": hash_pwd(body.motDePasse),
         "role": "client",
         "verifie": False,
@@ -474,17 +477,15 @@ async def inscription(body: InscriptionIn):
         {"telephone": tel, "code": code, "expireAt": iso(now_utc() + timedelta(minutes=10))},
         upsert=True,
     )
-    envoye = False
-    if doc["email"]:
-        envoye = bool(
-            await send_email(
-                to=doc["email"],
-                subject=f"Votre code de verification {EMAIL_FROM_NAME}",
-                html=_otp_email_html(doc["nom"], code),
-            )
+    envoye = bool(
+        await send_email(
+            to=doc["email"],
+            subject=f"Votre code de verification {EMAIL_FROM_NAME}",
+            html=_otp_email_html(doc["nom"], code),
         )
+    )
     logger.info(f"OTP pour {tel}: {code}")
-    return {"ok": True, "telephone": tel, "emailEnvoye": envoye, "codeDemo": code}
+    return {"ok": True, "telephone": tel, "email": doc["email"], "emailEnvoye": envoye, "codeDemo": code}
 
 
 @api_router.post("/auth/renvoyer-otp")

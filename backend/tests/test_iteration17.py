@@ -51,7 +51,7 @@ def token_client_dedie() -> str:
     pwd = "iter17pwd"
     r = requests.post(
         f"{API}/auth/inscription",
-        json={"nom": f"TEST_ITER17_{uuid.uuid4().hex[:6]}", "telephone": tel, "motDePasse": pwd},
+        json={"nom": f"TEST_ITER17_{uuid.uuid4().hex[:6]}", "email": f"otp_{tel}@pinkberry.test", "telephone": tel, "motDePasse": pwd},
         timeout=30,
     )
     assert r.status_code == 200, r.text

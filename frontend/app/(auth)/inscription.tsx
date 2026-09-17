@@ -26,15 +26,15 @@ export default function Inscription() {
   const [loading, setLoading] = useState(false);
 
   const valider = async () => {
-    if (!nom.trim() || telephone.trim().length < 9 || motDePasse.length < 6) {
-      toast.show("Nom, téléphone (9 chiffres) et mot de passe (6 caractères) requis", "erreur");
+    if (!nom.trim() || telephone.trim().length < 9 || !email.trim() || motDePasse.length < 6) {
+      toast.show("Nom, téléphone, email et mot de passe (6 caractères) requis", "erreur");
       return;
     }
     setLoading(true);
     try {
       const r = await inscription({ nom, telephone, email: email || undefined, motDePasse });
       toast.show(r.emailEnvoye ? "Code envoyé par email" : "Code généré", "succes");
-      router.push({ pathname: "/otp", params: { telephone, codeDemo: r.codeDemo } });
+      router.push({ pathname: "/otp", params: { telephone, email, codeDemo: r.codeDemo } });
     } catch (e: any) {
       toast.show(e.message, "erreur");
     } finally {
@@ -49,7 +49,7 @@ export default function Inscription() {
 
         <View style={styles.titres}>
           <Text style={styles.titre}>Créer mon compte</Text>
-          <Text style={styles.sous}>Votre numéro sert d&apos;identifiant. L&apos;email est facultatif.</Text>
+          <Text style={styles.sous}>Votre code de vérification sera envoyé par email.</Text>
         </View>
 
         <View style={styles.form}>
@@ -70,7 +70,7 @@ export default function Inscription() {
             keyboardType="phone-pad"
           />
           <Champ
-            label="Email (facultatif)"
+            label="Email"
             testID="input-email"
             value={email}
             onChangeText={setEmail}

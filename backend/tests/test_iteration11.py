@@ -61,7 +61,7 @@ def tokens(super_id):
 def _create_test_client():
     tel = f"0995{uuid.uuid4().int % 1000000:06d}"[:10]
     r = requests.post(f"{API}/auth/inscription",
-                      json={"nom": "TEST_Iter11", "telephone": tel, "motDePasse": "abcdef"}, timeout=15)
+                      json={"nom": "TEST_Iter11", "email": f"otp_{tel}@pinkberry.test", "telephone": tel, "motDePasse": "abcdef"}, timeout=15)
     assert r.status_code == 200, r.text
     code = r.json()["codeDemo"]
     r2 = requests.post(f"{API}/auth/verifier-otp",

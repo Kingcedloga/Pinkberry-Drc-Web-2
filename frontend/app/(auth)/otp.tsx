@@ -19,8 +19,9 @@ export default function VerificationOtp() {
   const insets = useSafeAreaInsets();
   const { verifierOtp } = useAuth();
   const toast = useToast();
-  const params = useLocalSearchParams<{ telephone?: string; codeDemo?: string }>();
+  const params = useLocalSearchParams<{ telephone?: string; email?: string; codeDemo?: string }>();
   const telephone = params.telephone ?? "";
+  const email = params.email ?? "";
 
   const [code, setCode] = useState("");
   const [demo, setDemo] = useState(params.codeDemo ?? "");
@@ -80,7 +81,7 @@ export default function VerificationOtp() {
 
         <Logo taille={26} />
         <Text style={styles.titre}>Vérification</Text>
-        <Text style={styles.sous}>Entrez le code à 4 chiffres envoyé au {telephone}</Text>
+        <Text style={styles.sous}>Entrez le code à 4 chiffres envoyé à {email || "votre adresse email"}</Text>
 
         <Pressable style={styles.cases} onPress={() => inputRef.current?.focus()}>
           {cases.map((i) => (
@@ -108,7 +109,7 @@ export default function VerificationOtp() {
           </View>
         ) : null}
 
-        <Bouton testID="btn-valider-otp" label="Vérifier mon numéro" loading={loading} onPress={valider} />
+        <Bouton testID="btn-valider-otp" label="Vérifier mon email" loading={loading} onPress={valider} />
 
         <Pressable testID="btn-renvoyer-otp" onPress={renvoyer} style={styles.lien}>
           <Text style={styles.lienTexte}>Renvoyer le code</Text>

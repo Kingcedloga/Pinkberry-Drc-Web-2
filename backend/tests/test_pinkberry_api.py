@@ -79,7 +79,7 @@ def test_config():
 def test_inscription_returns_code_demo():
     tel = f"099{int(time.time())%1_000_000:06d}"
     r = requests.post(f"{API}/auth/inscription",
-                      json={"nom": "TEST User", "telephone": tel, "motDePasse": "test123"}, timeout=15)
+                      json={"nom": "TEST User", "email": f"otp_{tel}@pinkberry.test", "telephone": tel, "motDePasse": "test123"}, timeout=15)
     assert r.status_code == 200
     j = r.json()
     assert j["ok"] and len(j["codeDemo"]) == 4

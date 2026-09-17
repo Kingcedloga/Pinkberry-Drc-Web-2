@@ -58,7 +58,7 @@ def _create_test_client():
     """Créer un client vérifié pour tests profil/motdepasse."""
     tel = f"0995{uuid.uuid4().int % 1000000:06d}"[:10]
     r = requests.post(f"{API}/auth/inscription",
-                      json={"nom": "TEST_Iter9", "telephone": tel, "motDePasse": "abcdef"},
+                      json={"nom": "TEST_Iter9", "email": f"otp_{tel}@pinkberry.test", "telephone": tel, "motDePasse": "abcdef"},
                       timeout=15)
     assert r.status_code == 200, r.text
     code = r.json()["codeDemo"]
