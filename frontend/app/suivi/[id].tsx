@@ -11,6 +11,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { Etapes } from "@/src/components/Etapes";
 import { useT } from "@/src/i18n";
+import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { Etoiles } from "@/src/components/Etoiles";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -38,6 +39,11 @@ export default function SuiviCommande() {
   });
 
   const cmd = q.data;
+  const positionClient = { lat: cmd?.adresse?.lat ?? -4.325, lng: cmd?.adresse?.lng ?? 15.322 };
+  const positionLivreur = cmd?.positionLivreur
+    ? { lat: cmd.positionLivreur.lat, lng: cmd.positionLivreur.lng }
+    : null;
+  const itineraire = useItineraire(positionLivreur, positionClient, cmd?.statut === "en_route");
 
   if (q.isLoading || !cmd) {
     return (
@@ -92,14 +98,20 @@ export default function SuiviCommande() {
       <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: insets.bottom + spacing.xxl }]}>
         <View style={styles.carteWrap}>
           <Carte
-            client={{ lat: cmd.adresse?.lat ?? -4.325, lng: cmd.adresse?.lng ?? 15.322 }}
-            livreur={cmd.positionLivreur ? { lat: cmd.positionLivreur.lat, lng: cmd.positionLivreur.lng } : null}
+            client={positionClient}
+            livreur={positionLivreur}
+            itineraire={itineraire.data?.points ?? null}
             hauteur={260}
           />
           {cmd.statut === "en_route" ? (
             <View testID="pastille-eta" style={styles.eta}>
               <Icone name="clock" size={14} color={colors.onSuccess} />
-              <Text style={styles.etaTexte}>{cmd.etaMinutes ?? "—"} min</Text>
+              <Text style={styles.etaTexte}>
+                {dureeLisible(itineraire.data?.etaSecondes) ?? `${cmd.etaMinutes ?? "—"} min`}
+                {distanceLisible(itineraire.data?.distanceMetres)
+                  ? ` · ${distanceLisible(itineraire.data?.distanceMetres)}`
+                  : ""}
+              </Text>
             </View>
           ) : null}
         </View>

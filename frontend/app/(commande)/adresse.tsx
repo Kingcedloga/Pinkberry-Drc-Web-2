@@ -2,7 +2,7 @@ import { Icone } from "@/src/components/Icone";
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,16 @@ import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 type Zone = { id: string; commune: string; active: boolean };
+
+type Suggestion = {
+  id: string;
+  libelle: string;
+  detail?: string | null;
+  commune?: string | null;
+  avenue?: string | null;
+  lat: number;
+  lng: number;
+};
 
 export default function FormulaireAdresse() {
   useTheme();
@@ -42,10 +52,36 @@ export default function FormulaireAdresse() {
   const [listeOuverte, setListeOuverte] = useState(false);
   const [gpsRefuse, setGpsRefuse] = useState(false);
   const [gpsEnCours, setGpsEnCours] = useState(false);
+  const [recherche, setRecherche] = useState("");
+  const [terme, setTerme] = useState("");
+  const [suggestionsFermees, setSuggestionsFermees] = useState(false);
+
+  useEffect(() => {
+    const minuteur = setTimeout(() => setTerme(recherche.trim()), 350);
+    return () => clearTimeout(minuteur);
+  }, [recherche]);
+
+  const suggestionsQ = useQuery({
+    queryKey: ["carte-recherche", terme],
+    enabled: terme.length >= 3,
+    staleTime: 60_000,
+    retry: false,
+    queryFn: () => apiFetch<{ resultats: Suggestion[] }>(`/carte/recherche?q=${encodeURIComponent(terme)}`),
+  });
+  const suggestions = suggestionsFermees ? [] : suggestionsQ.data?.resultats ?? [];
 
   const zoneChoisie = zones.find((z) => z.commune === commune);
   const couverte = !!zoneChoisie?.active;
   const peutContinuer = couverte && avenue.trim() && numero.trim() && repere.trim() && telephone.trim().length >= 9;
+
+  const choisirSuggestion = (s: Suggestion) => {
+    setAvenue(s.avenue || s.libelle);
+    if (s.commune && zones.some((z) => z.commune === s.commune)) setCommune(s.commune);
+    setCoords({ lat: s.lat, lng: s.lng });
+    setRecherche(s.libelle);
+    setSuggestionsFermees(true);
+    toast.show(t("adresse.adresseLocalisee"), "succes");
+  };
 
   const utiliserMaPosition = async () => {
     setGpsEnCours(true);
@@ -90,6 +126,43 @@ export default function FormulaireAdresse() {
       </View>
 
       <KeyboardAwareScrollView bottomOffset={120} contentContainerStyle={styles.contenu}>
+        <View style={styles.bloc}>
+          <Champ
+            label={t("adresse.rechercher")}
+            testID="input-recherche-adresse"
+            value={recherche}
+            onChangeText={(v) => {
+              setRecherche(v);
+              setSuggestionsFermees(false);
+            }}
+            placeholder="Av. de la Justice, Gombe"
+          />
+          {suggestions.length > 0 ? (
+            <View testID="liste-suggestions" style={styles.suggestions}>
+              {suggestions.map((s) => (
+                <Pressable
+                  key={s.id}
+                  testID={`suggestion-${s.id}`}
+                  onPress={() => choisirSuggestion(s)}
+                  style={styles.suggestion}
+                >
+                  <Icone name="map-pin" size={16} color={colors.brandPrimary} />
+                  <View style={styles.suggestionTexte}>
+                    <Text style={styles.suggestionTitre} numberOfLines={1}>
+                      {s.libelle}
+                    </Text>
+                    {s.commune ? (
+                      <Text style={styles.suggestionDetail} numberOfLines={1}>
+                        {s.commune}
+                      </Text>
+                    ) : null}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+
         <Bouton
           testID="btn-position-gps"
           label={coords ? t("adresse.gpsOk") : t("adresse.gpsUtiliser")}
@@ -234,6 +307,26 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface },
   contenu: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   bloc: { gap: spacing.xs },
+  suggestions: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+    marginTop: spacing.xs,
+  },
+  suggestion: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  suggestionTexte: { flex: 1 },
+  suggestionTitre: { fontFamily: fonts.text, fontSize: 14, fontWeight: "700", color: colors.onSurface },
+  suggestionDetail: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   label: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.muted },
   select: {
     minHeight: 52,

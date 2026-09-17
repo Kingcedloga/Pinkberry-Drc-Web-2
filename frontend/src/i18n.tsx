@@ -117,6 +117,8 @@ const FR = {
 
   "adresse.titre": "Adresse de livraison",
   "adresse.gpsOk": "Position GPS enregistrée",
+  "adresse.rechercher": "Rechercher une adresse",
+  "adresse.adresseLocalisee": "Adresse localisée",
   "adresse.gpsUtiliser": "Utiliser ma position actuelle",
   "adresse.gpsBloque": "L\'accès à la position est bloqué. Activez-le dans les réglages ou saisissez l\'adresse à la main.",
   "adresse.gpsRefuse": "Position refusée, saisissez l\'adresse manuellement",
@@ -293,6 +295,8 @@ const EN: Record<keyof typeof FR, string> = {
 
   "adresse.titre": "Delivery address",
   "adresse.gpsOk": "GPS location saved",
+  "adresse.rechercher": "Search an address",
+  "adresse.adresseLocalisee": "Address located",
   "adresse.gpsUtiliser": "Use my current location",
   "adresse.gpsBloque": "Location access is blocked. Enable it in the settings or type the address manually.",
   "adresse.gpsRefuse": "Location denied, please type the address manually",

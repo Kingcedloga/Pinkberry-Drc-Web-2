@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
+import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -34,6 +35,11 @@ export default function DetailCourse() {
     refetchInterval: 5000,
   });
   const cmd = q.data;
+  const positionClient = { lat: cmd?.adresse?.lat ?? -4.325, lng: cmd?.adresse?.lng ?? 15.322 };
+  const positionLivreur = cmd?.positionLivreur
+    ? { lat: cmd.positionLivreur.lat, lng: cmd.positionLivreur.lng }
+    : null;
+  const itineraire = useItineraire(positionLivreur, positionClient, !!cmd && cmd.statut !== "livree");
 
   const envoyerPosition = async (lat: number, lng: number) => {
     try {
@@ -130,10 +136,23 @@ export default function DetailCourse() {
 
       <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: insets.bottom + spacing.xxl }]}>
         <Carte
-          client={{ lat: cmd.adresse?.lat ?? -4.325, lng: cmd.adresse?.lng ?? 15.322 }}
-          livreur={cmd.positionLivreur ? { lat: cmd.positionLivreur.lat, lng: cmd.positionLivreur.lng } : null}
+          client={positionClient}
+          livreur={positionLivreur}
+          itineraire={itineraire.data?.points ?? null}
           hauteur={240}
         />
+
+        {itineraire.data?.etaSecondes ? (
+          <View testID="bloc-eta-livreur" style={styles.etaBloc}>
+            <Icone name="clock" size={16} color={colors.brandPrimary} />
+            <Text style={styles.etaTexte}>
+              Arrivée estimée dans {dureeLisible(itineraire.data.etaSecondes)}
+              {distanceLisible(itineraire.data.distanceMetres)
+                ? ` · ${distanceLisible(itineraire.data.distanceMetres)}`
+                : ""}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.carte}>
           <Text style={styles.carteTitre}>Client</Text>
@@ -259,6 +278,16 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     ...softShadow,
   },
   carteTitre: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
+  etaBloc: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.brandTertiary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  etaTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
   nom: { fontFamily: fonts.text, fontSize: 15, fontWeight: "800", color: colors.onSurface },
   ligne: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   repere: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },

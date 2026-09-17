@@ -1,0 +1,46 @@
+{
+  "summary": "Itération 22 — Migration cartographie Leaflet + TomTom validée. BACKEND (pytest 248/248 en 197 s, dont 20 nouveaux tests dans backend/tests/test_iteration22.py) : (1) GET /api/carte/tuiles/{z}/{x}/{y}.png répond 200 image/png (signature PNG vérifiée, ~858 octets pour la tuile 14/8192/8193), refuse z>20 (400), refuse x/y >= 2^z (400), NE fuit PAS la clé TOMTOM (contenu binaire + headers) et est bien PUBLIC (aucun jeton requis, indispensable pour Leaflet dans une iframe). NB : l'en-tête Cache-Control envoyé par FastAPI (public, max-age=86400) est réécrit par le proxy Cloudflare devant l'ingress en 'no-store, no-cache, must-revalidate' — hors périmètre backend, non bloquant, le PNG reste valide. (2) GET /api/carte/recherche?q= : 401 sans jeton (côté client, livreur, admin accepté), retourne {resultats: []} si q<3 caractères (debounce serveur), 6 résultats pour 'Gombe avenue', 'Avenue de la Justice', 'Limete', tous cohérents avec la RDC (lat ∈ [-6.0,-3.5], lng ∈ [14.5,16.5]), structure {id,libelle,detail,commune,avenue,lat,lng} complète, aucune fuite de clé. (3) POST /api/carte/itineraire : 401 sans jeton, 200 pour les 3 rôles (client/livreur/admin), retourne points (≥2) + distanceMetres + etaSecondes + heureArrivee, refuse [200,15] (400), refuse tableau taille 1 (422) et body incomplet (422), aucune fuite de clé. (4) Pas de fuite dans openapi.json ni dans le HTML servi à la racine. FRONTEND : (1) /suivi/<id> : testID='carte-suivi' présent, contient bien un <iframe> avec srcDoc Leaflet qui référence /api/carte/tuiles/{z}/{x}/{y}.png ET affiche l'attribution '© TomTom' (visible en bas à droite du screenshot). Le bundle frontend ne contient AUCUNE occurrence de la clé TomTom (grep sur /app/frontend/src /app/frontend/app + inspection du srcDoc de l'iframe). L'ancien encadré de coordonnées textuelles a bien disparu. Sur une commande en statut 'livree', la pastille-eta est correctement absente. (2) /adresse (client connecté) : testID='input-recherche-adresse' fonctionne, debounce OK (aucune requête pour 'Av' = 2 caractères), 6 suggestions rendues pour 'Avenue de la Justice Gombe' (Cour Suprême, croisements de rues, etc.), clic sur la 1re suggestion remplit input-avenue='Avenue de la Justice', select-commune='Gombe' (car couverte), btn-position-gps passe en vert avec le libellé 'Position GPS enregistrée' et le toast 'Adresse localisée' s'affiche. Le rendu en mode SOMBRE est propre (bloc suggestions lisible sur fond sombre, screenshots joints). (3) Client login (0990000001) → /accueil, deconnexion et Livreur login (0820000001) → /courses fonctionnent. NON-TESTÉ : ETA en 'en_route' côté client (pastille-eta '12 min · 8,6 km') ET côté livreur (bloc-eta-livreur) — aucune commande n'est actuellement dans l'état en_route dans la base et modifier le statut d'une commande existante puis la restaurer présente un risque d'incohérence de données ; toutefois l'API /api/carte/itineraire renvoie bien un ETA réel (720 s / 8621 m pour Gombe→Limete) et le composant Carte + useItineraire est correctement câblé (positionLivreur → useItineraire enabled → data.etaSecondes rendu via dureeLisible). React Native issues : aucune. Deprecated packages (expo-av, expo-barcode-scanner, expo-background-fetch) : aucun présent dans package.json.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/carte/tuiles/{z}/{x}/{y}.png",
+        "issue": "Le proxy Cloudflare devant l'ingress réécrit Cache-Control: public, max-age=86400 en 'no-store, no-cache, must-revalidate' — hors périmètre backend, non bloquant, mais annule le bénéfice du cache côté client. Éventuellement forcer un header edge caching côté ingress si besoin de performance mobile."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration22.py",
+    "/app/test_reports/pytest/pytest_iter22.xml"
+  ],
+  "action_items": [
+    "Optionnel : côté admin, ajouter un mini script de démo pour placer une commande en 'en_route' avec positionLivreur simulée afin de simplifier la validation E2E de la pastille-eta (client) et du bloc-eta-livreur (livreur). Rien de bloquant.",
+    "Optionnel : envisager de servir localement leaflet.js/leaflet.css depuis /app/frontend/assets (au lieu d'unpkg.com) pour éviter la dépendance à un CDN externe (résilience réseau) — non bloquant, l'iframe fonctionne aujourd'hui."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py:797-807 (carte_tuile) : bien conçu, endpoint public volontaire (Leaflet dans iframe ne peut pas transporter de jeton). Bornes z/x/y validées côté serveur. Contenu binaire renvoyé tel quel, pas de fuite de clé possible.",
+    "backend/server.py:810-847 (carte_recherche) : Depends(get_current_user) protège l'endpoint. Filtre countrySet=CD + lat/lon Kinshasa + radius 80 km — cohérent avec le périmètre livraison. len(terme)<3 → [] fait office de debounce serveur en plus du debounce front (350 ms).",
+    "backend/server.py:855-876 (carte_itineraire) : validation Pydantic (List[float]) + validation manuelle des bornes -90..90 / -180..180 → HTTPException 400. travelMode=motorcycle est un choix pertinent pour un livreur à Kinshasa. Renvoie heureArrivee brut de TomTom (peut être null).",
+    "frontend/src/components/Carte.tsx : bien architecturé — iframe srcDoc sur web (contourne CSP et évite d'exposer le DOM Leaflet au React tree) + WebView sur natif. La clé TomTom n'est JAMAIS présente côté client : la constante TUILES pointe vers /api/carte/tuiles/{z}/{x}/{y}.png et le backend ajoute ?key=... côté serveur uniquement.",
+    "frontend/src/itineraire.ts : useQuery cache 30 s + retry:false → économise le quota TomTom (2500 req/jour). enabled: actif && !!livreur → n'appelle pas si pas de livreur, parfait.",
+    "frontend/app/(commande)/adresse.tsx:59-70 : debounce useEffect (350 ms) + enabled: terme.length >= 3 → double protection contre les requêtes inutiles."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration22.py (créé, 20 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (248/248 pytest, dont 20/20 test_iteration22.py)",
+    "frontend": "95% (carte-suivi + iframe + attribution TomTom OK, autocomplete adresse 100% conforme à la spec, mode sombre OK ; ETA en statut en_route non validé E2E faute de commande dans cet état mais chaîne technique vérifiée)"
+  },
+  "seed_data_creation": "Aucune donnée créée en base. Panier client resté vide. Aucune modification de statut de commande. Mots de passe démo intacts. Langue et thème inchangés côté serveur (le testeur a basculé localement en dark mode via localStorage mais rien de persistant côté back).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Itération 22 conforme. Reste optionnel : validation E2E de pastille-eta (client) et bloc-eta-livreur (livreur) — nécessite une commande en statut 'en_route' avec positionLivreur non null. L'API /api/carte/itineraire est vérifiée fonctionnelle (720 s / 8621 m pour Gombe→Limete) et le câblage frontend (useItineraire + Carte + dureeLisible/distanceLisible) est propre. La clé TomTom reste strictement côté serveur, aucun EXPO_PUBLIC_* n'a été introduit. test_iteration22.py est prêt pour la régression future.",
+  "rca_of_issue": "Aucun bug fonctionnel détecté. Le seul point d'attention (Cache-Control réécrit par Cloudflare) est un artefact d'infrastructure et n'affecte pas la conformité fonctionnelle."
+}

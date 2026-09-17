@@ -401,6 +401,28 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Tests : itération 21 — 228/228 backend, 22/22 URLs bloquées hors connexion, matrices
   client/livreur/admin conformes, bannière validée en clair et sombre.
 
+## Cartographie Leaflet + TomTom — 17/09/2026 (v2.7)
+- Choix utilisateur : Google Maps écarté (payant) → **Leaflet + TomTom** (offre gratuite).
+  Clé dans `backend/.env` (`TOMTOM_API_KEY`), jamais exposée au client.
+- Backend (`server.py`, section « cartographie ») :
+  - `GET /api/carte/tuiles/{z}/{x}/{y}.png` : relais des tuiles TomTom (public, bornes validées,
+    cache 24 h) — c'est cette URL que Leaflet consomme.
+  - `GET /api/carte/recherche?q=` (jeton requis) : autocomplétion d'adresses Kinshasa
+    (`countrySet=CD`, biais lat/lng Kinshasa) → `{id, libelle, detail, commune, avenue, lat, lng}`.
+  - `POST /api/carte/itineraire` (jeton requis) : itinéraire routier réel (travelMode moto, trafic
+    live) → `{points, distanceMetres, etaSecondes, heureArrivee}`.
+- Frontend :
+  - `src/components/Carte.tsx` : tuiles TomTom, tracé de route continu quand l'itinéraire est
+    disponible (sinon trait pointillé), et **carte visible aussi sur le web** (iframe Leaflet au
+    lieu de l'ancien encadré de coordonnées).
+  - `src/itineraire.ts` : hook `useItineraire` + formats `dureeLisible` / `distanceLisible`.
+  - `/suivi/[id]` : pastille ETA réelle (« 2 min · 689 m ») pendant `en_route`.
+  - `/course/[id]` (livreur) : bloc « Arrivée estimée dans … ».
+  - `/adresse` : champ de recherche avec suggestions TomTom (debounce 350 ms) qui remplit
+    avenue + commune + coordonnées GPS.
+- Tests : itération 22 — 248/248 backend (dont `test_iteration22.py`), aucune fuite de clé,
+  autocomplétion et carte web validées ; ETA `en_route` vérifiée manuellement.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

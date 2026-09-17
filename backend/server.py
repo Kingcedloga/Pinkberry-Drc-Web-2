@@ -10,7 +10,7 @@ from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import bcrypt
 import httpx
@@ -771,6 +771,110 @@ async def lire_fichier(fichier_id: str):
         raise HTTPException(status_code=404, detail="Image introuvable")
     contenu, ctype = await get_object(doc["path"])
     return Response(content=contenu, media_type=ctype, headers={"Cache-Control": "public, max-age=604800"})
+
+
+# --------------------------------------------------- cartographie (Leaflet + TomTom)
+TOMTOM_KEY = (os.environ.get("TOMTOM_API_KEY") or "").strip()
+KINSHASA = (-4.325, 15.322)
+_tomtom = httpx.AsyncClient(base_url="https://api.tomtom.com", timeout=15)
+
+
+async def _tomtom_get(chemin: str, params: Dict[str, Any]) -> httpx.Response:
+    """Appel TomTom : la cle reste cote serveur, jamais dans l'app."""
+    if not TOMTOM_KEY:
+        raise HTTPException(status_code=503, detail="Cartographie non configuree")
+    try:
+        r = await _tomtom.get(chemin, params={**params, "key": TOMTOM_KEY})
+    except httpx.HTTPError as e:
+        logger.warning("TomTom %s injoignable : %s", chemin, e)
+        raise HTTPException(status_code=502, detail="Service de carte indisponible")
+    if r.status_code >= 400:
+        logger.warning("TomTom %s -> %s", chemin, r.status_code)
+        raise HTTPException(status_code=502, detail="Service de carte indisponible")
+    return r
+
+
+@api_router.get("/carte/tuiles/{z}/{x}/{y}.png")
+async def carte_tuile(z: int, x: int, y: int):
+    """Tuiles relayees : consommees par Leaflet (WebView / iframe), donc sans jeton."""
+    if not (0 <= z <= 20 and 0 <= x < 2**z and 0 <= y < 2**z):
+        raise HTTPException(status_code=400, detail="Tuile invalide")
+    r = await _tomtom_get(f"/map/1/tile/basic/main/{z}/{x}/{y}.png", {"tileSize": 256})
+    return Response(
+        content=r.content,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@api_router.get("/carte/recherche")
+async def carte_recherche(q: str, user=Depends(get_current_user)):
+    """Suggestions d'adresses autour de Kinshasa (autocompletion)."""
+    terme = (q or "").strip()
+    if len(terme) < 3:
+        return {"resultats": []}
+    r = await _tomtom_get(
+        f"/search/2/search/{quote(terme, safe='')}.json",
+        {
+            "countrySet": "CD",
+            "language": "fr-FR",
+            "limit": 6,
+            "typeahead": "true",
+            "lat": KINSHASA[0],
+            "lon": KINSHASA[1],
+            "radius": 80000,
+        },
+    )
+    resultats = []
+    for res in r.json().get("results", []):
+        adresse = res.get("address") or {}
+        position = res.get("position") or {}
+        poi = res.get("poi") or {}
+        libelle = poi.get("name") or adresse.get("freeformAddress")
+        if not libelle or position.get("lat") is None:
+            continue
+        resultats.append(
+            {
+                "id": res.get("id"),
+                "libelle": libelle,
+                "detail": adresse.get("freeformAddress"),
+                "commune": adresse.get("municipalitySubdivision") or adresse.get("municipality"),
+                "avenue": adresse.get("streetName"),
+                "lat": position["lat"],
+                "lng": position["lon"],
+            }
+        )
+    return {"resultats": resultats}
+
+
+class ItineraireIn(BaseModel):
+    origine: List[float]
+    destination: List[float]
+
+
+@api_router.post("/carte/itineraire")
+async def carte_itineraire(body: ItineraireIn, user=Depends(get_current_user)):
+    """Trace routier reel + duree estimee entre le livreur et le client."""
+
+    def point(p: List[float]) -> str:
+        if len(p) != 2 or not (-90 <= p[0] <= 90) or not (-180 <= p[1] <= 180):
+            raise HTTPException(status_code=400, detail="Coordonnees invalides")
+        return f"{p[0]},{p[1]}"
+
+    chemin = f"/routing/1/calculateRoute/{point(body.origine)}:{point(body.destination)}/json"
+    r = await _tomtom_get(chemin, {"traffic": "true", "travelMode": "motorcycle", "language": "fr-FR"})
+    routes = r.json().get("routes") or []
+    if not routes:
+        raise HTTPException(status_code=502, detail="Itineraire introuvable")
+    resume = routes[0].get("summary") or {}
+    points = [[p["latitude"], p["longitude"]] for p in (routes[0].get("legs") or [{}])[0].get("points", [])]
+    return {
+        "points": points,
+        "distanceMetres": resume.get("lengthInMeters"),
+        "etaSecondes": resume.get("travelTimeInSeconds"),
+        "heureArrivee": resume.get("arrivalTime"),
+    }
+
 
 
 # --------------------------------------------------- notifications push (relay)
