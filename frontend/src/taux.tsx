@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { apiFetch } from "@/src/api";
 import { TAUX_FC_DEFAUT, setTauxFC } from "@/src/money";
 
-type ConfigApp = { tauxFC: number; fraisLivraison: number };
+type ConfigApp = { tauxFC: number; fraisLivraison: number; demo?: boolean };
 
 const TauxContext = createContext<ConfigApp>({ tauxFC: TAUX_FC_DEFAUT, fraisLivraison: 2.5 });
 

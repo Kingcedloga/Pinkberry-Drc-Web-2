@@ -1990,6 +1990,8 @@ async def lire_config() -> Dict[str, Any]:
     return {
         "tauxFC": float(doc["tauxFC"]),
         "fraisLivraison": float(doc.get("fraisLivraison", FRAIS_LIVRAISON)),
+        # Vrai uniquement hors production : masque le bloc des comptes de demo.
+        "demo": SEED_DEMO,
     }
 
 

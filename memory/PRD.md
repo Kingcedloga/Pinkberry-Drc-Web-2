@@ -423,6 +423,18 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Tests : itération 22 — 248/248 backend (dont `test_iteration22.py`), aucune fuite de clé,
   autocomplétion et carte web validées ; ETA `en_route` vérifiée manuellement.
 
+## Préparation production — 21/09/2026 (v2.8)
+- Health check déploiement : aucun blocage (compilation OK, backend 0.0.0.0:8001, `/health`,
+  permissions et `google-services.json` Android présents). Avertissements non bloquants : URLs
+  Emergent internes codées en dur (normal, playbooks) et push iOS non configuré (nécessite un
+  `GoogleService-Info.plist`).
+- **Mode démonstration** : `/api/config` renvoie désormais `demo` (= `SEED_DEMO_ACCOUNTS`).
+  L'écran Connexion n'affiche le bloc « Comptes de démonstration » que si `demo` est vrai.
+  En production, mettre `SEED_DEMO_ACCOUNTS=false` dans le panneau de déploiement : les comptes
+  de démo ne sont pas créés et le bloc disparaît automatiquement (vérifié dans les deux états).
+- Taux de change et zones : la prod démarre sur les valeurs par défaut, à reconfigurer depuis
+  l'admin après déploiement (choix utilisateur).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

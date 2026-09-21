@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.commanderose.bbj4fa",
+      "bundleIdentifier": "com.pinkberry.drc",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Localiser votre adresse et suivre la livraison",
         "NSPhotoLibraryUsageDescription": "Ajouter les photos de vos produits au catalogue"

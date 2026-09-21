@@ -11,6 +11,7 @@ import { Champ } from "@/src/components/Champ";
 import { CarteAuth, EnteteMarque } from "@/src/components/DecorAuth";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
+import { useConfigApp } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 export default function Connexion() {
@@ -18,6 +19,7 @@ export default function Connexion() {
   const router = useRouter();
   const { connexion, connexionGoogle } = useAuth();
   const toast = useToast();
+  const { demo } = useConfigApp();
 
   const [telephone, setTelephone] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
@@ -91,15 +93,17 @@ export default function Connexion() {
           }}
         />
 
-        <View testID="bloc-comptes-demo" style={styles.demo}>
-          <View style={styles.demoTitre}>
-            <Icone name="key" size={15} color={colors.brandPrimary} />
-            <Text style={styles.demoTitreTexte}>Comptes de démonstration</Text>
+        {demo ? (
+          <View testID="bloc-comptes-demo" style={styles.demo}>
+            <View style={styles.demoTitre}>
+              <Icone name="key" size={15} color={colors.brandPrimary} />
+              <Text style={styles.demoTitreTexte}>Comptes de démonstration</Text>
+            </View>
+            <Text style={styles.demoTexte}>Client : 0990000001 / client123</Text>
+            <Text style={styles.demoTexte}>Livreur : 0820000001 / livreur123</Text>
+            <Text style={styles.demoTexte}>Admin : 0810000000 / admin123</Text>
           </View>
-          <Text style={styles.demoTexte}>Client : 0990000001 / client123</Text>
-          <Text style={styles.demoTexte}>Livreur : 0820000001 / livreur123</Text>
-          <Text style={styles.demoTexte}>Admin : 0810000000 / admin123</Text>
-        </View>
+        ) : null}
 
         <Pressable testID="lien-inscription" onPress={() => router.replace("/inscription")} style={styles.lien}>
           <Text style={styles.lienTexte}>Créer un compte</Text>
