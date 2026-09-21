@@ -454,6 +454,11 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   Listes vides acceptées (produit commandé tel quel).
 - Tests : itération 23 — 262/262 backend (dont `test_iteration23.py`), traçage live, CRUD options
   et OTP email validés. Limite connue : l'intégration email partage un quota (429 en rafale).
+- 21/09 (suite) : suppression définitive des blocs de démonstration dans l'UI — plus de
+  « Comptes de démonstration » sur `/connexion` ni de « Code de démonstration » sur `/otp`
+  (quel que soit `SEED_DEMO_ACCOUNTS`). Le backend continue de renvoyer `codeDemo` en mode démo
+  pour les tests automatisés, mais l'app ne l'affiche plus ; en cas d'échec d'envoi l'écran OTP
+  affiche `bloc-email-echoue`.
 
 ## Backlog priorisé
 ### P0
