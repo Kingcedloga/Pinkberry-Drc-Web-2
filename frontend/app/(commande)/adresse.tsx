@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
+import { Carte } from "@/src/components/Carte";
 import { Champ } from "@/src/components/Champ";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
@@ -57,7 +58,7 @@ export default function FormulaireAdresse() {
   const [suggestionsFermees, setSuggestionsFermees] = useState(false);
 
   useEffect(() => {
-    const minuteur = setTimeout(() => setTerme(recherche.trim()), 350);
+    const minuteur = setTimeout(() => setTerme(recherche.trim()), 300);
     return () => clearTimeout(minuteur);
   }, [recherche]);
 
@@ -69,6 +70,24 @@ export default function FormulaireAdresse() {
     queryFn: () => apiFetch<{ resultats: Suggestion[] }>(`/carte/recherche?q=${encodeURIComponent(terme)}`),
   });
   const suggestions = suggestionsFermees ? [] : suggestionsQ.data?.resultats ?? [];
+
+  const zoneGpsQ = useQuery({
+    queryKey: ["carte-zone", coords?.lat, coords?.lng],
+    enabled: !!coords,
+    staleTime: 5 * 60_000,
+    retry: false,
+    queryFn: () =>
+      apiFetch<{ commune: string | null; couverte: boolean }>(
+        `/carte/zone?lat=${coords!.lat}&lng=${coords!.lng}`,
+      ),
+  });
+  const zoneGps = zoneGpsQ.data;
+
+  // La commune detectee par GPS prime sur la saisie manuelle.
+  useEffect(() => {
+    if (zoneGps?.couverte && zoneGps.commune && zoneGps.commune !== commune) setCommune(zoneGps.commune);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoneGps?.commune, zoneGps?.couverte]);
 
   const zoneChoisie = zones.find((z) => z.commune === commune);
   const couverte = !!zoneChoisie?.active;
@@ -209,6 +228,26 @@ export default function FormulaireAdresse() {
               <Text style={styles.alerteRougeTexte}>{t("adresse.zonesCouvertes", { zones: couvertes.join(", ") })}</Text>
             </View>
           )
+        ) : null}
+
+        {coords ? (
+          <View style={styles.bloc}>
+            <Text style={styles.label}>{t("adresse.ajusterPin")}</Text>
+            <Carte
+              testID="carte-choix-adresse"
+              client={coords}
+              mode="choix"
+              hauteur={220}
+              onPosition={(p) => setCoords(p)}
+            />
+            {zoneGps && !zoneGps.couverte ? (
+              <View testID="alerte-zone-gps" style={styles.alerteRouge}>
+                <Text style={styles.alerteRougeTexte}>
+                  {t("adresse.horsZoneGps", { commune: zoneGps.commune ?? "?" })}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         ) : null}
 
         <Champ label={t("adresse.avenue")} testID="input-avenue" value={avenue} onChangeText={setAvenue} placeholder="Av. de la Justice" />

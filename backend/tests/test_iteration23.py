@@ -9,7 +9,7 @@ Couvre les 3 correctifs demandes par l'utilisateur :
    verifie -> nettoyage.
 
 2) Carte servie par le backend : GET /api/carte/vue renvoie du text/html 200
-   contenant Leaflet, la couche de tuiles /api/carte/tuiles/{z}/{x}/{y}.png,
+   contenant Mapbox GL JS,
    les fonctions majLivreur / majTrace / ecouteur 'message', et respecte les
    parametres de couleur (fond / accent / livreurCouleur).
 
@@ -155,9 +155,9 @@ class TestOtpEmail:
         assert r.status_code == 400
 
 
-# ---------------------------------------------------------------- Carte Leaflet (page)
+# ---------------------------------------------------------------- Carte Mapbox (page)
 class TestCarteVue:
-    """GET /api/carte/vue : page Leaflet complete, sans jeton, avec parametres colores."""
+    """GET /api/carte/vue : page Mapbox GL JS, sans jeton, avec parametres colores."""
 
     def _fetch(self, clat=-4.318, clng=15.314, dlat=None, dlng=None, **kw):
         params = {"clat": clat, "clng": clng}
@@ -172,13 +172,11 @@ class TestCarteVue:
         assert r.status_code == 200, r.text[:200]
         assert r.headers.get("content-type", "").startswith("text/html")
 
-    def test_carte_vue_contient_leaflet(self):
+    def test_carte_vue_contient_mapbox(self):
         r = self._fetch()
         html = r.text
-        assert "leaflet" in html.lower()
-        assert "L.map" in html
-        # Reference les tuiles servies par le backend
-        assert "/api/carte/tuiles/" in html
+        assert "mapbox-gl" in html.lower()
+        assert "new mapboxgl.Map" in html
 
     def test_carte_vue_hooks_postmessage(self):
         r = self._fetch()
@@ -191,9 +189,10 @@ class TestCarteVue:
     def test_carte_vue_avec_livreur(self):
         r = self._fetch(dlat=-4.322, dlng=15.318)
         html = r.text
-        assert "[-4.322,15.318]" in html or "[-4.322, 15.318]" in html or "majLivreur(-4.322" in html
+        # Mapbox attend lng,lat : la page injecte var driver=[lng,lat]
+        assert "[15.318,-4.322]" in html or "majLivreur(-4.322" in html
         # Verifie la valeur `driver` injectee
-        assert "var driver=[-4.322,15.318]" in html.replace(" ", "") or "-4.322" in html
+        assert "-4.322" in html
 
     def test_carte_vue_couleurs_appliquees(self):
         r = self._fetch(dlat=-4.322, dlng=15.318, fond="#123456", accent="#654321", livreurCouleur="#AABBCC")

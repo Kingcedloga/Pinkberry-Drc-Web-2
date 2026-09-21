@@ -784,16 +784,18 @@ async def lire_fichier(fichier_id: str):
     return Response(content=contenu, media_type=ctype, headers={"Cache-Control": "public, max-age=604800"})
 
 
-# --------------------------------------------------- cartographie (Leaflet + TomTom)
+# --------------------------------------------------- cartographie (Mapbox + recherche TomTom)
+MAPBOX_TOKEN = (os.environ.get("MAPBOX_TOKEN") or "").strip()
 TOMTOM_KEY = (os.environ.get("TOMTOM_API_KEY") or "").strip()
 KINSHASA = (-4.325, 15.322)
 _tomtom = httpx.AsyncClient(base_url="https://api.tomtom.com", timeout=15)
+_mapbox = httpx.AsyncClient(base_url="https://api.mapbox.com", timeout=15)
 
 
 async def _tomtom_get(chemin: str, params: Dict[str, Any]) -> httpx.Response:
-    """Appel TomTom : la cle reste cote serveur, jamais dans l'app."""
+    """Recherche d'adresses : TomTom couvre les avenues de Kinshasa, contrairement a Mapbox."""
     if not TOMTOM_KEY:
-        raise HTTPException(status_code=503, detail="Cartographie non configuree")
+        raise HTTPException(status_code=503, detail="Recherche d'adresse non configuree")
     try:
         r = await _tomtom.get(chemin, params={**params, "key": TOMTOM_KEY})
     except httpx.HTTPError as e:
@@ -805,21 +807,19 @@ async def _tomtom_get(chemin: str, params: Dict[str, Any]) -> httpx.Response:
     return r
 
 
-@api_router.get("/carte/tuiles/{z}/{x}/{y}.png")
-async def carte_tuile(z: int, x: int, y: int):
-    """Tuiles relayees : consommees par Leaflet (WebView / iframe), donc sans jeton."""
-    if not (0 <= z <= 20 and 0 <= x < 2**z and 0 <= y < 2**z):
-        raise HTTPException(status_code=400, detail="Tuile invalide")
-    r = await _tomtom_get(f"/map/1/tile/basic/main/{z}/{x}/{y}.png", {"tileSize": 256})
-    return Response(
-        content=r.content,
-        media_type="image/png",
-        headers={"Cache-Control": "public, max-age=86400"},
-    )
-
-
-LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+async def _mapbox_get(chemin: str, params: Dict[str, Any]) -> httpx.Response:
+    """Appel Mapbox (itineraires, geocodage inverse) depuis le serveur."""
+    if not MAPBOX_TOKEN:
+        raise HTTPException(status_code=503, detail="Cartographie non configuree")
+    try:
+        r = await _mapbox.get(chemin, params={**params, "access_token": MAPBOX_TOKEN})
+    except httpx.HTTPError as e:
+        logger.warning("Mapbox %s injoignable : %s", chemin, e)
+        raise HTTPException(status_code=502, detail="Service de carte indisponible")
+    if r.status_code >= 400:
+        logger.warning("Mapbox %s -> %s", chemin, r.status_code)
+        raise HTTPException(status_code=502, detail="Service de carte indisponible")
+    return r
 
 
 @api_router.get("/carte/vue", response_class=HTMLResponse)
@@ -830,57 +830,98 @@ async def carte_vue(
     dlng: Optional[float] = None,
     fond: str = "#F7EFF3",
     accent: str = "#E6156F",
-    livreurCouleur: str = "#2E9E4F",
+    livreurCouleur: str = "#8DC63F",
+    mode: str = "suivi",
+    sombre: int = 0,
 ):
-    """Page Leaflet servie par le backend : chargee par WebView (mobile) et iframe (web).
+    """Page Mapbox GL JS servie par le backend (WebView mobile / iframe web).
 
-    Servir une vraie URL (et non du HTML injecte) evite les blocages de chargement
-    des scripts distants dans la WebView Android.
+    `mode=choix` affiche un pin deplacable et renvoie la position choisie au parent.
+    Servir une URL (et non du HTML injecte) evite les blocages de scripts sur Android.
     """
-    driver = f"[{dlat},{dlng}]" if dlat is not None and dlng is not None else "null"
+    if not MAPBOX_TOKEN:
+        raise HTTPException(status_code=503, detail="Cartographie non configuree")
+    style = "mapbox://styles/mapbox/dark-v11" if sombre else "mapbox://styles/mapbox/light-v11"
+    driver = f"[{dlng},{dlat}]" if dlat is not None and dlng is not None else "null"
     page = f"""<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<link rel="stylesheet" href="{LEAFLET_CSS}" />
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css" rel="stylesheet" />
 <style>html,body,#map{{margin:0;padding:0;height:100%;width:100%;background:{fond}}}
-.pin{{border-radius:50% 50% 50% 0;transform:rotate(-45deg);width:26px;height:26px;border:3px solid #fff;box-shadow:0 4px 12px rgba(42,23,33,.35)}}
+.pin{{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+border:3px solid #fff;box-shadow:0 4px 12px rgba(42,23,33,.35)}}
 .pin-c{{background:{accent}}}.pin-d{{background:{livreurCouleur}}}
-.leaflet-control-attribution{{font-size:9px}}</style>
+.mapboxgl-ctrl-attrib{{font-size:9px}}
+#aide{{position:absolute;left:12px;right:12px;bottom:12px;background:rgba(255,255,255,.94);
+color:#2A1721;font:600 12px/1.35 system-ui,sans-serif;padding:8px 12px;border-radius:14px;text-align:center}}</style>
 </head><body><div id="map"></div>
-<script src="{LEAFLET_JS}"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.js"></script>
 <script>
-var client=[{clat},{clng}];var driver={driver};
-var map=L.map('map',{{zoomControl:false,attributionControl:true}}).setView(client,14);
-L.tileLayer('/api/carte/tuiles/{{z}}/{{x}}/{{y}}.png',{{maxZoom:20,attribution:'&copy; TomTom'}}).addTo(map);
-function icone(c){{return L.divIcon({{html:'<div class="pin pin-'+c+'"></div>',className:'',iconSize:[26,26],iconAnchor:[13,26]}});}}
-L.marker(client,{{icon:icone('c')}}).addTo(map);
-var dm=null,route=null,lien=null;
-function cadrer(pts){{try{{map.fitBounds(L.latLngBounds(pts).pad(0.3));}}catch(e){{}}}}
+mapboxgl.accessToken='{MAPBOX_TOKEN}';
+var mode='{mode}';
+var client=[{clng},{clat}];var driver={driver};
+var map=new mapboxgl.Map({{container:'map',style:'{style}',center:client,zoom:14,attributionControl:true}});
+function elPin(c){{var d=document.createElement('div');d.className='pin pin-'+c;return d;}}
+var mc=new mapboxgl.Marker({{element:elPin('c'),draggable:mode==='choix',anchor:'bottom'}}).setLngLat(client).addTo(map);
+var md=null;
+function envoyer(o){{
+  var m=JSON.stringify(o);
+  try{{if(window.ReactNativeWebView){{window.ReactNativeWebView.postMessage(m);}}}}catch(e){{}}
+  try{{if(window.parent&&window.parent!==window){{window.parent.postMessage(m,'*');}}}}catch(e){{}}
+}}
+if(mode==='choix'){{
+  var aide=document.createElement('div');aide.id='aide';
+  aide.textContent='Déplacez le repère sur votre porte exacte';
+  document.body.appendChild(aide);
+  mc.on('dragend',function(){{var p=mc.getLngLat();envoyer({{type:'position',lat:p.lat,lng:p.lng}});}});
+  map.on('click',function(e){{mc.setLngLat(e.lngLat);envoyer({{type:'position',lat:e.lngLat.lat,lng:e.lngLat.lng}});}});
+}}
+function cadrer(pts){{
+  if(!pts||!pts.length){{return;}}
+  var b=pts.reduce(function(acc,p){{return acc.extend(p);}},new mapboxgl.LngLatBounds(pts[0],pts[0]));
+  map.fitBounds(b,{{padding:60,maxZoom:16,duration:600}});
+}}
 function majLivreur(lat,lng){{
-  var p=[lat,lng];
-  if(!dm){{dm=L.marker(p,{{icon:icone('d')}}).addTo(map);}}else{{dm.setLatLng(p);}}
-  if(!route){{
-    if(lien){{lien.setLatLngs([p,client]);}}
-    else{{lien=L.polyline([p,client],{{color:'{accent}',weight:4,opacity:.7,dashArray:'8,10'}}).addTo(map);}}
-    cadrer([p,client]);
-  }}
+  var p=[lng,lat];
+  if(!md){{md=new mapboxgl.Marker({{element:elPin('d'),anchor:'bottom'}}).setLngLat(p).addTo(map);}}
+  else{{md.setLngLat(p);}}
+  if(!map.getLayer('route')){{ligne([p,client],true);}}
+  cadrer([p,client]);
+}}
+function ligne(coords,pointille){{
+  var data={{type:'Feature',geometry:{{type:'LineString',coordinates:coords}}}};
+  if(map.getSource('route')){{map.getSource('route').setData(data);return;}}
+  map.addSource('route',{{type:'geojson',data:data}});
+  map.addLayer({{id:'route',type:'line',source:'route',
+    layout:{{'line-cap':'round','line-join':'round'}},
+    paint:{{'line-color':'{accent}','line-width':5,'line-opacity':.9,
+      'line-dasharray':pointille?[2,1.6]:[1]}}}});
 }}
 function majTrace(pts){{
   if(!pts||pts.length<2){{return;}}
-  if(lien){{map.removeLayer(lien);lien=null;}}
-  if(route){{route.setLatLngs(pts);}}
-  else{{route=L.polyline(pts,{{color:'{accent}',weight:5,opacity:.9}}).addTo(map);}}
-  cadrer(pts);
+  var coords=pts.map(function(p){{return [p[1],p[0]];}});
+  if(map.getLayer('route')){{map.setPaintProperty('route','line-dasharray',[1]);}}
+  ligne(coords,false);
+  cadrer(coords);
 }}
 window.majLivreur=majLivreur;window.majTrace=majTrace;
+var attente=[];
+function traiter(d){{
+  if(!d){{return;}}
+  if(d.livreur){{majLivreur(d.livreur[0],d.livreur[1]);}}
+  if(d.trace){{majTrace(d.trace);}}
+}}
 window.addEventListener('message',function(e){{
   try{{
     var d=typeof e.data==='string'?JSON.parse(e.data):e.data;
-    if(!d)return;
-    if(d.livreur){{majLivreur(d.livreur[0],d.livreur[1]);}}
-    if(d.trace){{majTrace(d.trace);}}
+    if(!d||d.type==='position'){{return;}}
+    if(map.loaded()){{traiter(d);}}else{{attente.push(d);}}
   }}catch(err){{}}
 }});
-if(driver){{majLivreur(driver[0],driver[1]);}}
+map.on('load',function(){{
+  attente.forEach(traiter);attente=[];
+  if(driver){{majLivreur(driver[1],driver[0]);}}
+  envoyer({{type:'pret'}});
+}});
 </script></body></html>"""
     return HTMLResponse(content=page, headers={"Cache-Control": "no-store"})
 
@@ -930,29 +971,82 @@ class ItineraireIn(BaseModel):
     destination: List[float]
 
 
+def _verifier_point(p: List[float]) -> str:
+    if len(p) != 2 or not (-90 <= p[0] <= 90) or not (-180 <= p[1] <= 180):
+        raise HTTPException(status_code=400, detail="Coordonnees invalides")
+    return f"{p[1]},{p[0]}"  # Mapbox attend lng,lat
+
+
 @api_router.post("/carte/itineraire")
 async def carte_itineraire(body: ItineraireIn, user=Depends(get_current_user)):
-    """Trace routier reel + duree estimee entre le livreur et le client."""
-
-    def point(p: List[float]) -> str:
-        if len(p) != 2 or not (-90 <= p[0] <= 90) or not (-180 <= p[1] <= 180):
-            raise HTTPException(status_code=400, detail="Coordonnees invalides")
-        return f"{p[0]},{p[1]}"
-
-    chemin = f"/routing/1/calculateRoute/{point(body.origine)}:{point(body.destination)}/json"
-    r = await _tomtom_get(chemin, {"traffic": "true", "travelMode": "motorcycle", "language": "fr-FR"})
+    """Itineraire routier reel + duree estimee (Mapbox Directions, trafic live)."""
+    depart = _verifier_point(body.origine)
+    arrivee = _verifier_point(body.destination)
+    r = await _mapbox_get(
+        f"/directions/v5/mapbox/driving-traffic/{depart};{arrivee}",
+        {"geometries": "geojson", "overview": "full", "language": "fr", "steps": "false"},
+    )
     routes = r.json().get("routes") or []
     if not routes:
         raise HTTPException(status_code=502, detail="Itineraire introuvable")
-    resume = routes[0].get("summary") or {}
-    points = [[p["latitude"], p["longitude"]] for p in (routes[0].get("legs") or [{}])[0].get("points", [])]
+    route = routes[0]
+    points = [[c[1], c[0]] for c in (route.get("geometry") or {}).get("coordinates", [])]
+    duree = route.get("duration")
+    arrivee_iso = (
+        (now_utc() + timedelta(seconds=float(duree))).isoformat() if duree is not None else None
+    )
     return {
         "points": points,
-        "distanceMetres": resume.get("lengthInMeters"),
-        "etaSecondes": resume.get("travelTimeInSeconds"),
-        "heureArrivee": resume.get("arrivalTime"),
+        "distanceMetres": route.get("distance"),
+        "etaSecondes": duree,
+        "heureArrivee": arrivee_iso,
     }
 
+
+async def zone_active(commune: str) -> bool:
+    zone = await db.zones.find_one(
+        {"commune": {"$regex": f"^{re.escape(commune)}$", "$options": "i"}}, {"_id": 0, "active": 1}
+    )
+    return bool(zone and zone.get("active"))
+
+
+async def commune_des_coords(lat: float, lng: float) -> Optional[str]:
+    """Commune deduite des coordonnees GPS ; None si Mapbox est indisponible."""
+    try:
+        r = await _mapbox_get(
+            f"/geocoding/v5/mapbox.places/{lng},{lat}.json",
+            {"language": "fr", "types": "neighborhood,locality,place"},
+        )
+    except HTTPException:
+        return None
+    for f in r.json().get("features", []):
+        texte = (f.get("text") or "").strip()
+        if texte and texte.lower() != "kinshasa":
+            return texte
+    return None
+
+
+@api_router.get("/carte/zone")
+async def carte_zone(lat: float, lng: float, user=Depends(get_current_user)):
+    """Commune deduite des coordonnees GPS (Mapbox) et couverture de livraison."""
+    _verifier_point([lat, lng])
+    r = await _mapbox_get(
+        f"/geocoding/v5/mapbox.places/{lng},{lat}.json",
+        {"language": "fr", "types": "neighborhood,locality,place"},
+    )
+    noms: List[str] = []
+    for f in r.json().get("features", []):
+        texte = (f.get("text") or "").strip()
+        if texte and texte.lower() != "kinshasa":
+            noms.append(texte)
+    zones = await db.zones.find({"active": True}, {"_id": 0, "commune": 1}).to_list(200)
+    communes = {z["commune"].lower(): z["commune"] for z in zones}
+    trouvee = next((communes[n.lower()] for n in noms if n.lower() in communes), None)
+    return {
+        "commune": trouvee or (noms[0] if noms else None),
+        "couverte": trouvee is not None,
+        "communesProches": noms[:3],
+    }
 
 
 # --------------------------------------------------- notifications push (relay)
@@ -1367,6 +1461,14 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
     zone = await db.zones.find_one({"commune": body.adresse.commune}, {"_id": 0})
     if not zone or not zone.get("active"):
         raise HTTPException(status_code=400, detail=f"Nous ne livrons pas encore a {body.adresse.commune}")
+    # Controle supplementaire sur les coordonnees GPS (le nom de commune seul est declaratif).
+    if body.adresse.lat is not None and body.adresse.lng is not None:
+        detectee = await commune_des_coords(body.adresse.lat, body.adresse.lng)
+        if detectee and not await zone_active(detectee):
+            raise HTTPException(
+                status_code=400,
+                detail=f"La position GPS indiquee se trouve a {detectee}, hors de nos zones de livraison",
+            )
     adresse = body.adresse.model_dump()
     adresse["id"] = str(uuid.uuid4())
     adresse["userId"] = user["id"]

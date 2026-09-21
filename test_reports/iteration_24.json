@@ -1,0 +1,46 @@
+{
+  "summary": "Itération 24 — migration cartographie Leaflet+TomTom → Mapbox validée. Backend : 21/21 nouveaux tests dans test_iteration24.py PASS + 274/275 tests dans la suite complète pytest (le seul échec, test_pinkberry_api::test_livreur_flow_position_and_encaisser, est une dépendance d'ordonnancement pré-existante, non liée à l'itération 24 — passe quand test_pinkberry_api.py tourne complet). Vérifiés : (1) GET /api/carte/vue sert une page Mapbox GL JS 200 text/html contenant 'mapbox-gl' + 'new mapboxgl.Map' + hooks window.majLivreur/majTrace + addEventListener('message'), plus de Leaflet, plus de /api/carte/tuiles, styles light-v11 (clair) / dark-v11 (sombre=1), pin déplaçable + texte d'aide 'Déplacez le repère' en mode=choix, couleurs fond/accent/livreurCouleur injectées correctement. Pas de fuite TOMTOM_API_KEY. Token pk.* Mapbox volontairement présent (public, côté client). (2) POST /api/carte/itineraire utilise Mapbox Directions driving-traffic — retourne {points, distanceMetres, etaSecondes, heureArrivee}, points cohérents à Kinshasa, accessible client/livreur/admin, coordonnées invalides → 400. (3) Nouveau GET /api/carte/zone : sans jeton 401/403, pour (-4.325,15.322) renvoie une commune de Kinshasa avec couverte=true (zones actives configurées), pour (-4.90,16.90) couverte=false, coords invalides → 400. (4) POST /api/commandes bloque une commande dont commune déclarée est couverte MAIS coordonnées GPS hors Kinshasa (-4.90,16.90) → 400 avec message mentionnant 'position GPS' ; une commande à Kinshasa (-4.325,15.322) passe ; une commande sans lat/lng passe (comportement historique). (5) GET /api/carte/recherche reste TomTom inchangé : 'avenue de la justice' renvoie ≥1 résultat, coords cohérentes, pas de fuite de clé. Frontend : /otp affiche la carte arrondie CarteAuth (testID='ecran-otp'), en-tête 'Pinkberry' + 'LIVRAISON', titre 'Vérification' centré, btn-retour-otp non superposé au logo, 4 cases case-otp-0..3, input-otp, btn-valider-otp, btn-renvoyer-otp, bloc-code-demo absent en l'absence de codeDemo API. Responsive 390x844 & 1280x900 OK, carte reste bien centrée sur écran large. /connexion : bloc de comptes de démonstration SUPPRIMÉ (aucun 'démo' / '0990000001' / 'client123' dans le DOM), carte CarteAuth intacte. /adresse : autocomplétion TomTom rend 6 suggestions pour 'avenue de la justice', clic sur suggestion déclenche l'affichage de testID='carte-choix-adresse' avec pin rose déplaçable, GPS zone check détecte Gombe et affiche 'Super, on livre à Gombe !', champ point de repère toujours requis. /suivi/<id> : iframe pointe bien vers /api/carte/vue avec mode=suivi, fond=#FBF6F9 accent=#E6156F livreurCouleur=#8DC63F et dlat/dlng du livreur ; capture montre pin client rose + pin livreur vert + tracé rose pointillé + attribution Mapbox. Aucun paquet Expo déprécié détecté (pas d'expo-av / expo-barcode-scanner / expo-background-fetch).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/carte/itineraire, /api/carte/zone",
+        "issue": "Aucun rate-limit / cache serveur pour les appels Mapbox : en cas de pics de trafic (positions livreurs très fréquentes, autocomplétion agressive), le quota mensuel Mapbox peut être consommé rapidement. Non bloquant en préview mais à surveiller en production. Envisager un cache TTL courte (5-15 s) sur /api/carte/itineraire pour une même paire origine/destination."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration24.py (21 tests, 100% pass)",
+    "/app/test_reports/pytest/pytest_iter24.xml"
+  ],
+  "action_items": [
+    "Optionnel : ajouter un cache TTL court (5-15 s) sur /api/carte/itineraire côté serveur pour économiser le quota Mapbox lors des mises à jour rapprochées de la position livreur.",
+    "Optionnel : investiguer le test test_pinkberry_api::test_livreur_flow_position_and_encaisser qui dépend d'un état créé par un test précédent (échoue si exécuté isolé). Le rendre autonome (créer sa propre commande assignée) pour supprimer la fragilité d'ordonnancement — pré-existant, non lié à iter 24."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py:825-926 (carte_vue) : page Mapbox auto-portée bien construite. Le token MAPBOX_TOKEN est injecté via f-string dans le HTML servi — acceptable puisqu'il s'agit d'un token public pk.* et que la restriction de domaine est gérée côté Mapbox. Bonne séparation clair/dark via style 'light-v11'/'dark-v11'. Le mode='choix' expose bien un pin draggable + click-to-move + postMessage(type=position).",
+    "backend/server.py:1013-1049 (commune_des_coords + carte_zone) : géocodage inverse Mapbox filtre correctement 'Kinshasa' (trop générique) pour préférer les noms de communes. Le retour couverte=bool est aligné avec les zones actives en DB.",
+    "backend/server.py:1457-1471 (creer_commande) : le double contrôle (nom de commune + coordonnées GPS via Mapbox) est robuste. Message d'erreur explicite mentionne la commune détectée. Le fallback silencieux si Mapbox indisponible (commune_des_coords retourne None) préserve la disponibilité — bon compromis.",
+    "backend/server.py:1465 : la condition `if body.adresse.lat is not None and body.adresse.lng is not None:` est correcte, mais historiquement adresse.lat/lng peuvent valoir 0.0 ; ici ce n'est pas un problème car (0,0) est hors Kinshasa et bloquerait. À conserver tel quel.",
+    "frontend testIDs cohérents : ecran-adresse, btn-retour-adresse, input-recherche-adresse, btn-position-gps, input-repere, btn-continuer-adresse, carte-choix-adresse (adresse) ; ecran-suivi, carte-suivi, fil-etapes, etape-*, carte-livreur, btn-appeler-livreur (suivi) ; ecran-otp, btn-retour-otp, case-otp-0..3, input-otp, btn-valider-otp, btn-renvoyer-otp (otp).",
+    "Les couleurs de marqueurs sont bien passées en query params à /api/carte/vue (accent=%23E6156F, livreurCouleur=%238DC63F) — confirmé dans l'iframe.src lu depuis /suivi/<id>."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration24.py (créé, 21 tests, 100% pass)"
+  ],
+  "success_rate": {
+    "backend": "99.6% (274/275 pytest — la seule regression pinkberry_api est un ordering pré-existant hors iter 24 ; 21/21 tests iter 24 PASS)",
+    "frontend": "100% (OTP carte arrondie OK responsive, connexion sans bloc démo, adresse avec carte Mapbox+pin déplaçable+GPS zone check, suivi avec iframe Mapbox + repères client rose et livreur vert)"
+  },
+  "seed_data_creation": "Aucune donnée seed persistante. test_iteration24.py crée temporairement 2 commandes de test (TEST_ITER24 Kinshasa + TEST_ITER24 sans gps) puis les supprime en teardown_module via pymongo (db.commandes.delete_many + db.adresses.delete_many sur label ^TEST_ITER24). Le troisième cas (hors zone) est refusé 400 avant persistance. Aucun compte créé.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Itération 24 conforme : cartographie migrée à Mapbox (page /api/carte/vue Mapbox GL, /api/carte/itineraire Mapbox Directions, nouveau /api/carte/zone). /api/commandes contrôle bien la position GPS réelle. /api/carte/recherche reste TomTom par choix utilisateur. Fichier test_iteration24.py prêt pour régression. Aucun réajustement de code nécessaire de la part de l'agent principal. Backup à noter : test_pinkberry_api::test_livreur_flow_position_and_encaisser dépend de l'ordonnancement (pré-existant) — envisager de le rendre autonome pour éviter des faux positifs si on force xdist/ordre aléatoire.",
+  "rca_of_issue": "Aucun bug fonctionnel détecté sur cette itération. La seule anomalie identifiée est un test pré-existant (test_pinkberry_api::test_livreur_flow_position_and_encaisser) qui repose sur un état créé par un test antérieur du même fichier — RCA : l'assertion `cmd_id, 'assigned order missing from earlier test'` échoue si le test est exécuté isolément. Mitigation : le rendre autosuffisant (créer sa propre commande + assignation) ; non bloquant en régression pleine."
+}

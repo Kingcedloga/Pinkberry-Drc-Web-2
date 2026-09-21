@@ -3,12 +3,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
-import { Logo } from "@/src/components/Logo";
+import { CarteAuth, EnteteMarque } from "@/src/components/DecorAuth";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -16,7 +15,6 @@ import { useToast } from "@/src/toast";
 export default function VerificationOtp() {
   useTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { verifierOtp } = useAuth();
   const toast = useToast();
   const params = useLocalSearchParams<{
@@ -74,21 +72,14 @@ export default function VerificationOtp() {
   const cases = [0, 1, 2, 3];
 
   return (
-    <View testID="ecran-otp" style={styles.ecran}>
-      <KeyboardAwareScrollView
-        bottomOffset={100}
-        contentContainerStyle={[
-          styles.contenu,
-          { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xxl },
-        ]}
-      >
-        <Pressable testID="btn-retour-otp" onPress={() => router.back()} style={styles.retour} hitSlop={10}>
-          <Icone name="arrow-left" size={22} color={colors.onSurface} />
-        </Pressable>
+    <CarteAuth testID="ecran-otp">
+      <KeyboardAwareScrollView bottomOffset={100} contentContainerStyle={styles.contenu}>
+        <EnteteMarque taille={30} />
 
-        <Logo taille={26} />
-        <Text style={styles.titre}>Vérification</Text>
-        <Text style={styles.sous}>Entrez le code à 4 chiffres envoyé à {email || "votre adresse email"}</Text>
+        <View style={styles.titres}>
+          <Text style={styles.titre}>Vérification</Text>
+          <Text style={styles.sous}>Entrez le code à 4 chiffres envoyé à {email || "votre adresse email"}</Text>
+        </View>
 
         <Pressable style={styles.cases} onPress={() => inputRef.current?.focus()}>
           {cases.map((i) => (
@@ -124,16 +115,30 @@ export default function VerificationOtp() {
           <Text style={styles.lienTexte}>Renvoyer le code</Text>
         </Pressable>
       </KeyboardAwareScrollView>
-    </View>
+
+      <Pressable testID="btn-retour-otp" onPress={() => router.back()} style={styles.retour} hitSlop={10}>
+        <Icone name="arrow-left" size={20} color={colors.onSurface} />
+      </Pressable>
+    </CarteAuth>
   );
 }
 
 const styles = stylesDynamiques(() => StyleSheet.create({
-  ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
-  contenu: { paddingHorizontal: spacing.xl, gap: spacing.lg },
-  retour: { width: 44, height: 44, justifyContent: "center" },
-  titre: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
-  sous: { fontFamily: fonts.text, fontSize: 14, color: colors.muted, marginTop: -spacing.md },
+  contenu: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.xxl, gap: spacing.lg },
+  retour: {
+    position: "absolute",
+    top: spacing.md,
+    left: spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceSecondary,
+  },
+  titres: { alignItems: "center", gap: 4 },
+  titre: { fontFamily: fonts.display, fontSize: 24, fontWeight: "800", color: colors.onSurface },
+  sous: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, textAlign: "center" },
   cases: { flexDirection: "row", gap: spacing.md, justifyContent: "center", marginVertical: spacing.md },
   case: {
     width: 60,

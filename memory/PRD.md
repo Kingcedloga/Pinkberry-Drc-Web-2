@@ -460,6 +460,26 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   pour les tests automatisés, mais l'app ne l'affiche plus ; en cas d'échec d'envoi l'écran OTP
   affiche `bloc-email-echoue`.
 
+## Écran OTP en carte + migration Mapbox — 21/09/2026 (v3.0)
+- `/otp` utilise `CarteAuth` + `EnteteMarque` comme Connexion / Inscription (bouton retour rond).
+- **Cartographie migrée de Leaflet + TomTom vers Mapbox GL JS** (choix utilisateur) :
+  - `GET /api/carte/vue` sert une page **Mapbox GL JS** (styles `light-v11` / `dark-v11`),
+    repère client rose `#E6156F`, repère livreur vert `#8DC63F`, tracé rose ; `mode=choix`
+    ajoute un **repère déplaçable** qui remonte la position (`postMessage` / `ReactNativeWebView`).
+    L'endpoint `/api/carte/tuiles` (tuiles TomTom) a été supprimé.
+  - `POST /api/carte/itineraire` : **Mapbox Directions** (`driving-traffic`) → tracé réel + ETA.
+  - `GET /api/carte/zone?lat&lng` : géocodage inverse Mapbox → commune + couverture.
+  - `POST /api/commandes` refuse une adresse dont les **coordonnées GPS** tombent hors des
+    communes couvertes, même si la commune saisie est couverte (`commune_des_coords`).
+  - **La recherche d'adresse reste TomTom** : Mapbox ne renvoie aucune avenue de Kinshasa
+    (« avenue de la Justice » → 0 résultat, « Boulevard du 30 Juin » → résultats en France).
+  - `/adresse` : debounce 300 ms, carte `carte-choix-adresse` avec repère déplaçable, commune
+    détectée par GPS prioritaire, alerte `alerte-zone-gps` hors zone, champ point de repère conservé.
+- `MAPBOX_TOKEN` dans `backend/.env` ; le token public `pk.*` apparaît volontairement dans la page
+  carte servie (usage client normal de Mapbox GL JS).
+- Tests : itération 24 — `test_iteration24.py` 21/21, suite 274/275 (échec restant :
+  `test_livreur_flow_position_and_encaisser`, fragilité d'ordonnancement pré-existante).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)
