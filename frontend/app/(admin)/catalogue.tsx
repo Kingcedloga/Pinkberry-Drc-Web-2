@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { ListeOptions, type Option } from "@/src/components/ListeOptions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
@@ -45,6 +46,11 @@ const GARNITURES = [
   { nom: "Mochi", prix: 1.25 },
 ];
 
+const nombre = (v: string) => {
+  const n = parseFloat((v || "0").replace(",", "."));
+  return isNaN(n) ? 0 : Math.round(n * 100) / 100;
+};
+
 export default function Catalogue() {
   useTheme();
   const insets = useSafeAreaInsets();
@@ -74,8 +80,8 @@ export default function Catalogue() {
   const [description, setDescription] = useState("");
   const [disponible, setDisponible] = useState(true);
   const [enAvant, setEnAvant] = useState(false);
-  const [avecTailles, setAvecTailles] = useState(true);
-  const [avecGarnitures, setAvecGarnitures] = useState(true);
+  const [tailles, setTailles] = useState<Option[]>([]);
+  const [garnitures, setGarnitures] = useState<Option[]>([]);
 
   const ouvrir = (p: any | null) => {
     setEdition(p ?? { nouveau: true });
@@ -87,8 +93,16 @@ export default function Catalogue() {
     setDescription(p?.description ?? "");
     setDisponible(p?.disponible ?? true);
     setEnAvant(p?.enAvant ?? false);
-    setAvecTailles((p?.tailles?.length ?? 0) > 0 || !p);
-    setAvecGarnitures((p?.garnitures?.length ?? 0) > 0 || !p);
+    setTailles(
+      p
+        ? (p.tailles ?? []).map((t: any) => ({ nom: t.nom, valeur: String(t.ecart ?? 0) }))
+        : TAILLES.map((t) => ({ nom: t.nom, valeur: String(t.ecart) })),
+    );
+    setGarnitures(
+      p
+        ? (p.garnitures ?? []).map((g: any) => ({ nom: g.nom, valeur: String(g.prix ?? 0) }))
+        : GARNITURES.map((g) => ({ nom: g.nom, valeur: String(g.prix) })),
+    );
   };
 
   const choisirPhoto = async () => {
@@ -170,8 +184,12 @@ export default function Catalogue() {
       description,
       disponible,
       enAvant,
-      tailles: avecTailles ? TAILLES : [],
-      garnitures: avecGarnitures ? GARNITURES : [],
+      tailles: tailles
+        .filter((t) => t.nom.trim())
+        .map((t) => ({ nom: t.nom.trim(), ecart: nombre(t.valeur) })),
+      garnitures: garnitures
+        .filter((g) => g.nom.trim())
+        .map((g) => ({ nom: g.nom.trim(), prix: nombre(g.valeur) })),
     };
     try {
       if (edition?.nouveau) await apiFetch("/admin/produits", { method: "POST", body });
@@ -398,24 +416,23 @@ export default function Catalogue() {
                   trackColor={{ true: colors.brandPrimary, false: colors.border }}
                 />
               </View>
-              <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>Tailles (Petit/Moyen/Grand)</Text>
-                <Switch
-                  testID="switch-tailles"
-                  value={avecTailles}
-                  onValueChange={setAvecTailles}
-                  trackColor={{ true: colors.success, false: colors.border }}
-                />
-              </View>
-              <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>Garnitures</Text>
-                <Switch
-                  testID="switch-garnitures"
-                  value={avecGarnitures}
-                  onValueChange={setAvecGarnitures}
-                  trackColor={{ true: colors.success, false: colors.border }}
-                />
-              </View>
+              <ListeOptions
+                titre="Tailles"
+                aide="Supplément ajouté au prix de base (0 pour la taille standard)"
+                cle="taille"
+                options={tailles}
+                onChange={setTailles}
+                placeholderNom="Ex. Grand"
+              />
+
+              <ListeOptions
+                titre="Garnitures"
+                aide="Prix de la garniture ajoutée par le client"
+                cle="garniture"
+                options={garnitures}
+                onChange={setGarnitures}
+                placeholderNom="Ex. Granola"
+              />
 
               <Bouton testID="btn-enregistrer-produit" label="Enregistrer" onPress={enregistrer} />
               <Bouton testID="btn-annuler-produit" label="Annuler" variant="contour" onPress={() => setEdition(null)} />

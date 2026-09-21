@@ -32,7 +32,7 @@ type AuthValue = {
   user: Utilisateur | null;
   loading: boolean;
   connexion: (telephone: string, motDePasse: string) => Promise<Utilisateur>;
-  inscription: (p: { nom: string; telephone: string; email?: string; motDePasse: string }) => Promise<{ codeDemo: string; emailEnvoye: boolean }>;
+  inscription: (p: { nom: string; telephone: string; email?: string; motDePasse: string }) => Promise<{ codeDemo?: string; emailEnvoye: boolean }>;
   verifierOtp: (telephone: string, code: string) => Promise<Utilisateur>;
   connexionGoogle: () => Promise<void>;
   enregistrerTelephone: (telephone: string) => Promise<Utilisateur>;
@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const inscription = useCallback(async (p: { nom: string; telephone: string; email?: string; motDePasse: string }) => {
-    return apiFetch<{ codeDemo: string; emailEnvoye: boolean }>("/auth/inscription", { method: "POST", body: p });
+    return apiFetch<{ codeDemo?: string; emailEnvoye: boolean }>("/auth/inscription", { method: "POST", body: p });
   }, []);
 
   const verifierOtp = useCallback(

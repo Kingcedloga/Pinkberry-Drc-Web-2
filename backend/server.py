@@ -17,7 +17,7 @@ import httpx
 import jwt
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
@@ -485,7 +485,11 @@ async def inscription(body: InscriptionIn):
         )
     )
     logger.info(f"OTP pour {tel}: {code}")
-    return {"ok": True, "telephone": tel, "email": doc["email"], "emailEnvoye": envoye, "codeDemo": code}
+    reponse = {"ok": True, "telephone": tel, "email": doc["email"], "emailEnvoye": envoye}
+    # Le code n'est renvoye a l'app qu'en demo ou si l'email n'a pas pu partir.
+    if SEED_DEMO or not envoye:
+        reponse["codeDemo"] = code
+    return reponse
 
 
 @api_router.post("/auth/renvoyer-otp")
@@ -500,13 +504,19 @@ async def renvoyer_otp(body: ConnexionIn):
         {"telephone": tel, "code": code, "expireAt": iso(now_utc() + timedelta(minutes=10))},
         upsert=True,
     )
+    envoye = False
     if user.get("email"):
-        await send_email(
-            to=user["email"],
-            subject=f"Votre code de verification {EMAIL_FROM_NAME}",
-            html=_otp_email_html(user["nom"], code),
+        envoye = bool(
+            await send_email(
+                to=user["email"],
+                subject=f"Votre code de verification {EMAIL_FROM_NAME}",
+                html=_otp_email_html(user["nom"], code),
+            )
         )
-    return {"ok": True, "codeDemo": code}
+    reponse: Dict[str, Any] = {"ok": True, "emailEnvoye": envoye}
+    if SEED_DEMO or not envoye:
+        reponse["codeDemo"] = code
+    return reponse
 
 
 @api_router.post("/auth/verifier-otp")
@@ -806,6 +816,73 @@ async def carte_tuile(z: int, x: int, y: int):
         media_type="image/png",
         headers={"Cache-Control": "public, max-age=86400"},
     )
+
+
+LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+
+
+@api_router.get("/carte/vue", response_class=HTMLResponse)
+async def carte_vue(
+    clat: float,
+    clng: float,
+    dlat: Optional[float] = None,
+    dlng: Optional[float] = None,
+    fond: str = "#F7EFF3",
+    accent: str = "#E6156F",
+    livreurCouleur: str = "#2E9E4F",
+):
+    """Page Leaflet servie par le backend : chargee par WebView (mobile) et iframe (web).
+
+    Servir une vraie URL (et non du HTML injecte) evite les blocages de chargement
+    des scripts distants dans la WebView Android.
+    """
+    driver = f"[{dlat},{dlng}]" if dlat is not None and dlng is not None else "null"
+    page = f"""<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="{LEAFLET_CSS}" />
+<style>html,body,#map{{margin:0;padding:0;height:100%;width:100%;background:{fond}}}
+.pin{{border-radius:50% 50% 50% 0;transform:rotate(-45deg);width:26px;height:26px;border:3px solid #fff;box-shadow:0 4px 12px rgba(42,23,33,.35)}}
+.pin-c{{background:{accent}}}.pin-d{{background:{livreurCouleur}}}
+.leaflet-control-attribution{{font-size:9px}}</style>
+</head><body><div id="map"></div>
+<script src="{LEAFLET_JS}"></script>
+<script>
+var client=[{clat},{clng}];var driver={driver};
+var map=L.map('map',{{zoomControl:false,attributionControl:true}}).setView(client,14);
+L.tileLayer('/api/carte/tuiles/{{z}}/{{x}}/{{y}}.png',{{maxZoom:20,attribution:'&copy; TomTom'}}).addTo(map);
+function icone(c){{return L.divIcon({{html:'<div class="pin pin-'+c+'"></div>',className:'',iconSize:[26,26],iconAnchor:[13,26]}});}}
+L.marker(client,{{icon:icone('c')}}).addTo(map);
+var dm=null,route=null,lien=null;
+function cadrer(pts){{try{{map.fitBounds(L.latLngBounds(pts).pad(0.3));}}catch(e){{}}}}
+function majLivreur(lat,lng){{
+  var p=[lat,lng];
+  if(!dm){{dm=L.marker(p,{{icon:icone('d')}}).addTo(map);}}else{{dm.setLatLng(p);}}
+  if(!route){{
+    if(lien){{lien.setLatLngs([p,client]);}}
+    else{{lien=L.polyline([p,client],{{color:'{accent}',weight:4,opacity:.7,dashArray:'8,10'}}).addTo(map);}}
+    cadrer([p,client]);
+  }}
+}}
+function majTrace(pts){{
+  if(!pts||pts.length<2){{return;}}
+  if(lien){{map.removeLayer(lien);lien=null;}}
+  if(route){{route.setLatLngs(pts);}}
+  else{{route=L.polyline(pts,{{color:'{accent}',weight:5,opacity:.9}}).addTo(map);}}
+  cadrer(pts);
+}}
+window.majLivreur=majLivreur;window.majTrace=majTrace;
+window.addEventListener('message',function(e){{
+  try{{
+    var d=typeof e.data==='string'?JSON.parse(e.data):e.data;
+    if(!d)return;
+    if(d.livreur){{majLivreur(d.livreur[0],d.livreur[1]);}}
+    if(d.trace){{majTrace(d.trace);}}
+  }}catch(err){{}}
+}});
+if(driver){{majLivreur(driver[0],driver[1]);}}
+</script></body></html>"""
+    return HTMLResponse(content=page, headers={"Cache-Control": "no-store"})
 
 
 @api_router.get("/carte/recherche")

@@ -19,12 +19,16 @@ export default function VerificationOtp() {
   const insets = useSafeAreaInsets();
   const { verifierOtp } = useAuth();
   const toast = useToast();
-  const params = useLocalSearchParams<{ telephone?: string; email?: string; codeDemo?: string }>();
+  const params = useLocalSearchParams<{
+    telephone?: string;
+    email?: string;
+    emailEnvoye?: string;
+  }>();
   const telephone = params.telephone ?? "";
   const email = params.email ?? "";
 
   const [code, setCode] = useState("");
-  const [demo, setDemo] = useState(params.codeDemo ?? "");
+  const [envoiEchoue, setEnvoiEchoue] = useState(params.emailEnvoye === "0");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
@@ -53,12 +57,15 @@ export default function VerificationOtp() {
 
   const renvoyer = async () => {
     try {
-      const r = await apiFetch<{ codeDemo: string }>("/auth/renvoyer-otp", {
+      const r = await apiFetch<{ emailEnvoye?: boolean }>("/auth/renvoyer-otp", {
         method: "POST",
         body: { telephone, motDePasse: "" },
       });
-      setDemo(r.codeDemo);
-      toast.show("Nouveau code généré", "succes");
+      setEnvoiEchoue(r.emailEnvoye === false);
+      toast.show(
+        r.emailEnvoye ? "Nouveau code envoyé par email" : "Envoi impossible, réessayez",
+        r.emailEnvoye ? "succes" : "erreur",
+      );
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -102,10 +109,12 @@ export default function VerificationOtp() {
           autoFocus
         />
 
-        {demo ? (
-          <View testID="bloc-code-demo" style={styles.demo}>
-            <Icone name="info" size={16} color={colors.brandPrimary} />
-            <Text style={styles.demoTexte}>Code de démonstration : {demo}</Text>
+        {envoiEchoue ? (
+          <View testID="bloc-email-echoue" style={styles.alerte}>
+            <Icone name="alert-circle" size={16} color={colors.error} />
+            <Text style={styles.alerteTexte}>
+              L&apos;email n&apos;a pas pu être envoyé. Touchez « Renvoyer le code » dans quelques instants.
+            </Text>
           </View>
         ) : null}
 
@@ -139,15 +148,15 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   caseActive: { borderColor: colors.borderStrong },
   caseTexte: { fontFamily: fonts.display, fontSize: 28, color: colors.onSurface },
   inputCache: { height: 1, opacity: 0, position: "absolute" },
-  demo: {
+  alerte: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: colors.brandTertiary,
+    backgroundColor: colors.errorSoft,
+    borderRadius: radius.lg,
     padding: spacing.md,
-    borderRadius: radius.md,
   },
-  demoTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.brandPrimary },
+  alerteTexte: { flex: 1, fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.error },
   lien: { alignItems: "center", minHeight: 44, justifyContent: "center" },
   lienTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "700", color: colors.brandPrimary },
 }));

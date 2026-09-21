@@ -435,6 +435,26 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Taux de change et zones : la prod démarre sur les valeurs par défaut, à reconfigurer depuis
   l'admin après déploiement (choix utilisateur).
 
+## OTP email réel, carte Leaflet servie par le backend, options produit — 21/09/2026 (v2.9)
+- **OTP par email** : nouvelle `EMERGENT_EMAIL_KEY` (l'ancienne renvoyait 401) → l'intégration
+  répond 202. `codeDemo` n'est plus renvoyé que si `SEED_DEMO_ACCOUNTS=true` ou si l'envoi a
+  échoué ; l'écran `/otp` affiche alors `bloc-email-echoue` invitant à renvoyer le code.
+- **Carte Leaflet** : nouvelle page HTML servie par le backend
+  `GET /api/carte/vue?clat&clng&dlat&dlng&fond&accent&livreurCouleur`. `Carte.tsx` la charge par
+  URL (WebView `source={{uri}}` sur mobile, iframe sur web) au lieu d'injecter du HTML — ce qui
+  corrige l'affichage natif (scripts distants bloqués sur Android avec du HTML injecté). Les
+  positions et le tracé sont poussés par `postMessage` / `injectJavaScript` : le repère du livreur
+  bouge sans recharger la page.
+- **Traçage validé de bout en bout** : 3 positions livreur successives → repère qui se déplace,
+  `pastille-eta` client et `bloc-eta-livreur` mis à jour (TomTom, ex. « 2 min · 623 m »).
+- **Tailles et garnitures éditables par l'admin** : `src/components/ListeOptions.tsx`
+  (ajout/renommage/montant/suppression ligne par ligne) remplace les anciens interrupteurs
+  on/off dans le formulaire produit. Convention : `Taille.ecart` = supplément, `Garniture.prix`
+  = prix, saisis dans `Option.valeur` (texte) puis convertis en nombre à l'enregistrement.
+  Listes vides acceptées (produit commandé tel quel).
+- Tests : itération 23 — 262/262 backend (dont `test_iteration23.py`), traçage live, CRUD options
+  et OTP email validés. Limite connue : l'intégration email partage un quota (429 en rafale).
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

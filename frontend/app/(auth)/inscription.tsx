@@ -33,8 +33,8 @@ export default function Inscription() {
     setLoading(true);
     try {
       const r = await inscription({ nom, telephone, email: email || undefined, motDePasse });
-      toast.show(r.emailEnvoye ? "Code envoyé par email" : "Code généré", "succes");
-      router.push({ pathname: "/otp", params: { telephone, email, codeDemo: r.codeDemo } });
+      toast.show(r.emailEnvoye ? "Code envoyé par email" : "Code généré", r.emailEnvoye ? "succes" : "info");
+      router.push({ pathname: "/otp", params: { telephone, email, codeDemo: r.codeDemo, emailEnvoye: r.emailEnvoye ? "1" : "0" } });
     } catch (e: any) {
       toast.show(e.message, "erreur");
     } finally {
