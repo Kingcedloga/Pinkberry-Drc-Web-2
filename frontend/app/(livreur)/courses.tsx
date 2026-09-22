@@ -10,6 +10,7 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { usd } from "@/src/money";
+import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -30,6 +31,8 @@ export default function Courses() {
   const { user, deconnexion } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
+  const { colonnes } = useEcran();
+  const cols = Math.min(colonnes, 3);
 
   const q = useQuery({
     queryKey: ["livreur-courses"],
@@ -50,10 +53,17 @@ export default function Courses() {
 
   const actives = (q.data ?? []).filter((c) => !["livree", "annulee"].includes(c.statut));
   const terminees = (q.data ?? []).filter((c) => ["livree", "annulee"].includes(c.statut));
+  const toutes = [...actives, ...terminees];
+  const reste = cols > 1 ? toutes.length % cols : 0;
+  const donnees =
+    reste === 0
+      ? toutes
+      : [...toutes, ...Array.from({ length: cols - reste }, (_, i) => ({ id: `vide-${i}`, vide: true }))];
 
   return (
     <View testID="ecran-livreur-courses" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
+        <View style={styles.enteteInterieur}>
         <View>
           <Text style={styles.titre}>Mes courses</Text>
           <Text style={styles.sous}>{user?.nom}</Text>
@@ -91,6 +101,7 @@ export default function Courses() {
             <Icone name="log-out" size={20} color={colors.brandPrimary} />
           </Pressable>
         </View>
+        </View>
       </View>
 
       {q.isLoading ? (
@@ -100,9 +111,12 @@ export default function Courses() {
       ) : (
         <FlatList
           testID="liste-courses"
-          data={[...actives, ...terminees]}
+          data={donnees}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={styles.liste}
+          contentContainerStyle={[styles.liste, LARGEUR_LARGE]}
+          key={`courses-${cols}`}
+          numColumns={cols}
+          columnWrapperStyle={cols > 1 ? styles.rangeeGrille : undefined}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           ListHeaderComponent={
@@ -115,11 +129,18 @@ export default function Courses() {
               <Text style={styles.videSous}>En attente d&apos;une assignation de l&apos;administrateur</Text>
             </View>
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) =>
+            (item as any).vide ? (
+              <View style={styles.carteGrille} />
+            ) : (
             <Pressable
               testID={`course-${item.numero}`}
               onPress={() => router.push(`/course/${item.id}`)}
-              style={({ pressed }) => [styles.carte, pressed && { backgroundColor: colors.brandTertiary }]}
+              style={({ pressed }) => [
+                styles.carte,
+                cols > 1 && styles.carteGrille,
+                pressed && { backgroundColor: colors.brandTertiary },
+              ]}
             >
               <View style={styles.carteHaut}>
                 <Text style={styles.numero}>{item.numero}</Text>
@@ -168,7 +189,8 @@ export default function Courses() {
                 </Pressable>
               ) : null}
             </Pressable>
-          )}
+            )
+          }
         />
       )}
     </View>
@@ -178,15 +200,20 @@ export default function Courses() {
 const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     backgroundColor: colors.surface,
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
     ...softShadow,
+  },
+  enteteInterieur: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
   },
   titre: { fontFamily: fonts.display, fontSize: 24, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
@@ -196,6 +223,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   videSous: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   videEmoji: { fontSize: 46 },
   liste: { padding: spacing.lg, gap: spacing.md },
+  rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
+  carteGrille: { flex: 1 },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,

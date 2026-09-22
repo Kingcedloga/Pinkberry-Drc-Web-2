@@ -27,15 +27,18 @@ export default function Bienvenue() {
 
   const monte = flotte.interpolate({ inputRange: [0, 1], outputRange: [8, -12] });
   const largeurCarte = Math.min(width - spacing.md * 2, 520);
+  const borne = height > 820 ? Math.min(height - spacing.xxxl * 2, 760) : undefined;
   const largeurHero = largeurCarte * 1.45;
-  const hauteurHero = Math.min(largeurHero * 0.82, height * 0.54);
+  const hauteurHero = Math.min(largeurHero * 0.82, (borne ?? height) * 0.54);
 
   return (
-    <View testID="ecran-bienvenue" style={styles.ecran}>
+    <View testID="ecran-bienvenue" style={[styles.ecran, borne ? styles.ecranCentre : null]}>
       <View
         style={[
           styles.carte,
-          { width: largeurCarte, marginTop: insets.top + spacing.sm, marginBottom: insets.bottom + spacing.sm },
+          borne
+            ? { width: largeurCarte, height: borne, flexGrow: 0, flexShrink: 0, flexBasis: "auto" }
+            : { width: largeurCarte, marginTop: insets.top + spacing.sm, marginBottom: insets.bottom + spacing.sm },
         ]}
       >
         <EnteteMarque />
@@ -85,6 +88,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     paddingHorizontal: spacing.md,
   },
+  ecranCentre: { justifyContent: "center" },
   carte: {
     flex: 1,
     backgroundColor: colors.surface,

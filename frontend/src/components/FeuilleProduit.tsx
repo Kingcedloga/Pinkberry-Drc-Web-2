@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { ArticlePanier, Garniture } from "@/src/panier";
+import { LARGEUR_FEUILLE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useMontant } from "@/src/taux";
 
@@ -178,6 +179,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   zoneFermeture: { flex: 1 },
   feuille: {
+    ...LARGEUR_FEUILLE,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

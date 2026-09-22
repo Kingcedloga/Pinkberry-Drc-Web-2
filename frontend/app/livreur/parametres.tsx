@@ -8,6 +8,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { ChoixTheme } from "@/src/components/ChoixTheme";
 import { Icone } from "@/src/components/Icone";
 import { useLangue, type Langue } from "@/src/i18n";
+import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -105,7 +106,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   titre: { fontFamily: fonts.display, fontSize: 21, fontWeight: poids.fort, color: colors.onSurface },
   sousTitre: { fontFamily: fonts.text, fontSize: 12, fontWeight: poids.corps, color: colors.muted },
-  contenu: { paddingHorizontal: spacing.lg, gap: spacing.lg },
+  contenu: { ...LARGEUR_CONTENU, paddingHorizontal: spacing.lg, gap: spacing.lg },
   section: { gap: spacing.sm },
   sectionTitre: {
     fontFamily: fonts.text,

@@ -11,6 +11,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Logo } from "@/src/components/Logo";
 import { hauteurOngletsNatifs } from "@/src/nav";
+import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -64,6 +65,7 @@ export default function Dashboard() {
   const toast = useToast();
   const qc = useQueryClient();
   const { usd, fc } = useMontant();
+  const { bureau } = useEcran();
   const [ouverte, setOuverte] = useState<any>(null);
 
   const commandesQ = useQuery({
@@ -134,17 +136,25 @@ export default function Dashboard() {
   return (
     <View testID="ecran-admin-dashboard" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <View>
-          <Logo taille={20} />
-          <Text style={styles.sousTitre}>Back office administrateur</Text>
+        <View style={styles.enteteInterieur}>
+          <View>
+            {bureau ? (
+              <Text style={styles.titrePage}>Commandes</Text>
+            ) : (
+              <Logo taille={20} />
+            )}
+            <Text style={styles.sousTitre}>
+              {bureau ? "Suivi temps réel des commandes" : "Back office administrateur"}
+            </Text>
+          </View>
+          <Pressable
+            testID="btn-admin-parametres"
+            onPress={() => router.push("/admin/parametres")}
+            style={styles.iconeBtn}
+          >
+            <Icone name="settings" size={20} color={colors.brandPrimary} />
+          </Pressable>
         </View>
-        <Pressable
-          testID="btn-admin-parametres"
-          onPress={() => router.push("/admin/parametres")}
-          style={styles.iconeBtn}
-        >
-          <Icone name="settings" size={20} color={colors.brandPrimary} />
-        </Pressable>
       </View>
 
       {commandesQ.isLoading ? (
@@ -156,13 +166,18 @@ export default function Dashboard() {
           testID="liste-admin-commandes"
           data={commandesQ.data ?? []}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
+          contentContainerStyle={[
+            styles.liste,
+            LARGEUR_LARGE,
+            { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) },
+          ]}
           refreshing={commandesQ.isRefetching}
           onRefresh={rafraichir}
           ListHeaderComponent={
             <View style={styles.enteteListe}>
               <CarteNotifications texte="Activez-les pour être alerté de chaque nouvelle commande, même app fermée." />
-              <View testID="carte-ventes-jour" style={styles.ventesCarte}>
+              <View style={bureau ? styles.grilleBureau : styles.enteteListe}>
+              <View testID="carte-ventes-jour" style={[styles.ventesCarte, bureau && { flex: 2 }]}>
                 <View style={styles.ventesHaut}>
                   <View>
                     <Text style={styles.ventesTitre}>Ventes du jour</Text>
@@ -208,18 +223,31 @@ export default function Dashboard() {
                 )}
               </View>
 
-              <View style={styles.statsRow}>
+              <View style={[styles.statsRow, bureau && styles.statsColonne]}>
                 {[
                   { l: "En cours", v: stats?.enCours ?? 0, c: colors.brandPrimary },
                   { l: "Livrées", v: stats?.livrees ?? 0, c: colors.success },
                   { l: "Revenus", v: usd(stats?.revenus ?? 0), c: colors.onSurface },
                 ].map((s) => (
-                  <View key={s.l} testID={`stat-${s.l}`} style={styles.statCarte}>
+                  <View key={s.l} testID={`stat-${s.l}`} style={[styles.statCarte, bureau && styles.statCarteBureau]}>
                     <Text style={[styles.statValeur, { color: s.c }]}>{s.v}</Text>
                     <Text style={styles.statLabel}>{s.l}</Text>
                   </View>
                 ))}
               </View>
+              </View>
+
+              {bureau ? (
+                <View testID="entete-tableau" style={styles.ligneEnteteTable}>
+                  <Text style={[styles.celluleEntete, styles.colNumero]}>Commande</Text>
+                  <Text style={[styles.celluleEntete, styles.colClient]}>Client</Text>
+                  <Text style={[styles.celluleEntete, styles.colAdresse]}>Adresse</Text>
+                  <Text style={[styles.celluleEntete, styles.colLivreur]}>Livreur</Text>
+                  <Text style={[styles.celluleEntete, styles.colPaiement]}>Paiement</Text>
+                  <Text style={[styles.celluleEntete, styles.colStatut]}>Statut</Text>
+                  <Text style={[styles.celluleEntete, styles.colTotal]}>Total</Text>
+                </View>
+              ) : null}
             </View>
           }
           ListEmptyComponent={
@@ -227,7 +255,72 @@ export default function Dashboard() {
               <Text style={styles.vide}>Aucune commande pour l&apos;instant</Text>
             </View>
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) =>
+            bureau ? (
+              <Pressable
+                testID={`admin-commande-${item.numero}`}
+                onPress={() => setOuverte(item)}
+                style={({ pressed }) => [styles.ligneTable, pressed && { backgroundColor: colors.brandTertiary }]}
+              >
+                <Text style={[styles.cellule, styles.colNumero, styles.celluleForte]}>{item.numero}</Text>
+                <View style={styles.colClient}>
+                  <Text style={styles.celluleForte} numberOfLines={1}>
+                    {item.clientNom}
+                  </Text>
+                  <Text style={styles.celluleFaible}>{item.clientTelephone}</Text>
+                </View>
+                <Text style={[styles.cellule, styles.colAdresse]} numberOfLines={2}>
+                  {item.adresse?.commune} — {item.adresse?.avenue} n° {item.adresse?.numero}
+                </Text>
+                <Text
+                  style={[styles.cellule, styles.colLivreur, !item.livreur && { color: colors.muted }]}
+                  numberOfLines={1}
+                >
+                  {item.livreur ? item.livreur.nom : "Non assigné"}
+                </Text>
+                <View testID={`paiement-${item.numero}`} style={styles.colPaiement}>
+                  <Text style={styles.cellule} numberOfLines={1}>
+                    {resumePaiement(item).mode}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.celluleFaible,
+                      resumePaiement(item).paye && { color: colors.success, fontWeight: "800" },
+                    ]}
+                  >
+                    {resumePaiement(item).statut}
+                  </Text>
+                </View>
+                <View style={styles.colStatut}>
+                  <View
+                    style={[
+                      styles.pastille,
+                      {
+                        backgroundColor:
+                          item.statut === "annulee"
+                            ? colors.error
+                            : item.statut === "livree"
+                              ? colors.success
+                              : colors.brandPrimary,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.pastilleTexte}>{LIBELLES[item.statut]}</Text>
+                  </View>
+                  {item.statut === "livree" || item.statut === "annulee" ? (
+                    <Pressable
+                      testID={`btn-archiver-${item.numero}`}
+                      onPress={() => archiver(item)}
+                      style={({ pressed }) => [styles.archiverMini, pressed && { opacity: 0.7 }]}
+                    >
+                      <Icone name="package" size={13} color={colors.brandPrimary} />
+                      <Text style={styles.archiverTexte}>Archiver</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+                <Text style={[styles.total, styles.colTotal]}>{usd(item.total)}</Text>
+              </Pressable>
+            ) : (
             <Pressable
               testID={`admin-commande-${item.numero}`}
               onPress={() => setOuverte(item)}
@@ -284,14 +377,21 @@ export default function Dashboard() {
                 </Pressable>
               ) : null}
             </Pressable>
-          )}
+            )
+          }
         />
       )}
 
-      <Modal visible={!!ouverte} animationType="slide" transparent onRequestClose={() => setOuverte(null)}>
-        <View style={styles.voile}>
-          <Pressable style={{ flex: 1 }} onPress={() => setOuverte(null)} />
-          <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
+      <Modal visible={!!ouverte} animationType={bureau ? "fade" : "slide"} transparent onRequestClose={() => setOuverte(null)}>
+        <View style={[styles.voile, bureau && styles.voileCentre]}>
+          <Pressable style={bureau ? StyleSheet.absoluteFill : { flex: 1 }} onPress={() => setOuverte(null)} />
+          <View
+            style={[
+              styles.feuille,
+              { paddingBottom: bureau ? spacing.lg : insets.bottom + spacing.lg },
+              bureau && styles.dialogue,
+            ]}
+          >
             <ScrollView contentContainerStyle={styles.feuilleContenu}>
               <Text style={styles.feuilleTitre}>Commande {ouverte?.numero}</Text>
               <Text style={styles.feuilleSous}>
@@ -375,9 +475,6 @@ export default function Dashboard() {
 const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
   entete: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     backgroundColor: colors.surface,
@@ -385,12 +482,63 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     borderBottomRightRadius: radius.xl,
     ...softShadow,
   },
+  enteteInterieur: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
+  },
   sousTitre: { fontFamily: fonts.text, fontSize: 11, color: colors.muted, marginTop: 2 },
+  titrePage: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl, gap: spacing.sm },
   vide: { fontFamily: fonts.text, fontSize: 14, color: colors.muted },
   liste: { padding: spacing.lg, gap: spacing.md },
   statsRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.xs },
+  statsColonne: { flexDirection: "column", flex: 1, marginBottom: 0 },
+  grilleBureau: { flexDirection: "row", gap: spacing.md, alignItems: "stretch" },
+  ligneEnteteTable: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  celluleEntete: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.muted, textTransform: "uppercase" },
+  ligneTable: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cellule: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
+  celluleForte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onSurface },
+  celluleFaible: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
+  colNumero: { width: 92 },
+  colClient: { flex: 1.3 },
+  colAdresse: { flex: 2 },
+  colLivreur: { flex: 1.1 },
+  colPaiement: { flex: 1.2 },
+  colStatut: { width: 132, gap: 4, alignItems: "flex-start" },
+  colTotal: { width: 88, textAlign: "right" },
+  archiverMini: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+  },
+  voileCentre: { justifyContent: "center", alignItems: "center", padding: spacing.xl },
+  dialogue: { borderRadius: radius.xl, maxWidth: 680, width: "100%", maxHeight: "86%" },
   enteteListe: { gap: spacing.md },
   ventesCarte: {
     backgroundColor: colors.surface,
@@ -441,6 +589,15 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     borderColor: colors.border,
   },
   statValeur: { fontFamily: fonts.display, fontSize: 19 },
+  statCarteBureau: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: "auto",
+    alignItems: "flex-start",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    ...softShadow,
+  },
   statLabel: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
   carte: {
     backgroundColor: colors.surface,

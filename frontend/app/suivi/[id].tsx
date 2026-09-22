@@ -13,6 +13,7 @@ import { Etapes } from "@/src/components/Etapes";
 import { useT } from "@/src/i18n";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { Etoiles } from "@/src/components/Etoiles";
+import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -21,6 +22,7 @@ import { useToast } from "@/src/toast";
 export default function SuiviCommande() {
   useTheme();
   const insets = useSafeAreaInsets();
+  const { bureau } = useEcran();
   const router = useRouter();
   const toast = useToast();
   const t = useT();
@@ -101,7 +103,7 @@ export default function SuiviCommande() {
             client={positionClient}
             livreur={positionLivreur}
             itineraire={itineraire.data?.points ?? null}
-            hauteur={260}
+            hauteur={bureau ? 420 : 260}
           />
           {cmd.statut === "en_route" ? (
             <View testID="pastille-eta" style={styles.eta}>
@@ -263,7 +265,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface, textAlign: "center" },
   sousTitre: { fontFamily: fonts.text, fontSize: 11, color: colors.muted, textAlign: "center" },
-  contenu: { padding: spacing.lg, gap: spacing.md },
+  contenu: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md },
   carteWrap: { position: "relative" },
   eta: {
     position: "absolute",

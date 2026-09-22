@@ -11,6 +11,7 @@ import { Garde, TOUS_ROLES } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { Logo } from "@/src/components/Logo";
 import { CLE_TEL_REPORTE } from "@/src/prefs";
+import { LARGEUR_ETROITE } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -93,7 +94,7 @@ export default function DemandeTelephone() {
 
 const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
-  contenu: { paddingHorizontal: spacing.xl, gap: spacing.lg },
+  contenu: { ...LARGEUR_ETROITE, paddingHorizontal: spacing.xl, gap: spacing.lg },
   titre: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 14, color: colors.muted, marginTop: -spacing.md },
   info: {

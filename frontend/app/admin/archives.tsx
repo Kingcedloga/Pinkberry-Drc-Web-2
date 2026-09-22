@@ -9,6 +9,7 @@ import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { usd } from "@/src/money";
+import { LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -173,7 +174,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   sousTitre: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl, gap: spacing.sm },
   vide: { fontFamily: fonts.text, fontSize: 14, color: colors.muted },
-  liste: { paddingHorizontal: spacing.lg, gap: spacing.md },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, gap: spacing.md },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,

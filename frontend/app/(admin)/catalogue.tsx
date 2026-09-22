@@ -24,6 +24,7 @@ import { Champ } from "@/src/components/Champ";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usd } from "@/src/money";
 import { hauteurOngletsNatifs } from "@/src/nav";
+import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -587,7 +588,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   alerteTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
-  liste: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   carte: {
     flexDirection: "row",
     alignItems: "center",
@@ -645,6 +646,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   banniereValeur: { fontFamily: fonts.display, fontSize: 17, color: colors.brandPrimary },
   banniereLien: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
   feuille: {
+    ...LARGEUR_FEUILLE,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

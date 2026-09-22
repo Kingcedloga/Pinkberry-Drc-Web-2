@@ -530,3 +530,45 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 1. Adresses enregistrées + sélection rapide au checkout
 2. Pin déplaçable sur la carte pour affiner la position de livraison
 3. Tableau de bord admin : chiffre d'affaires par jour et produits les plus vendus
+
+## Web app responsive + PWA (juin 2026)
+Le produit n'est plus une app « format téléphone » : c'est une **web app responsive** utilisable
+depuis n'importe quel navigateur (ordinateur et mobile), tout en restant une app Expo native.
+
+### Points de rupture (`src/reactif.ts`)
+`sm 480` · `md 768` · `lg 1024` · `xl 1440`. Hook `useEcran()` → `{ largeur, mobile, tablette,
+bureau, large, colonnes }`. Largeurs centrées réutilisables : `LARGEUR_ETROITE` 520 (auth),
+`LARGEUR_CONTENU` 760 (formulaires, listes, suivi), `LARGEUR_GRILLE` 1160 (catalogue client),
+`LARGEUR_LARGE` 1280 (back office), `LARGEUR_FEUILLE` 640 (modales / bottom sheets).
+
+### Client
+- Onglets en **barre haute** à partir de 1024 px (web), en bas sur mobile/tablette.
+- En-tête (logo, recherche, catégories) et listes centrés, largeur max.
+- **Grille produits** : 1 colonne (<768), 2 (768-1023), 3 (1024-1439), 4 (≥1440) ; la dernière
+  rangée est complétée par des cellules invisibles pour conserver la largeur des cartes.
+- Barre panier flottante bornée à 520 px et centrée ; pied de page panier/adresse/confirmation
+  borné à 760 px.
+- Cartes auth (bienvenue, connexion, inscription, OTP) : boîte centrée 520 × max 760 px sur
+  grand écran au lieu d'occuper toute la hauteur.
+
+### Back office admin
+- **Navigation latérale** 252 px (`src/components/BarreLaterale.tsx`) à partir de 1024 px web :
+  marque Pinkberry + Commandes / Catalogue / Zones / Livreurs / Personnel (super admin),
+  puis Rapports / Archives / Paramètres. Onglets bas conservés sur mobile.
+- Dashboard : bloc « Ventes du jour » et KPI en 2 colonnes, puis **tableau large 7 colonnes**
+  (Commande, Client, Adresse, Livreur, Paiement, Statut, Total) ; cartes empilées sur mobile.
+- Modale de détail : boîte de dialogue centrée (≤ 680 px) sur desktop, bottom sheet sur mobile.
+
+### Livreur
+Grille de courses 1/2/3 colonnes, en-tête centré, cartes de suivi Mapbox agrandies sur desktop
+(suivi 420 px, course 400 px, choix d'adresse 360 px).
+
+### PWA
+`public/manifest.json` (nom Pinkberry Drc, `display: standalone`, `theme_color #E6156F`,
+icônes 192/512 + maskable), `public/sw.js` (réseau d'abord, cache de secours, `/api/*` exclu),
+métadonnées et enregistrement du service worker dans `app/+html.tsx` (+ apple-touch-icon,
+`apple-mobile-web-app-*`). L'app reste installable sur l'écran d'accueil mobile et desktop.
+
+### Validation
+Itération 26 (testing agent, frontend) : 7/7 scénarios PASS — desktop 1440 client/admin/livreur,
+mobile 390 non-régression, tablette 820, mode sombre, manifest + service worker en 200.

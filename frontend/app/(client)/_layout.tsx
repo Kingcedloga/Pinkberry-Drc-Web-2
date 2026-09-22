@@ -7,6 +7,7 @@ import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { useT } from "@/src/i18n";
 import { ONGLETS_NATIFS } from "@/src/nav";
+import { useEcran } from "@/src/reactif";
 import { colors, fonts } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 
@@ -15,6 +16,8 @@ const { Icon, Label } = NativeTabs.Trigger;
 function OngletsClient() {
   useTheme();
   const t = useT();
+  const { bureau } = useEcran();
+  const haut = bureau && Platform.OS === "web";
 
   if (ONGLETS_NATIFS) {
     return (
@@ -43,15 +46,18 @@ function OngletsClient() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarPosition: haut ? "top" : "bottom",
+        tabBarLabelPosition: haut ? "beside-icon" : undefined,
         tabBarActiveTintColor: colors.brandPrimary,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontFamily: fonts.text, fontSize: 11, fontWeight: "700" },
+        tabBarLabelStyle: { fontFamily: fonts.text, fontSize: haut ? 14 : 11, fontWeight: "700" },
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
+          borderBottomColor: colors.border,
           ...(Platform.OS === "web" ? { height: 64 } : {}),
         },
-        tabBarItemStyle: { alignSelf: "center" },
+        tabBarItemStyle: haut ? { alignSelf: "center", maxWidth: 220 } : { alignSelf: "center" },
         sceneStyle: { backgroundColor: colors.surfaceSecondary },
       }}
     >

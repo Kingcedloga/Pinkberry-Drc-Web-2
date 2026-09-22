@@ -69,15 +69,19 @@ export function EnteteMarque({
 /** Carte blanche à coins arrondis occupant l'écran, commune aux écrans d'authentification. */
 export function CarteAuth({ children, testID }: { children: React.ReactNode; testID?: string }) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const largeur = Math.min(width - spacing.md * 2, 520);
+  // Sur grand écran, la carte devient une boîte centrée au lieu d'occuper toute la hauteur.
+  const borne = height > 820 ? Math.min(height - spacing.xxxl * 2, 760) : undefined;
 
   return (
-    <View testID={testID} style={styles.ecran}>
+    <View testID={testID} style={[styles.ecran, borne ? styles.ecranCentre : null]}>
       <View
         style={[
           styles.carte,
-          { width: largeur, marginTop: insets.top + spacing.sm, marginBottom: insets.bottom + spacing.sm },
+          borne
+            ? { width: largeur, height: borne, flexGrow: 0, flexShrink: 0, flexBasis: "auto" }
+            : { width: largeur, marginTop: insets.top + spacing.sm, marginBottom: insets.bottom + spacing.sm },
         ]}
       >
         {children}
@@ -102,6 +106,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     color: colors.muted,
   },
   ecran: { flex: 1, alignItems: "center", backgroundColor: colors.surfaceSecondary, paddingHorizontal: spacing.md },
+  ecranCentre: { justifyContent: "center" },
   carte: {
     flex: 1,
     backgroundColor: colors.surface,

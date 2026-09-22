@@ -10,6 +10,7 @@ import { Icone } from "@/src/components/Icone";
 import { useT, type CleTexte } from "@/src/i18n";
 import { usd } from "@/src/money";
 import { hauteurOngletsNatifs } from "@/src/nav";
+import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -145,7 +146,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     backgroundColor: colors.brandTertiary,
   },
   lienArchivesTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.brandPrimary },
-  liste: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
+  liste: { ...LARGEUR_CONTENU, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl, gap: spacing.sm },
   vide: { fontFamily: fonts.text, fontSize: 14, fontWeight: poids.corps, color: colors.muted },
   lien: { minHeight: 44, justifyContent: "center", paddingHorizontal: spacing.lg },

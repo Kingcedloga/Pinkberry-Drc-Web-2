@@ -3,7 +3,7 @@
   "backend_issues": {
     "critical": [],
     "minor": [
-      {"endpoint": "backend/tests/test_iteration9.py::test_email_deja_pris & test_iteration14.py::TestPreferences::*", "issue": "ConnectTimeout=10s vers https://commande-rose.preview.emergentagent.com/api/... au premier run (3 fails). Passent au retry (37/37). Flake réseau connu, pas un défaut applicatif."}
+      {"endpoint": "backend/tests/test_iteration9.py::test_email_deja_pris & test_iteration14.py::TestPreferences::*", "issue": "ConnectTimeout=10s vers https://pinkberry-drc.preview.emergentagent.com/api/... au premier run (3 fails). Passent au retry (37/37). Flake réseau connu, pas un défaut applicatif."}
     ]
   },
   "frontend_issues": {

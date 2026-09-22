@@ -10,6 +10,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
 import { hauteurOngletsNatifs } from "@/src/nav";
+import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -205,7 +206,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
-  liste: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
   carte: {
     flexDirection: "row",
     alignItems: "center",
@@ -223,6 +224,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   corbeille: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {
+    ...LARGEUR_FEUILLE,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

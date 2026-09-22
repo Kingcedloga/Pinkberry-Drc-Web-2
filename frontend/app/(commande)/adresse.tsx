@@ -14,6 +14,7 @@ import { Carte } from "@/src/components/Carte";
 import { Champ } from "@/src/components/Champ";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
+import { LARGEUR_CONTENU, LARGEUR_FEUILLE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -33,6 +34,7 @@ type Suggestion = {
 export default function FormulaireAdresse() {
   useTheme();
   const insets = useSafeAreaInsets();
+  const { bureau } = useEcran();
   const router = useRouter();
   const toast = useToast();
   const t = useT();
@@ -237,7 +239,7 @@ export default function FormulaireAdresse() {
               testID="carte-choix-adresse"
               client={coords}
               mode="choix"
-              hauteur={220}
+              hauteur={bureau ? 360 : 220}
               onPosition={(p) => setCoords(p)}
             />
             {zoneGps && !zoneGps.couverte ? (
@@ -344,7 +346,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface },
-  contenu: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  contenu: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   bloc: { gap: spacing.xs },
   suggestions: {
     backgroundColor: colors.surface,
@@ -405,6 +407,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   labelChipActif: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
   labelChipTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.onSurface },
   pied: {
+    ...LARGEUR_CONTENU,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
@@ -413,6 +416,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {
+    ...LARGEUR_FEUILLE,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

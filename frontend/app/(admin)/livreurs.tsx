@@ -11,6 +11,7 @@ import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { hauteurOngletsNatifs } from "@/src/nav";
+import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -161,7 +162,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     justifyContent: "center",
   },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
-  liste: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   carte: {
     flexDirection: "row",
     alignItems: "center",
@@ -189,6 +190,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   pos: { fontFamily: fonts.text, fontSize: 11, color: colors.brandPrimary },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {
+    ...LARGEUR_FEUILLE,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

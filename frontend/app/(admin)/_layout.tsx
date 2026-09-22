@@ -3,19 +3,29 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
 import { Platform } from "react-native";
 
+import { BarreLaterale } from "@/src/components/BarreLaterale";
 import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { useAuth } from "@/src/auth";
 import { ONGLETS_NATIFS } from "@/src/nav";
+import { useEcran } from "@/src/reactif";
 import { colors, fonts } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 
 const { Icon, Label } = NativeTabs.Trigger;
 
+const LIENS_BUREAU = [
+  { libelle: "Rapports", icone: "download", href: "/admin/rapports" },
+  { libelle: "Archives", icone: "archive", href: "/admin/archives" },
+  { libelle: "Paramètres", icone: "settings", href: "/admin/parametres" },
+];
+
 function OngletsAdmin() {
   useTheme();
   const { user } = useAuth();
+  const { bureau } = useEcran();
   const estSuper = user?.role === "superadmin";
+  const lateral = bureau && Platform.OS === "web";
 
   if (ONGLETS_NATIFS) {
     return (
@@ -50,8 +60,21 @@ function OngletsAdmin() {
 
   return (
     <Tabs
+      tabBar={
+        lateral
+          ? (props: any) => (
+              <BarreLaterale
+                {...props}
+                sousTitre="Back office administrateur"
+                routesMasquees={estSuper ? [] : ["personnel"]}
+                liens={LIENS_BUREAU}
+              />
+            )
+          : undefined
+      }
       screenOptions={{
         headerShown: false,
+        tabBarPosition: lateral ? "left" : "bottom",
         tabBarActiveTintColor: colors.brandPrimary,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontFamily: fonts.text, fontSize: 11, fontWeight: "700" },

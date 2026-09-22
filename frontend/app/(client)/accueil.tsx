@@ -24,6 +24,7 @@ import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { hauteurOngletsNatifs } from "@/src/nav";
+import { LARGEUR_GRILLE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -40,6 +41,8 @@ export default function Accueil() {
   const t = useT();
   const { usd, fc } = useMontant();
   const { ajouter, nbArticles, sousTotal } = usePanier();
+  const { colonnes, largeur, mobile } = useEcran();
+  const grille = colonnes > 1;
 
   const [recherche, setRecherche] = useState("");
   const [categorie, setCategorie] = useState("Tous");
@@ -69,6 +72,15 @@ export default function Accueil() {
     );
   }, [produits, categorie, recherche]);
 
+  // Grille : on complète la dernière rangée pour que les cartes gardent leur largeur.
+  const donnees = useMemo(() => {
+    if (colonnes <= 1) return filtres;
+    const reste = filtres.length % colonnes;
+    if (reste === 0) return filtres;
+    const remplissage = Array.from({ length: colonnes - reste }, (_, i) => ({ id: `vide-${i}`, vide: true }));
+    return [...filtres, ...(remplissage as any[])];
+  }, [filtres, colonnes]);
+
   const recommander = (commande: any) => {
     commande.items.forEach((i: any) =>
       ajouter({
@@ -89,24 +101,26 @@ export default function Accueil() {
     <View testID="ecran-accueil" style={styles.ecran}>
       {/* En-tête collant */}
       <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <View style={styles.enteteHaut}>
-          <Logo taille={24} />
-          <Pressable testID="btn-profil" onPress={() => router.push("/compte")} style={styles.avatar}>
-            <Icone name="user" size={20} color={colors.brandPrimary} />
-          </Pressable>
+        <View style={styles.enteteInterieur}>
+          <View style={styles.enteteHaut}>
+            <Logo taille={mobile ? 24 : 28} />
+            <Pressable testID="btn-profil" onPress={() => router.push("/compte")} style={styles.avatar}>
+              <Icone name="user" size={20} color={colors.brandPrimary} />
+            </Pressable>
+          </View>
+          <View style={styles.rechercheWrap}>
+            <Icone name="search" size={18} color={colors.muted} />
+            <TextInput
+              testID="input-recherche"
+              value={recherche}
+              onChangeText={setRecherche}
+              placeholder={t("accueil.rechercher")}
+              placeholderTextColor={colors.muted}
+              style={styles.recherche}
+            />
+          </View>
+          <Chips options={categories} valeur={categorie} onChange={setCategorie} />
         </View>
-        <View style={styles.rechercheWrap}>
-          <Icone name="search" size={18} color={colors.muted} />
-          <TextInput
-            testID="input-recherche"
-            value={recherche}
-            onChangeText={setRecherche}
-            placeholder={t("accueil.rechercher")}
-            placeholderTextColor={colors.muted}
-            style={styles.recherche}
-          />
-        </View>
-        <Chips options={categories} valeur={categorie} onChange={setCategorie} />
       </View>
 
       {produitsQ.isLoading ? (
@@ -123,10 +137,14 @@ export default function Accueil() {
       ) : (
         <FlatList
           testID="liste-produits"
-          data={filtres}
+          data={donnees}
+          key={`grille-${colonnes}`}
+          numColumns={colonnes}
+          columnWrapperStyle={grille ? styles.rangeeGrille : undefined}
           keyExtractor={(p) => p.id}
           contentContainerStyle={[
             styles.liste,
+            LARGEUR_GRILLE,
             { paddingBottom: (nbArticles > 0 ? 110 : spacing.xl) + offsetOnglets },
           ]}
           refreshing={produitsQ.isRefetching}
@@ -171,15 +189,23 @@ export default function Accueil() {
               <Text style={styles.vide}>{t("accueil.aucunProduit")}</Text>
             </View>
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) =>
+            (item as any).vide ? (
+              <View style={styles.carteVide} />
+            ) : (
             <Pressable
               testID={`produit-${item.id}`}
               disabled={!item.disponible}
               onPress={() => setProduitOuvert(item)}
-              style={({ pressed }) => [styles.carte, pressed && styles.cartePressee, !item.disponible && styles.carteIndispo]}
+              style={({ pressed }) => [
+                styles.carte,
+                grille && styles.carteGrille,
+                pressed && styles.cartePressee,
+                !item.disponible && styles.carteIndispo,
+              ]}
             >
-              <PhotoProduit image={item.image} taille={72} />
-              <View style={styles.carteTexte}>
+              <PhotoProduit image={item.image} taille={grille ? 132 : 72} />
+              <View style={[styles.carteTexte, grille && styles.carteTexteGrille]}>
                 <Text style={styles.produitNom} numberOfLines={1}>
                   {item.nom}
                 </Text>
@@ -189,11 +215,12 @@ export default function Accueil() {
                 </Text>
                 {!item.disponible ? <Text style={styles.rupture}>{t("accueil.rupture")}</Text> : null}
               </View>
-              <View style={styles.plus}>
+              <View style={[styles.plus, grille && styles.plusGrille]}>
                 <Icone name="plus" size={20} color={colors.onBrandPrimary} />
               </View>
             </Pressable>
-          )}
+            )
+          }
         />
       )}
 
@@ -207,6 +234,7 @@ export default function Accueil() {
               bottom: offsetOnglets + spacing.lg,
               backgroundColor: pressed ? colors.brandSecondary : colors.brandPrimary,
             },
+            largeur > 620 ? { width: 520, left: (largeur - 520) / 2, right: undefined } : null,
           ]}
         >
           <View style={styles.badge}>
@@ -239,6 +267,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     paddingBottom: spacing.sm,
     ...softShadow,
   },
+  enteteInterieur: { width: "100%", maxWidth: 1160, alignSelf: "center" },
   enteteHaut: {
     flexDirection: "row",
     alignItems: "center",
@@ -268,6 +297,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   recherche: { flex: 1, fontFamily: fonts.text, fontSize: 14, color: colors.onSurface },
   liste: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.md },
+  rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl, gap: spacing.sm },
   vide: { fontFamily: fonts.text, fontSize: 14, color: colors.muted },
   videEmoji: { fontSize: 42 },
@@ -313,6 +343,16 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     ...softShadow,
   },
   cartePressee: { backgroundColor: colors.brandTertiary },
+  carteGrille: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "center",
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  carteVide: { flex: 1 },
+  carteTexteGrille: { alignItems: "center", flexGrow: 0, flexShrink: 0, flexBasis: "auto", width: "100%" },
+  plusGrille: { alignSelf: "stretch", width: "100%", borderRadius: radius.lg },
   carteIndispo: { opacity: 0.55 },
   vignette: { width: 72, height: 72, borderRadius: radius.lg, backgroundColor: colors.brandTertiary },
   vignetteVide: { alignItems: "center", justifyContent: "center" },

@@ -8,6 +8,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
+import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -129,7 +130,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg, paddingHorizontal: spacing.xl },
   vide: { fontFamily: fonts.text, fontSize: 15, color: colors.muted },
   videEmoji: { fontSize: 46 },
-  liste: { padding: spacing.lg, gap: spacing.md },
+  liste: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md },
   carte: {
     flexDirection: "row",
     gap: spacing.md,
@@ -161,6 +162,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   qValeur: { fontFamily: fonts.display, fontSize: 15, color: colors.onSurface, minWidth: 18, textAlign: "center" },
   pied: {
+    ...LARGEUR_CONTENU,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

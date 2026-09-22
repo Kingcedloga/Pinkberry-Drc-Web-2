@@ -13,6 +13,7 @@ import { Champ } from "@/src/components/Champ";
 import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { hauteurOngletsNatifs } from "@/src/nav";
+import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -284,7 +285,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl, gap: spacing.sm },
   refus: { fontFamily: fonts.text, fontSize: 14, color: colors.muted },
-  liste: { paddingHorizontal: spacing.lg, gap: spacing.md },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, gap: spacing.md },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
@@ -313,6 +314,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   desactive: { fontFamily: fonts.text, fontSize: 12, color: colors.error, marginTop: 2 },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {
+    ...LARGEUR_FEUILLE,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

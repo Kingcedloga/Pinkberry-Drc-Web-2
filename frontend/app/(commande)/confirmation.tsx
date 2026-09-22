@@ -13,6 +13,7 @@ import { ChoixPaiement, type Devise, type ModePaiement, type Operateur } from "@
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
+import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useConfigApp, useMontant } from "@/src/taux";
@@ -226,7 +227,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface },
-  contenu: { padding: spacing.lg, gap: spacing.md },
+  contenu: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
@@ -251,6 +252,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   grandTotalValeur: { fontFamily: fonts.display, fontSize: 24, color: colors.brandPrimary, textAlign: "right" },
   grandTotalFc: { fontFamily: fonts.text, fontSize: 11, color: colors.muted, textAlign: "right" },
   pied: {
+    ...LARGEUR_CONTENU,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

@@ -1,0 +1,20 @@
+{
+  "name": "Pinkberry Drc",
+  "short_name": "Pinkberry",
+  "description": "Commandez vos yogourts glacés Pinkberry à Kinshasa : catalogue, paiement Mobile Money et suivi de livraison en direct.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFFFFF",
+  "theme_color": "#E6156F",
+  "categories": ["food", "shopping"],
+  "icons": [
+    { "src": "/icones/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icones/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icones/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icones/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -8,6 +8,7 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteAuth, EnteteMarque } from "@/src/components/DecorAuth";
+import { LARGEUR_ETROITE } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -124,7 +125,7 @@ export default function VerificationOtp() {
 }
 
 const styles = stylesDynamiques(() => StyleSheet.create({
-  contenu: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.xxl, gap: spacing.lg },
+  contenu: { ...LARGEUR_ETROITE, paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.xxl, gap: spacing.lg },
   retour: {
     position: "absolute",
     top: spacing.md,

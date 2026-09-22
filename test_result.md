@@ -101,3 +101,39 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+## Itération responsive web (juin 2026)
+
+### Objectif utilisateur
+Faire évoluer l'app mobile Pinkberry Drc en **web app responsive** utilisable depuis
+n'importe quel navigateur (ordinateur + téléphone), sans perdre aucune fonctionnalité,
+en gardant la charte (rose #E6156F, vert #8DC63F, Fredoka/Nunito, coins arrondis),
+le mode sombre et l'installation PWA.
+
+### Travaux réalisés
+- `src/reactif.ts` : points de rupture (sm 480 / md 768 / lg 1024 / xl 1440), hook `useEcran()`
+  et largeurs centrées (`LARGEUR_ETROITE` 520, `LARGEUR_CONTENU` 760, `LARGEUR_GRILLE` 1160,
+  `LARGEUR_LARGE` 1280, `LARGEUR_FEUILLE` 640).
+- Client : onglets en **barre haute** sur ≥1024 px (bas sur mobile), en-tête et listes centrées,
+  **grille produits** 1/2/3/4 colonnes selon la largeur, barre panier bornée à 520 px.
+- Admin : **navigation latérale** (sidebar `src/components/BarreLaterale.tsx`) sur ≥1024 px web,
+  avec liens Rapports / Archives / Paramètres ; dashboard en **tableau large** (7 colonnes)
+  + bloc ventes et KPI en 2 colonnes ; modale détail en boîte de dialogue centrée.
+- Livreur : grille de courses 1/2/3 colonnes, en-tête centré.
+- Toutes les autres pages (auth, commande, suivi, archives, paramètres, catalogue, zones,
+  livreurs, personnel, rapports) : contenu centré avec largeur max ; feuilles/modales ≤ 640 px.
+- Cartes Mapbox plus hautes sur grand écran (suivi 420, course 400, choix adresse 360).
+- PWA : `public/manifest.json`, `public/sw.js` (réseau d'abord, /api exclu), icônes 180/192/512
+  + maskable, métadonnées dans `app/+html.tsx` (manifest, theme-color, apple-touch-icon).
+
+### À tester (frontend)
+1. Desktop 1440 : connexion, accueil client (grille 4 colonnes), panier, adresse, confirmation, suivi.
+2. Desktop 1440 admin : sidebar (Commandes/Catalogue/Zones/Livreurs + liens bas), tableau commandes,
+   ouverture de la modale détail, changement de statut, assignation livreur.
+3. Desktop 1440 livreur : grille de courses, ouverture d'une course, carte.
+4. Mobile 390 : non-régression complète (onglets bas, cartes une colonne, feuilles en bas d'écran).
+5. Tablette 820 : 2 colonnes produits, onglets bas.
+6. PWA : /manifest.json et /sw.js répondent 200.
+
+### Identifiants
+Voir `/app/memory/test_credentials.md` (client 0990000001/client123, admin 0810000000/admin123,
+livreur 0820000001/livreur123).

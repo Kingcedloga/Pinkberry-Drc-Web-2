@@ -11,6 +11,7 @@ import { Champ } from "@/src/components/Champ";
 import { ChoixTheme } from "@/src/components/ChoixTheme";
 import { Icone, type NomIcone } from "@/src/components/Icone";
 import { useLangue, type Langue } from "@/src/i18n";
+import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -307,7 +308,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     justifyContent: "center",
   },
   titre: { fontFamily: fonts.display, fontSize: 22, color: colors.onSurface },
-  contenu: { paddingHorizontal: spacing.lg, gap: spacing.lg },
+  contenu: { ...LARGEUR_CONTENU, paddingHorizontal: spacing.lg, gap: spacing.lg },
   section: { gap: spacing.sm },
   sectionTitre: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.muted, textTransform: "uppercase" },
   carte: {

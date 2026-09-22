@@ -11,6 +11,7 @@ import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
+import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -19,6 +20,7 @@ import { useToast } from "@/src/toast";
 export default function DetailCourse() {
   useTheme();
   const insets = useSafeAreaInsets();
+  const { bureau } = useEcran();
   const router = useRouter();
   const toast = useToast();
   const qc = useQueryClient();
@@ -139,7 +141,7 @@ export default function DetailCourse() {
           client={positionClient}
           livreur={positionLivreur}
           itineraire={itineraire.data?.points ?? null}
-          hauteur={240}
+          hauteur={bureau ? 400 : 240}
         />
 
         {itineraire.data?.etaSecondes ? (
@@ -267,7 +269,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface },
-  contenu: { padding: spacing.lg, gap: spacing.md },
+  contenu: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
