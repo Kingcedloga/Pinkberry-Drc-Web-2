@@ -4,6 +4,7 @@ import { AppState, Platform } from "react-native";
 
 import { useAuth } from "@/src/auth";
 import { enregistrerToken, etatPush } from "@/src/push";
+import { synchroniserPushWeb } from "@/src/push-web";
 
 /**
  * Rafraîchit silencieusement le token push quand l'autorisation est déjà
@@ -14,7 +15,12 @@ export function GestionPush() {
   const { user } = useAuth();
 
   const rafraichir = useCallback(async () => {
-    if (!user || Platform.OS === "web") return;
+    if (!user) return;
+    if (Platform.OS === "web") {
+      // Web : reenregistre l'abonnement push existant (aucune popup).
+      await synchroniserPushWeb();
+      return;
+    }
     const etat = await etatPush();
     if (etat.statut === "granted") await enregistrerToken(user.id);
   }, [user]);

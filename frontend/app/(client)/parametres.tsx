@@ -14,6 +14,7 @@ import { useLangue, type CleTexte, type Langue } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
+import { abonnerPushWeb, desabonnerPushWeb, pushWebDisponible } from "@/src/push-web";
 import { useToast } from "@/src/toast";
 
 /** Lien partagé aux amis : remplacé par le lien Play Store / App Store dès qu'il existe. */
@@ -105,6 +106,19 @@ export default function ParametresClient() {
 
   const majPrefs = async (maj: Parameters<typeof enregistrerPrefs>[0]) => {
     try {
+      // Le reglage « suivi de commande » pilote aussi l'abonnement push du navigateur.
+      // On le traite AVANT l'appel reseau : la demande d'autorisation doit rester
+      // rattachee au geste de l'utilisateur.
+      if ("notifSuivi" in maj && pushWebDisponible()) {
+        if (maj.notifSuivi) {
+          const apres = await abonnerPushWeb();
+          if (!apres.abonne && apres.permission === "denied") {
+            toast.show("Autorisez les notifications dans votre navigateur", "info");
+          }
+        } else {
+          await desabonnerPushWeb();
+        }
+      }
       await enregistrerPrefs(maj);
       toast.show(t("params.enregistre"), "succes");
     } catch (e: any) {

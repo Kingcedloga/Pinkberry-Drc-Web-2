@@ -54,7 +54,7 @@ export default function Compte() {
           {user?.email ? <Text style={styles.detail}>{user.email}</Text> : null}
         </View>
 
-        <CarteNotifications texte="Activez-les pour savoir quand votre commande part et quand le livreur arrive, même app fermée." />
+        <CarteNotifications texte="Reçois les infos de ta commande en temps réel, même quand l'application est fermée." />
 
         <View style={styles.carteInfo}>
           <View style={styles.ligneInfo}>

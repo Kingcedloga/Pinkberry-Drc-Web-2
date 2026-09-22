@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -28,6 +29,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image
 from pydantic import BaseModel, Field
+from pywebpush import WebPushException, webpush
 from starlette.middleware.cors import CORSMiddleware
 import io
 
@@ -1203,6 +1205,7 @@ async def appliquer_etat_final(donnees: Dict[str, Any]) -> None:
             }
         },
     )
+    await notifier_paiement(precedent["commandeId"], paye)
 
 
 async def _synchroniser_depot(depot_id: str) -> Dict[str, Any]:
@@ -1419,6 +1422,7 @@ MESSAGES_PUSH = {
     "en_preparation": ("En préparation", "Votre commande {numero} est en préparation."),
     "recuperee": ("Commande récupérée", "Le livreur a récupéré votre commande {numero}."),
     "en_route": ("Livreur en route", "Votre livreur arrive, suivez-le sur la carte."),
+    "arrivee": ("Livreur arrivé", "Votre livreur est arrivé à l'adresse de livraison."),
     "livree": ("Commande livrée", "Bon appétit ! Merci pour votre commande {numero}."),
     "annulee": ("Commande annulée", "Votre commande {numero} a été annulée."),
 }
@@ -1433,33 +1437,63 @@ async def notifier_client(cmd: Dict[str, Any], statut: str) -> None:
     if not prefs.get("notifSuivi", True):
         return
     titre, message = modele
+    texte = message.format(numero=cmd.get("numero", ""))
+    lien = f"/suivi/{cmd['id']}"
     try:
         await send_push(
             recipients=[cmd["userId"]],
-            data={
-                "title": titre,
-                "message": message.format(numero=cmd.get("numero", "")),
-                "action_url": f"/suivi/{cmd['id']}",
-            },
+            data={"title": titre, "message": texte, "action_url": lien},
             idempotency_key=f"{cmd['id']}-{statut}",
         )
     except Exception as e:
         logger.warning(f"Push client non bloquant: {e}")
+    try:
+        await envoyer_webpush([cmd["userId"]], titre, texte, lien, tag=f"cmd-{cmd['id']}")
+    except Exception as e:
+        logger.warning(f"Web push client non bloquant: {e}")
+
+
+async def notifier_paiement(commande_id: str, paye: bool) -> None:
+    """Paiement Mobile Money confirme (ou echoue) : notification au client."""
+    cmd = await db.commandes.find_one({"id": commande_id}, {"_id": 0})
+    if not cmd:
+        return
+    titre = "Paiement confirmé" if paye else "Paiement échoué"
+    texte = (
+        f"Votre paiement de ${cmd.get('total')} pour {cmd.get('numero')} est confirmé."
+        if paye
+        else f"Le paiement de {cmd.get('numero')} n'a pas abouti, vous pouvez réessayer."
+    )
+    lien = f"/suivi/{commande_id}"
+    try:
+        await send_push(
+            recipients=[cmd["userId"]],
+            data={"title": titre, "message": texte, "action_url": lien},
+            idempotency_key=f"{commande_id}-paiement-{'ok' if paye else 'ko'}",
+        )
+    except Exception as e:
+        logger.warning(f"Push paiement non bloquant: {e}")
+    try:
+        await envoyer_webpush([cmd["userId"]], titre, texte, lien, tag=f"paiement-{commande_id}")
+    except Exception as e:
+        logger.warning(f"Web push paiement non bloquant: {e}")
 
 
 async def notifier_admins(cmd: Dict[str, Any]) -> None:
+    texte = f"{cmd.get('clientNom')} · {cmd.get('numero')} · ${cmd.get('total')}"
+    admins = await ids_admins()
     try:
         await send_push(
-            recipients=await ids_admins(),
-            data={
-                "title": "Nouvelle commande",
-                "message": f"{cmd.get('clientNom')} · {cmd.get('numero')} · ${cmd.get('total')}",
-                "action_url": "/dashboard",
-            },
+            recipients=admins,
+            data={"title": "Nouvelle commande", "message": texte, "action_url": "/admin"},
             idempotency_key=f"{cmd['id']}-admin",
         )
     except Exception as e:
         logger.warning(f"Push admin non bloquant: {e}")
+    try:
+        await envoyer_webpush(admins, "Nouvelle commande", texte, "/admin", tag=f"admin-{cmd['id']}")
+    except Exception as e:
+        logger.warning(f"Web push admin non bloquant: {e}")
 
 
 async def notifier_livreur(cmd: Dict[str, Any]) -> None:
@@ -1467,17 +1501,122 @@ async def notifier_livreur(cmd: Dict[str, Any]) -> None:
         cible = await id_user_livreur(cmd.get("livreurId"))
         if not cible:
             return
+        texte = f"{cmd.get('numero')} · {cmd.get('adresse', {}).get('commune')} · ${cmd.get('total')} à encaisser"
+        lien = f"/livreur/course/{cmd['id']}"
         await send_push(
             recipients=[cible],
-            data={
-                "title": "Nouvelle course",
-                "message": f"{cmd.get('numero')} · {cmd.get('adresse', {}).get('commune')} · ${cmd.get('total')} à encaisser",
-                "action_url": f"/course/{cmd['id']}",
-            },
+            data={"title": "Nouvelle course", "message": texte, "action_url": lien},
             idempotency_key=f"{cmd['id']}-livreur-{cmd.get('livreurId')}",
         )
+        await envoyer_webpush([cible], "Nouvelle course", texte, lien, tag=f"course-{cmd['id']}")
     except Exception as e:
         logger.warning(f"Push livreur non bloquant: {e}")
+
+
+
+# --------------------------------------------- notifications push web (VAPID)
+# Push navigateur (systeme) : recues meme onglet ferme. Les pop-ups internes de
+# l'app (toasts) restent independantes.
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:contact@pinkberrydrc.cd")
+
+
+class AbonnementWebBody(BaseModel):
+    endpoint: str
+    keys: Dict[str, str] = Field(default_factory=dict)
+    expirationTime: Optional[int] = None
+
+
+@api_router.get("/push/web/cle-publique")
+async def cle_publique_web():
+    """Cle publique VAPID : non secrete, necessaire au navigateur pour s'abonner."""
+    return {"clePublique": VAPID_PUBLIC_KEY, "actif": bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)}
+
+
+@api_router.put("/push/web/abonnement")
+async def enregistrer_abonnement_web(
+    body: AbonnementWebBody, user: Dict[str, Any] = Depends(get_current_user)
+):
+    if set(body.keys) != {"p256dh", "auth"} or not body.endpoint.startswith("https://"):
+        raise HTTPException(status_code=400, detail="Abonnement invalide")
+    await db.push_web.update_one(
+        {"endpoint": body.endpoint},
+        {
+            "$set": {
+                "userId": user["id"],
+                "endpoint": body.endpoint,
+                "keys": body.keys,
+                "expirationTime": body.expirationTime,
+                "updatedAt": iso(now_utc()),
+            },
+            "$setOnInsert": {"createdAt": iso(now_utc())},
+        },
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@api_router.delete("/push/web/abonnement")
+async def supprimer_abonnement_web(
+    body: AbonnementWebBody, user: Dict[str, Any] = Depends(get_current_user)
+):
+    await db.push_web.delete_one({"endpoint": body.endpoint, "userId": user["id"]})
+    return {"ok": True}
+
+
+@api_router.get("/push/web/etat")
+async def etat_abonnement_web(user: Dict[str, Any] = Depends(get_current_user)):
+    n = await db.push_web.count_documents({"userId": user["id"]})
+    return {"abonnements": n}
+
+
+def _envoyer_un_webpush(abonnement: Dict[str, Any], charge: str) -> Optional[int]:
+    """Envoi bloquant (execute dans un thread). Renvoie le code HTTP en cas d'echec."""
+    try:
+        webpush(
+            subscription_info={"endpoint": abonnement["endpoint"], "keys": abonnement["keys"]},
+            data=charge,
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": VAPID_SUBJECT},
+            ttl=86400,
+        )
+        return None
+    except WebPushException as e:
+        return getattr(getattr(e, "response", None), "status_code", 0) or 0
+
+
+async def envoyer_webpush(
+    user_ids: List[str], titre: str, message: str, url: str, tag: Optional[str] = None
+) -> int:
+    """Notification systeme a tous les navigateurs abonnes de ces utilisateurs."""
+    cibles = [u for u in user_ids if u]
+    if not cibles or not (VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY):
+        return 0
+    abonnements = await db.push_web.find({"userId": {"$in": cibles}}, {"_id": 0}).to_list(200)
+    if not abonnements:
+        return 0
+    charge = json.dumps(
+        {
+            "title": titre,
+            "body": message,
+            "icon": "/icones/icon-192.png",
+            "badge": "/icones/icon-192.png",
+            "url": url,
+            "tag": tag or "pinkberry",
+        }
+    )
+    envoyes = 0
+    for abo in abonnements:
+        code = await asyncio.to_thread(_envoyer_un_webpush, abo, charge)
+        if code is None:
+            envoyes += 1
+        elif code in (404, 410):
+            # Abonnement expire cote navigateur : on nettoie.
+            await db.push_web.delete_one({"endpoint": abo["endpoint"]})
+        else:
+            logger.warning(f"Web push echoue ({code})")
+    return envoyes
 
 
 # --------------------------------------------------------------------- catalogue
@@ -2617,6 +2756,9 @@ async def seed():
         unique=True,
         partialFilterExpression={"telephone": {"$type": "string"}},
     )
+    await db.push_web.create_index("endpoint", unique=True)
+    await db.push_web.create_index("userId")
+
     # Normalise les produits anterieurs a l'ajout de la mise en avant.
     await db.produits.update_many({"enAvant": {"$exists": False}}, {"$set": {"enAvant": False}})
 

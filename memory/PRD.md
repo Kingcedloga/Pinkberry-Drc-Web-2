@@ -625,3 +625,37 @@ Jonas Mbala → statuts → livreur → suivi client), CRUD back office, page d'
   avec en-têtes `TitrePage` (utilitaire `completerGrille` dans `src/reactif.ts`).
 - **Livreur** : `/livreur/course/{id}` en 2 colonnes (carte Mapbox + ETA + client + montant à gauche ;
   mise à jour du statut, partage GPS et actions à droite).
+
+## Notifications push web (système) — itération 30
+Notifications **système** via l'API Push + Service Worker + clés VAPID : reçues même si l'onglet
+ou l'application est fermé. À ne pas confondre avec les toasts internes (`src/toast.tsx`), qui ne
+s'affichent que l'app ouverte.
+
+### Backend
+- Clés VAPID dans `backend/.env` (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`),
+  envoi via `pywebpush`.
+- Collection `push_web` : un document par navigateur `{userId, endpoint unique, keys, dates}`.
+- `GET /api/push/web/cle-publique`, `PUT` / `DELETE /api/push/web/abonnement` (authentifiés,
+  cloisonnés par `userId`), `GET /api/push/web/etat`.
+- `envoyer_webpush()` : envoi non bloquant, suppression automatique des abonnements expirés (404/410).
+- Événements déclencheurs : **client** chaque statut de commande (reçue, en préparation, récupérée,
+  en route, livrée, annulée) + **paiement Mobile Money confirmé/échoué** ; **admin** nouvelle
+  commande ; **livreur** nouvelle course assignée. Chaque notification porte un titre, un court
+  message, l'icône Pinkberry et une URL de destination (`/suivi/{id}`, `/admin`,
+  `/livreur/course/{id}`) ouverte par le service worker au clic.
+
+### Frontend
+- `src/push-web.ts` (abonnement / désabonnement / synchronisation), handlers `push` et
+  `notificationclick` dans `public/sw.js`, enregistrement du service worker à l'exécution
+  (`src/web-pwa.ts`, appelé depuis `app/_layout.tsx`).
+- Invite maison `CarteNotifications` (« Reçois les infos de ta commande en temps réel ») affichée
+  sur `/compte`, `/suivi/{id}`, `/admin` et `/livreur` : la popup du navigateur n'est demandée
+  qu'après acceptation de l'invite. Message explicite si le navigateur bloque les notifications.
+- Le réglage « suivi de commande » de `/parametres` abonne ou **désabonne** réellement le navigateur.
+
+### Validation
+12/12 tests backend (`/app/backend/tests/test_iteration30.py`) : endpoints, validation, idempotence,
+cloisonnement, nettoyage des abonnements expirés, déclenchement sur les événements métier sans
+régression. L'abonnement réel du navigateur doit être testé dans Chrome/Edge (le Chromium
+d'automatisation refuse la permission notifications). Sur iPhone, le push web exige que le site
+soit ajouté à l'écran d'accueil (PWA).

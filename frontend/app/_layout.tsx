@@ -21,6 +21,7 @@ import { queryClient } from "@/src/query-client";
 import { ThemeProvider, useTheme } from "@/src/theme-contexte";
 import { TauxProvider } from "@/src/taux";
 import { ToastProvider } from "@/src/toast";
+import { initialiserWeb } from "@/src/web-pwa";
 
 // Disable logbox errors etc so that users can see the app
 // and agent works as expected.
@@ -67,6 +68,11 @@ export default function RootLayout() {
     Fredoka: require("@/assets/fonts/Fredoka.ttf"),
     Nunito: require("@/assets/fonts/Nunito.ttf"),
   });
+
+  useEffect(() => {
+    // Web : manifeste PWA + service worker (requis pour les notifications push).
+    initialiserWeb();
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === "web") return;

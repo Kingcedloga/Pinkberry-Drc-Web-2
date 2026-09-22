@@ -224,3 +224,56 @@ web (header + sidebar), URLs propres, pages web classiques, back-end et modèle 
 4. Desktop 1440 livreur : `/livreur/course/{id}` en 2 colonnes, actions de statut.
 5. Mobile 390 : non-régression des 4 points ci-dessus (auth compacte, barres d'action en bas,
    cartes en 1 colonne).
+
+## Itération 30 — Notifications push WEB (API Push + Service Worker + VAPID)
+
+### Backend (`/app/backend/server.py`)
+- Clés VAPID générées et stockées dans `backend/.env` : `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`
+  (base64url brut), `VAPID_SUBJECT`. `pywebpush` + `py-vapid` ajoutés à `requirements.txt`.
+- Nouvelle collection `push_web` : `{userId, endpoint (unique), keys{p256dh,auth}, expirationTime,
+  createdAt, updatedAt}` + index créés au démarrage.
+- Endpoints :
+  - `GET /api/push/web/cle-publique` → `{clePublique, actif}` (public)
+  - `PUT /api/push/web/abonnement` (auth) → upsert par endpoint, rejette 400 si clés invalides
+    ou endpoint non HTTPS
+  - `DELETE /api/push/web/abonnement` (auth) → supprime uniquement l'abonnement de l'utilisateur
+  - `GET /api/push/web/etat` (auth) → nombre d'abonnements du compte
+- `envoyer_webpush(user_ids, titre, message, url, tag)` : envoi via `pywebpush` dans un thread,
+  suppression automatique des abonnements expirés (404/410), log sinon. Ne bloque jamais la requête.
+- Branché sur les événements existants : `notifier_client` (chaque statut : recue, en_preparation,
+  recuperee, en_route, livree, annulee), `notifier_admins` (nouvelle commande → `/admin`),
+  `notifier_livreur` (course assignée → `/livreur/course/{id}`) et **nouveau** `notifier_paiement`
+  appelé par `appliquer_etat_final` (paiement Mobile Money confirmé ou échoué → `/suivi/{id}`).
+- Vérifié manuellement : chiffrement + signature VAPID valides (`pywebpush` renvoie 410 sur un
+  endpoint factice, ce qui déclenche le nettoyage attendu).
+
+### Frontend
+- `src/push-web.ts` : `pushWebDisponible`, `etatPushWeb`, `abonnerPushWeb` (demande
+  d'autorisation UNIQUEMENT sur geste utilisateur), `desabonnerPushWeb`, `synchroniserPushWeb`.
+- `public/sw.js` : handlers `push` (titre, corps, icône Pinkberry, tag) et `notificationclick`
+  (focus de l'onglet existant + navigation vers l'URL, sinon nouvelle fenêtre).
+- `src/web-pwa.ts` + `app/_layout.tsx` : enregistrement du service worker et injection du
+  manifeste/theme-color à l'exécution (le gabarit `app/+html.tsx` n'est utilisé qu'au build).
+- `src/components/CarteNotifications.tsx` : invite maison sur le web (« Reçois les infos de ta
+  commande en temps réel… ») avec bouton Activer / Désactiver et message explicite si le
+  navigateur bloque. Affichée sur `/compte`, `/suivi/{id}`, `/admin`, `/livreur`.
+- `app/(client)/parametres.tsx` : le réglage « suivi de commande » abonne/désabonne réellement
+  le navigateur (traité avant l'appel réseau pour conserver le geste utilisateur).
+
+### Limite de test connue
+Le navigateur d'automatisation (Chromium headless) refuse systématiquement la permission
+`notifications` : `pushManager.subscribe()` y renvoie « permission denied ». La branche
+« navigateur bloque » est donc validée, mais l'abonnement réel doit être testé par l'utilisateur
+dans Chrome/Edge/Chrome Android.
+
+### À tester (backend)
+1. `GET /api/push/web/cle-publique` → `actif: true`.
+2. `PUT /api/push/web/abonnement` : 401 sans token, 400 si clés invalides ou endpoint http,
+   200 + upsert idempotent (2 appels = 1 seul document).
+3. `DELETE` : ne supprime pas l'abonnement d'un autre utilisateur (cloisonnement par `userId`).
+4. `GET /api/push/web/etat` : compte correct.
+5. Événements : avec un abonnement factice enregistré pour le client, créer une commande
+   (`POST /api/commandes`) puis changer son statut côté admin → l'abonnement factice doit être
+   supprimé (410 de FCM), preuve que `envoyer_webpush` est bien appelé sur chaque événement.
+6. Non-régression : `notifier_client/admins/livreur` ne doivent jamais faire échouer la requête
+   métier même sans clé push native (EMERGENT_PUSH_KEY absente).

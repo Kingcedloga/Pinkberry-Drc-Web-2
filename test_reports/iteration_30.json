@@ -1,0 +1,34 @@
+{
+  "summary": "Backend-only testing des notifications push web (VAPID) - iteration 30. 12/12 tests pytest passent (test_iteration30.py, xdist 2 workers). Couverture : GET /api/push/web/cle-publique (public, actif=true, cle presente, cle privee jamais exposee), PUT /api/push/web/abonnement (401 sans token, 400 si clefs != {p256dh, auth} ou endpoint non https, 200 avec abonnement valide, IDEMPOTENCE verifiee en Mongo : 2 PUT du meme endpoint = 1 seul document), DELETE cloisonne (user B ne peut PAS supprimer l'abonnement de user A - verifie en Mongo), GET /api/push/web/etat (compte 0 apres suppression), et DECLENCHEMENT SUR EVENEMENTS : creation commande client (cash, Gombe) + assignation livreur + PATCH statut en_preparation/en_route -> tous les endpoints metier repondent 200 (jamais 5xx) ET l'abonnement factice pointant vers un endpoint FCM inexistant est bien nettoye automatiquement (FCM renvoie 404/410 -> db.push_web.delete_one). Non-regression verifiee : le parcours metier reste fonctionnel malgre EMERGENT_PUSH_KEY=placeholder (erreurs 401 sur integrations.emergentagent.com uniquement loguees en WARNING, non bloquantes). Aucun bug backend detecte.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration30.py",
+    "/app/test_reports/pytest/pytest_iter30.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py L1560 DELETE /api/push/web/abonnement : le endpoint renvoie 200 meme si l'endpoint ne correspond a aucun abonnement de l'utilisateur - c'est acceptable (idempotent + cloisonnement respecte grace au filtre {endpoint, userId}), mais un 404 explicite aiderait le client a distinguer 'deja supprime' de 'aucun droit'. Non bloquant.",
+    "server.py L1596 envoyer_webpush utilise to_list(200) : cap dur a 200 abonnements par batch de notification. OK pour l'echelle Kinshasa actuelle mais a garder en tete."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration30.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12)",
+    "frontend": "non teste (backend only par consigne)"
+  },
+  "seed_data_creation": "Aucune seed permanente. Les abonnements push factices (endpoint contenant 'faux-test-iter30-*') et les commandes TEST_ITER30_* sont nettoyes en teardown_module.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "test_iteration30.py couvre l'API push web VAPID de bout en bout. La verification d'idempotence utilise le token admin (pas client) car les autres classes de tests wipent les abonnements du client user dans leur setUp -> collision xdist. Les tests declenchent de vrais appels FCM (endpoint faux-test-iter30-* -> 404) : latence attendue ~2-25s pour le nettoyage. VAPID keys en backend/.env doivent rester intactes.",
+  "rca_of_issue": "N/A - aucun bug detecte."
+}

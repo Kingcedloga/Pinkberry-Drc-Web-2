@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
+import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Etapes } from "@/src/components/Etapes";
 import { useT } from "@/src/i18n";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
@@ -144,6 +145,8 @@ export default function SuiviCommande() {
           </View>
 
           <View style={bureau ? styles.colDroite : styles.pile}>
+        <CarteNotifications texte="Reçois les infos de ta commande en temps réel, même quand l'application est fermée." />
+
         <View style={styles.carte}>
           <Text style={styles.carteTitre}>{t("suivi.progression")}</Text>
           {cmd.statut === "annulee" ? (

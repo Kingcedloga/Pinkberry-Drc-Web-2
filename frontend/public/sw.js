@@ -1,6 +1,6 @@
 // Service worker minimal : rend l'app installable (PWA) et sert la coquille
 // applicative hors ligne. Les requêtes /api/* passent toujours par le réseau.
-const CACHE = "pinkberry-v1";
+const CACHE = "pinkberry-v2";
 const COQUILLE = ["/", "/manifest.json", "/icones/icon-192.png", "/icones/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -39,5 +39,45 @@ self.addEventListener("fetch", (event) => {
         return reponse;
       })
       .catch(() => caches.match(requete).then((c) => c ?? caches.match("/"))),
+  );
+});
+
+// ---------------------------------------------------------------- Web Push
+// Notifications systeme : affichees meme si l'onglet ou l'app est ferme.
+self.addEventListener("push", (event) => {
+  let donnees = {};
+  try {
+    donnees = event.data ? event.data.json() : {};
+  } catch {
+    donnees = {};
+  }
+
+  const titre = donnees.title || "Pinkberry";
+  const options = {
+    body: donnees.body || "",
+    icon: donnees.icon || "/icones/icon-192.png",
+    badge: donnees.badge || "/icones/icon-192.png",
+    data: { url: donnees.url || "/" },
+    tag: donnees.tag || "pinkberry",
+    renotify: true,
+  };
+
+  event.waitUntil(self.registration.showNotification(titre, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const cible = new URL(event.notification.data?.url || "/", self.location.origin).href;
+
+  event.waitUntil(
+    (async () => {
+      const fenetres = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const ouverte = fenetres.find((c) => new URL(c.url).origin === self.location.origin);
+      if (ouverte) {
+        await ouverte.focus();
+        return ouverte.navigate(cible);
+      }
+      return self.clients.openWindow(cible);
+    })(),
   );
 });
