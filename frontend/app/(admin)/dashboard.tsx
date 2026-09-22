@@ -32,6 +32,31 @@ const SUIVANTS: Record<string, string[]> = {
   en_route: ["livree"],
 };
 
+const LIBELLES_PAIEMENT: Record<string, string> = {
+  cash: "À la livraison",
+  mpesa: "M-Pesa",
+  airtel: "Airtel Money",
+  orange: "Orange Money",
+};
+const LIBELLES_STATUT_PAIEMENT: Record<string, string> = {
+  a_la_livraison: "à la livraison",
+  attente: "en attente",
+  paye: "payé",
+  echoue: "échoué",
+};
+
+/** Mode et statut de paiement d'une commande, pour l'admin. */
+function resumePaiement(cmd: any) {
+  const p = cmd?.paiement;
+  if (!p || typeof p !== "object") return { mode: "À la livraison", statut: "à la livraison", paye: false };
+  const cle = p.mode === "mobile" ? p.operateur : "cash";
+  return {
+    mode: LIBELLES_PAIEMENT[cle] ?? "Mobile Money",
+    statut: LIBELLES_STATUT_PAIEMENT[p.statut] ?? p.statut,
+    paye: p.statut === "paye",
+  };
+}
+
 export default function Dashboard() {
   useTheme();
   const insets = useSafeAreaInsets();
@@ -238,6 +263,16 @@ export default function Dashboard() {
                 </View>
                 <Text style={styles.total}>{usd(item.total)}</Text>
               </View>
+              <View testID={`paiement-${item.numero}`} style={styles.paiementRow}>
+                <Icone
+                  name={resumePaiement(item).paye ? "check-circle" : "credit-card"}
+                  size={13}
+                  color={resumePaiement(item).paye ? colors.success : colors.muted}
+                />
+                <Text style={styles.paiementTexte}>
+                  {resumePaiement(item).mode} · {resumePaiement(item).statut}
+                </Text>
+              </View>
               {item.statut === "livree" || item.statut === "annulee" ? (
                 <Pressable
                   testID={`btn-archiver-${item.numero}`}
@@ -269,6 +304,13 @@ export default function Dashboard() {
                   {ouverte?.adresse?.avenue} n° {ouverte?.adresse?.numero}, {ouverte?.adresse?.commune}
                 </Text>
                 <Text style={styles.blocRepere}>Repère : {ouverte?.adresse?.repere}</Text>
+              </View>
+
+              <View style={styles.blocInfo}>
+                <Text style={styles.blocTitre}>Paiement</Text>
+                <Text style={styles.blocTexte}>
+                  {resumePaiement(ouverte).mode} — {resumePaiement(ouverte).statut}
+                </Text>
               </View>
 
               <View style={styles.blocInfo}>
@@ -411,6 +453,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   carteHaut: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   numero: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
+  paiementRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  paiementTexte: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.muted },
   pastille: { paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radius.pill },
   pastilleTexte: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.onBrandPrimary },
   client: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.onSurface },

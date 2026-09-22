@@ -480,6 +480,35 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Tests : itération 24 — `test_iteration24.py` 21/21, suite 274/275 (échec restant :
   `test_livreur_flow_position_and_encaisser`, fragilité d'ordonnancement pré-existante).
 
+## Paiement Mobile Money (PawaPay) — 22/09/2026 (v3.1)
+- Agrégateur **PawaPay** (sandbox), providers RDC : `VODACOM_MPESA_COD` (CDF sans décimales),
+  `AIRTEL_COD`, `ORANGE_COD`. Clés uniquement dans `backend/.env` :
+  `PAWAPAY_BASE_URL`, `PAWAPAY_TOKEN`, `PAWAPAY_CALLBACK_URL`, `PAWAPAY_SIGNED_CALLBACKS`.
+  Passage en production = remplacer base URL + token (aucun changement de code).
+- Backend (`server.py`, section « paiements mobile money ») :
+  - `GET /api/paiements/operateurs` — opérateurs et devises disponibles.
+  - `POST /api/paiements/mobile-money` — crée le dépôt (montant en chaîne, `depositId` UUID
+    réservé avant l'appel), normalise le MSISDN en 243XXXXXXXXX, convertit en CDF au taux admin,
+    respecte les décimales par opérateur, et laisse la commande **non payée** (`statut: attente`).
+  - `GET /api/paiements/{depositId}` — statut `attente` / `paye` / `echoue` / `expire`
+    (10 min sans état final), avec interrogation PawaPay de secours.
+  - `POST /api/paiements/pawapay/callback` — **signature RFC 9421 (ECDSA P-256) + content-digest
+    vérifiés** (clés publiques chargées au démarrage) ; transition atomique idempotente qui seule
+    marque la commande payée.
+  - `POST /api/paiements/{commandeId}/cash` — repli « payer à la livraison » après échec.
+  - `POST /api/commandes` accepte `modePaiement` (`cash` par défaut) ; le champ `paiement` de la
+    commande est désormais un objet `{mode, operateur, devise, montant, telephone masqué,
+    depositId, statut}` et `paye` est un booléen.
+  - Rapports admin : colonnes « Paiement » et « Statut paiement ».
+- Frontend : `src/components/ChoixPaiement.tsx` (cash / mobile money, opérateur, numéro, devise
+  USD ou CDF avec équivalent affiché) et `src/components/AttentePaiement.tsx` (modale
+  « En attente de confirmation… », puis Paiement confirmé, ou Échec/Délai dépassé avec
+  « Réessayer » et « Payer à la livraison »). `/dashboard` admin affiche le mode et le statut de
+  paiement par commande (`paiement-<numero>`) et dans la feuille de détail.
+- Tests : itération 25 — `test_iteration25.py` 19/19 (dont les 3 scénarios de callback non signé
+  refusés sans modifier la commande), parcours checkout mobile money validé de bout en bout en
+  sandbox (attente → payé → suivi). Textes des écrans de paiement en français uniquement.
+
 ## Backlog priorisé
 ### P0
 - Aucun (MVP fonctionnel de bout en bout)

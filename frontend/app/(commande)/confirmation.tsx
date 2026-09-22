@@ -6,7 +6,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
+import { useAuth } from "@/src/auth";
+import { AttentePaiement } from "@/src/components/AttentePaiement";
 import { Bouton } from "@/src/components/Bouton";
+import { ChoixPaiement, type Devise, type ModePaiement, type Operateur } from "@/src/components/ChoixPaiement";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
@@ -25,9 +28,28 @@ export default function Confirmation() {
   const { usd, fc } = useMontant();
   const { fraisLivraison: FRAIS } = useConfigApp();
   const { articles, adresse, sousTotal, vider } = usePanier();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<ModePaiement>("cash");
+  const [operateur, setOperateur] = useState<Operateur>("mpesa");
+  const [telephone, setTelephone] = useState(user?.telephone ?? "");
+  const [devise, setDevise] = useState<Devise>("USD");
+  const [paiement, setPaiement] = useState<{
+    depositId: string;
+    commandeId: string;
+    montant: string;
+    devise: string;
+  } | null>(null);
 
   const total = sousTotal + FRAIS;
+
+  const lancerPaiement = async (commandeId: string) => {
+    const r = await apiFetch<{ depositId: string; montant: string; devise: string }>("/paiements/mobile-money", {
+      method: "POST",
+      body: { commandeId, operateur, telephone, devise },
+    });
+    setPaiement({ depositId: r.depositId, commandeId, montant: r.montant, devise: r.devise });
+  };
 
   const passerCommande = async () => {
     if (!adresse) {
@@ -40,6 +62,7 @@ export default function Confirmation() {
         method: "POST",
         body: {
           adresse,
+          modePaiement: mode,
           items: articles.map((a) => ({
             produitId: a.produitId,
             nom: a.nom,
@@ -55,6 +78,10 @@ export default function Confirmation() {
       vider();
       qc.invalidateQueries({ queryKey: ["mes-commandes"] });
       toast.show(t("confirmation.envoyee", { numero: cmd.numero }), "succes");
+      if (mode === "mobile") {
+        await lancerPaiement(cmd.id);
+        return;
+      }
       router.replace(`/suivi/${cmd.id}`);
     } catch (e: any) {
       toast.show(e.message, "erreur");
@@ -102,10 +129,17 @@ export default function Confirmation() {
           ))}
         </View>
 
-        <View testID="badge-paiement-cash" style={styles.badgeCash}>
-          <Icone name="dollar-sign" size={18} color={colors.brandPrimary} />
-          <Text style={styles.badgeCashTexte}>{t("confirmation.cash")}</Text>
-        </View>
+        <ChoixPaiement
+          mode={mode}
+          setMode={setMode}
+          operateur={operateur}
+          setOperateur={setOperateur}
+          telephone={telephone}
+          setTelephone={setTelephone}
+          devise={devise}
+          setDevise={setDevise}
+          equivalent={devise === "USD" ? `Montant débité : ${usd(total)}` : `Montant débité : ${fc(total)}`}
+        />
 
         <View style={styles.carte}>
           <View style={styles.totalRow}>
@@ -128,6 +162,41 @@ export default function Confirmation() {
           </View>
         </View>
       </ScrollView>
+
+      {paiement ? (
+        <AttentePaiement
+          depositId={paiement.depositId}
+          montant={paiement.montant}
+          devise={paiement.devise}
+          onPaye={() => {
+            qc.invalidateQueries({ queryKey: ["mes-commandes"] });
+            const id = paiement.commandeId;
+            setPaiement(null);
+            toast.show("Paiement confirmé, merci !", "succes");
+            router.replace(`/suivi/${id}`);
+          }}
+          onReessayer={async () => {
+            const id = paiement.commandeId;
+            setPaiement(null);
+            try {
+              await lancerPaiement(id);
+            } catch (e: any) {
+              toast.show(e.message, "erreur");
+            }
+          }}
+          onCash={async () => {
+            const id = paiement.commandeId;
+            try {
+              await apiFetch(`/paiements/${id}/cash`, { method: "POST" });
+              toast.show("Vous paierez en espèces à la livraison", "succes");
+            } catch (e: any) {
+              toast.show(e.message, "erreur");
+            }
+            setPaiement(null);
+            router.replace(`/suivi/${id}`);
+          }}
+        />
+      ) : null}
 
       <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>
         <Bouton
@@ -174,16 +243,6 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   articleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: 4 },
   articleNom: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   articlePrix: { fontFamily: fonts.display, fontSize: 14, color: colors.onSurface },
-  badgeCash: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.brandTertiary,
-    borderRadius: radius.pill,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  badgeCashTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
   totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 3 },
   totalLabel: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, fontWeight: "700" },
   totalValeur: { fontFamily: fonts.text, fontSize: 14, color: colors.onSurface, fontWeight: "700" },
