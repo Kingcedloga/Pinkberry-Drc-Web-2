@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import React from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -8,10 +9,10 @@ export type ModePaiement = "cash" | "mobile";
 export type Operateur = "mpesa" | "airtel" | "orange";
 export type Devise = "USD" | "CDF";
 
-const OPERATEURS: { cle: Operateur; nom: string }[] = [
-  { cle: "mpesa", nom: "M-Pesa" },
-  { cle: "airtel", nom: "Airtel Money" },
-  { cle: "orange", nom: "Orange Money" },
+const OPERATEURS: { cle: Operateur; nom: string; logo: any }[] = [
+  { cle: "mpesa", nom: "M-Pesa", logo: require("@/assets/images/mpesa.png") },
+  { cle: "airtel", nom: "Airtel Money", logo: require("@/assets/images/airtel.png") },
+  { cle: "orange", nom: "Orange Money", logo: require("@/assets/images/orange.png") },
 ];
 
 /** Choix du mode de paiement au checkout : cash à la livraison ou mobile money. */
@@ -70,10 +71,16 @@ export function ChoixPaiement({
               <Pressable
                 key={o.cle}
                 testID={`operateur-${o.cle}`}
+                accessibilityLabel={o.nom}
                 onPress={() => setOperateur(o.cle)}
-                style={[styles.puce, operateur === o.cle && styles.puceActive]}
+                style={[styles.tuile, operateur === o.cle && styles.tuileActive]}
               >
-                <Text style={[styles.puceTexte, operateur === o.cle && styles.puceTexteActive]}>{o.nom}</Text>
+                <Image source={o.logo} style={styles.logo} contentFit="contain" />
+                {operateur === o.cle ? (
+                  <View style={styles.coche}>
+                    <Icone name="check" size={11} color={colors.onBrandPrimary} />
+                  </View>
+                ) : null}
               </Pressable>
             ))}
           </View>
@@ -144,6 +151,30 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
   },
   puceActive: { backgroundColor: colors.brandTertiary, borderColor: colors.brandPrimary },
+  tuile: {
+    width: 96,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+  },
+  tuileActive: { borderColor: colors.brandPrimary },
+  logo: { width: 78, height: 42 },
+  coche: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.brandPrimary,
+  },
   puceTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.onSurface },
   puceTexteActive: { color: colors.brandPrimary },
   saisie: {

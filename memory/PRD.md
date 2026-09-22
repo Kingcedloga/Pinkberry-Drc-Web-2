@@ -508,6 +508,9 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
 - Tests : itération 25 — `test_iteration25.py` 19/19 (dont les 3 scénarios de callback non signé
   refusés sans modifier la commande), parcours checkout mobile money validé de bout en bout en
   sandbox (attente → payé → suivi). Textes des écrans de paiement en français uniquement.
+- 22/09 : les opérateurs sont représentés par leurs **logos officiels** (tuiles blanches avec
+  contour rose et coche quand sélectionné) — `assets/images/mpesa.png`, `airtel.png`,
+  `orange.png` (SVG Wikimedia Commons convertis en PNG), plus d'étiquettes texte.
 
 ## Backlog priorisé
 ### P0
