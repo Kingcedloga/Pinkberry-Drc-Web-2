@@ -152,8 +152,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   puceActive: { backgroundColor: colors.brandTertiary, borderColor: colors.brandPrimary },
   tuile: {
-    width: 96,
-    height: 60,
+    width: 100,
+    height: 64,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.lg,
@@ -163,7 +163,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     overflow: "hidden",
   },
   tuileActive: { borderColor: colors.brandPrimary },
-  logo: { width: 78, height: 42 },
+  logo: { width: 84, height: 46 },
   coche: {
     position: "absolute",
     top: 4,
