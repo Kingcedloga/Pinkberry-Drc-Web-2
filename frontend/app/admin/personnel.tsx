@@ -12,7 +12,8 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
-import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
+import { TitrePage } from "@/src/components/TitrePage";
+import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -32,6 +33,8 @@ type Compte = {
 export default function Personnel() {
   useTheme();
   const insets = useSafeAreaInsets();
+  const { bureau, large } = useEcran();
+  const cols = large ? 3 : bureau ? 2 : 1;
   const toast = useToast();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -119,14 +122,17 @@ export default function Personnel() {
   return (
     <Garde roles={["superadmin"]}>
     <View testID="ecran-personnel" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
-        <View>
-          <Text style={styles.titre}>Personnel</Text>
-          <Text style={styles.sousTitre}>Comptes admin et livreur</Text>
-        </View>
-        <Pressable testID="btn-ajouter-compte" onPress={() => setOuvert(true)} style={styles.ajouter}>
-          <Icone name="user-plus" size={20} color={colors.onBrandPrimary} />
-        </Pressable>
+      <View style={styles.enteteWeb}>
+        <TitrePage
+          titre="Personnel"
+          sousTitre="Comptes administrateurs et livreurs"
+          actions={
+            <Pressable testID="btn-ajouter-compte" onPress={() => setOuvert(true)} style={styles.btnPrimaire}>
+              <Icone name="user-plus" size={16} color={colors.onBrandPrimary} />
+              <Text style={styles.btnPrimaireTexte}>Nouveau compte</Text>
+            </Pressable>
+          }
+        />
       </View>
 
       {q.isLoading ? (
@@ -136,9 +142,12 @@ export default function Personnel() {
       ) : (
         <FlatList
           testID="liste-comptes"
-          data={q.data ?? []}
+          data={completerGrille(q.data ?? [], cols)}
           keyExtractor={(c) => c.id}
           contentContainerStyle={[styles.liste, { paddingBottom: spacing.xxxl }]}
+          key={`comptes-${cols}`}
+          numColumns={cols}
+          columnWrapperStyle={cols > 1 ? styles.rangeeGrille : undefined}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           ListEmptyComponent={
@@ -147,8 +156,11 @@ export default function Personnel() {
               <Text style={styles.refus}>Aucun compte personnel</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View testID={`compte-${item.nom}`} style={styles.carte}>
+          renderItem={({ item }: any) =>
+            item.vide ? (
+              <View style={styles.carteGrille} />
+            ) : (
+            <View testID={`compte-${item.nom}`} style={[styles.carte, cols > 1 && styles.carteGrille]}>
               <View style={styles.hautCarte}>
                 <View style={[styles.badge, item.role === "admin" ? styles.badgeAdmin : styles.badgeLivreur]}>
                   <Icone
@@ -188,7 +200,8 @@ export default function Personnel() {
               </Text>
               {!item.actif ? <Text style={styles.desactive}>Compte désactivé : connexion bloquée</Text> : null}
             </View>
-          )}
+            )
+          }
         />
       )}
 
@@ -284,7 +297,21 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl, gap: spacing.sm },
   refus: { fontFamily: fonts.text, fontSize: 14, color: colors.muted },
-  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, gap: spacing.md },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, gap: spacing.md },
+  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
+  rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
+  carteGrille: { flex: 1 },
+  btnPrimaire: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+  },
+  btnPrimaireTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onBrandPrimary },
+
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,

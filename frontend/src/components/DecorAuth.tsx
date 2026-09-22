@@ -1,10 +1,20 @@
+import { Image } from "expo-image";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Line, Path } from "react-native-svg";
 
 import { Swirl } from "@/src/components/Logo";
-import { colors, fonts, poids, spacing, stylesDynamiques } from "@/src/theme";
+import { useEcran } from "@/src/reactif";
+import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
+
+const VISUEL = require("@/assets/images/livreur-pinkberry-v2.webp");
+
+const ARGUMENTS = [
+  "Commandez en quelques clics depuis votre navigateur",
+  "Paiement M-Pesa, Airtel Money, Orange Money ou cash",
+  "Suivi de votre livreur en direct sur la carte",
+];
 
 /** Fines lignes décoratives dans le coin haut droit d'une zone illustration. */
 export function MotifCoin({ couleur }: { couleur: string }) {
@@ -66,13 +76,46 @@ export function EnteteMarque({
   );
 }
 
-/** Carte blanche à coins arrondis occupant l'écran, commune aux écrans d'authentification. */
+/**
+ * Cadre des écrans d'authentification.
+ * Grand écran : page web en deux panneaux (visuel de marque + formulaire).
+ * Petit écran : carte verticale compacte.
+ */
 export function CarteAuth({ children, testID }: { children: React.ReactNode; testID?: string }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
+  const { bureau } = useEcran();
   const largeur = Math.min(width - spacing.md * 2, 520);
   // Sur grand écran, la carte devient une boîte centrée au lieu d'occuper toute la hauteur.
   const borne = height > 760 ? Math.min(height - spacing.xxxl * 2, 640) : undefined;
+
+  if (bureau) {
+    return (
+      <View testID={testID} style={styles.site}>
+        <View style={styles.panneauVisuel}>
+          <MotifCoin couleur={colors.onBrandPrimary} />
+          <Text style={styles.visuelTitre}>Le vrai frozen yogurt, livré chez vous à Kinshasa</Text>
+          <View style={styles.visuelArguments}>
+            {ARGUMENTS.map((a) => (
+              <Text key={a} style={styles.visuelArgument}>
+                • {a}
+              </Text>
+            ))}
+          </View>
+          <Image
+            source={VISUEL}
+            style={{ width: Math.min(width * 0.3, 420), height: Math.min(height * 0.48, 380) }}
+            contentFit="contain"
+            transition={400}
+          />
+        </View>
+
+        <View style={styles.panneauForm}>
+          <View style={styles.formBoite}>{children}</View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View testID={testID} style={[styles.ecran, borne ? styles.ecranCentre : null]}>
@@ -104,6 +147,37 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     letterSpacing: 3,
     textTransform: "uppercase",
     color: colors.muted,
+  },
+  site: { flex: 1, flexDirection: "row", backgroundColor: colors.surfaceSecondary },
+  panneauVisuel: {
+    flex: 1,
+    backgroundColor: colors.brandPrimary,
+    paddingHorizontal: spacing.xxxl,
+    paddingVertical: spacing.xxl,
+    justifyContent: "center",
+    alignItems: "flex-start",
+    gap: spacing.lg,
+    overflow: "hidden",
+  },
+  visuelTitre: {
+    fontFamily: fonts.display,
+    fontSize: 38,
+    lineHeight: 44,
+    color: colors.onBrandPrimary,
+    maxWidth: 460,
+  },
+  visuelArguments: { gap: spacing.xs },
+  visuelArgument: { fontFamily: fonts.text, fontSize: 14, color: colors.onBrandPrimary, opacity: 0.92 },
+  panneauForm: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl },
+  formBoite: {
+    width: "100%",
+    maxWidth: 460,
+    maxHeight: "94%",
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
   },
   ecran: { flex: 1, alignItems: "center", backgroundColor: colors.surfaceSecondary, paddingHorizontal: spacing.md },
   ecranCentre: { justifyContent: "center" },

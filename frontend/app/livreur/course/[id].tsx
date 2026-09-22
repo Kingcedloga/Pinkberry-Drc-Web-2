@@ -2,15 +2,16 @@ import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
+import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -21,7 +22,6 @@ export default function DetailCourse() {
   useTheme();
   const insets = useSafeAreaInsets();
   const { bureau } = useEcran();
-  const router = useRouter();
   const toast = useToast();
   const qc = useQueryClient();
   const { usd, fc } = useMontant();
@@ -128,15 +128,17 @@ export default function DetailCourse() {
 
   return (
     <View testID="ecran-course-detail" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
-        <Pressable testID="btn-retour-course" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
-          <Icone name="arrow-left" size={22} color={colors.onSurface} />
-        </Pressable>
-        <Text style={styles.titre}>Course {cmd.numero}</Text>
-        <View style={styles.iconeBtn} />
-      </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.contenu,
+          bureau && styles.contenuBureau,
+          { paddingBottom: insets.bottom + spacing.xxl },
+        ]}
+      >
+        <TitrePage titre={`Course ${cmd.numero}`} sousTitre={cmd.adresse?.commune} retour="/livreur" />
 
-      <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: insets.bottom + spacing.xxl }]}>
+        <View style={bureau ? styles.colonnes : styles.pile}>
+          <View style={bureau ? styles.colGauche : styles.pile}>
         <Carte
           client={positionClient}
           livreur={positionLivreur}
@@ -202,6 +204,9 @@ export default function DetailCourse() {
           ))}
         </View>
 
+          </View>
+
+          <View style={bureau ? styles.colDroite : styles.pile}>
         <View style={styles.carte}>
           <Text style={styles.carteTitre}>Mise à jour du statut</Text>
           {cmd.statut === "recue" || cmd.statut === "en_preparation" ? (
@@ -248,6 +253,8 @@ export default function DetailCourse() {
             </View>
           ) : null}
         </View>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -270,6 +277,11 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface },
   contenu: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md },
+  contenuBureau: { maxWidth: 1160, padding: spacing.xl },
+  pile: { gap: spacing.md },
+  colonnes: { flexDirection: "row", alignItems: "flex-start", gap: spacing.xl },
+  colGauche: { flex: 1.25, gap: spacing.md, minWidth: 0 },
+  colDroite: { flex: 1, gap: spacing.md, minWidth: 0 },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,

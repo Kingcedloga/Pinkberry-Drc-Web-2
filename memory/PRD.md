@@ -612,3 +612,16 @@ d'onglets Expo ont été supprimés : la navigation se fait par **liens** (`rout
 Itération 27 : routage et interface validés (25+ URLs, 0 « Unmatched Route », retour navigateur OK).
 Itération 28 : parcours métier complet validé (commande PB-1980 : client → admin → assignation
 Jonas Mbala → statuts → livreur → suivi client), CRUD back office, page d'accueil web, mobile 390.
+
+### Compléments desktop-first (itération 29)
+- **Authentification** : sur ≥1024 px, `/connexion`, `/inscription`, `/otp`, `/telephone` s'affichent
+  en **page web deux panneaux pleine fenêtre** (panneau rose de marque à gauche avec accroche,
+  arguments et illustration ; formulaire 460 px à droite). Carte compacte conservée sur mobile.
+- **Tunnel de commande en 2 colonnes** : `/commande/adresse` (formulaire | carte + encart + CTA) et
+  `/commande/paiement` (adresse, articles, mode de paiement | totaux + CTA). Barre d'action collante
+  conservée sur mobile.
+- **Back office** : `/admin/catalogue` en **tableau 5 colonnes** avec recherche produit, compteur et
+  boutons libellés ; `/admin/zones`, `/admin/livreurs`, `/admin/personnel` en **grilles 2-3 colonnes**
+  avec en-têtes `TitrePage` (utilitaire `completerGrille` dans `src/reactif.ts`).
+- **Livreur** : `/livreur/course/{id}` en 2 colonnes (carte Mapbox + ETA + client + montant à gauche ;
+  mise à jour du statut, partage GPS et actions à droite).

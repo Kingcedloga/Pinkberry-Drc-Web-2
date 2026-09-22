@@ -196,3 +196,31 @@ web (header + sidebar), URLs propres, pages web classiques, back-end et modèle 
    changement de statut → visible côté livreur → mise à jour du suivi client.
 2. Back office : ajout/modification d'un produit (catalogue), zones, livreurs, rapports, archives.
 3. Nouvelle page d'accueil web `/bienvenue` (desktop + mobile) et écrans d'auth.
+
+## Itération 29 — Suppression des derniers écrans « mobile » (desktop-first)
+- **Auth** (`src/components/DecorAuth.tsx` → `CarteAuth`) : sur ≥1024 px, page web en **deux
+  panneaux pleine fenêtre** (panneau rose de marque avec accroche + arguments + illustration à
+  gauche, formulaire dans une boîte 460 px à droite). Carte compacte conservée sur mobile.
+  Impacte `/connexion`, `/inscription`, `/otp`, `/telephone`.
+- **Tunnel de commande** : `/commande/adresse` en 2 colonnes (formulaire à gauche ; carte Mapbox +
+  encart « Livraison à Kinshasa » + bouton Continuer à droite) ; `/commande/paiement` en 2 colonnes
+  (adresse + articles + mode de paiement à gauche ; totaux + bouton « Passer la commande » à droite).
+  Sur mobile, la barre d'action collante en bas est conservée.
+- **Back office** :
+  - `/admin/catalogue` : en-tête `TitrePage` + boutons libellés (Catégories, Nouveau produit),
+    **recherche produit/catégorie**, compteur, et **tableau 5 colonnes** (Produit, Catégorie, Prix,
+    État, Actions) sur desktop ; cartes sur mobile.
+  - `/admin/zones`, `/admin/livreurs`, `/admin/personnel` : en-têtes `TitrePage` avec boutons
+    libellés et **grilles 2-3 colonnes** (dernière rangée complétée par `completerGrille`).
+- **Livreur** : `/livreur/course/{id}` en 2 colonnes (carte + ETA + client + montant à gauche ;
+  mise à jour du statut / GPS / actions à droite), en-tête `TitrePage` avec retour `/livreur`.
+- `src/reactif.ts` : ajout de l'utilitaire `completerGrille`.
+
+### À tester (itération 29)
+1. Desktop 1440 : `/connexion` et `/inscription` en deux panneaux, connexion fonctionnelle.
+2. Desktop 1440 : tunnel complet client en 2 colonnes jusqu'à `/suivi/{id}` (cash).
+3. Desktop 1440 admin : tableau catalogue + recherche produit, création/suppression produit,
+   grilles zones/livreurs/personnel, bascules de switch fonctionnelles.
+4. Desktop 1440 livreur : `/livreur/course/{id}` en 2 colonnes, actions de statut.
+5. Mobile 390 : non-régression des 4 points ci-dessus (auth compacte, barres d'action en bas,
+   cartes en 1 colonne).

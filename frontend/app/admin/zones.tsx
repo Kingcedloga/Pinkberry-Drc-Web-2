@@ -9,7 +9,8 @@ import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
-import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
+import { TitrePage } from "@/src/components/TitrePage";
+import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -17,6 +18,8 @@ import { useToast } from "@/src/toast";
 export default function Zones() {
   useTheme();
   const insets = useSafeAreaInsets();
+  const { bureau, large } = useEcran();
+  const cols = large ? 3 : bureau ? 2 : 1;
   const toast = useToast();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["zones"], queryFn: () => apiFetch<any[]>("/zones") });
@@ -71,17 +74,17 @@ export default function Zones() {
 
   return (
     <View testID="ecran-admin-zones" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
-        <View style={styles.enteteHaut}>
-          <Text style={styles.titre}>Zones de livraison</Text>
-          <Pressable testID="btn-ajouter-zone" onPress={() => setOuvert(true)} style={styles.ajouter}>
-            <Icone name="plus" size={20} color={colors.onBrandPrimary} />
-          </Pressable>
-        </View>
-        <Text style={styles.sous}>
-          Seules les communes couvertes sont proposées au client. Retirer une zone la rend
-          immédiatement indisponible.
-        </Text>
+      <View style={styles.enteteWeb}>
+        <TitrePage
+          titre="Zones de livraison"
+          sousTitre="Seules les communes couvertes sont proposées au client"
+          actions={
+            <Pressable testID="btn-ajouter-zone" onPress={() => setOuvert(true)} style={styles.btnPrimaire}>
+              <Icone name="plus" size={16} color={colors.onBrandPrimary} />
+              <Text style={styles.btnPrimaireTexte}>Nouvelle zone</Text>
+            </Pressable>
+          }
+        />
       </View>
 
       {q.isLoading ? (
@@ -91,9 +94,12 @@ export default function Zones() {
       ) : (
         <FlatList
           testID="liste-zones"
-          data={q.data ?? []}
+          data={completerGrille(q.data ?? [], cols)}
           keyExtractor={(z) => z.id}
           contentContainerStyle={[styles.liste, { paddingBottom: spacing.xxxl }]}
+          key={`zones-${cols}`}
+          numColumns={cols}
+          columnWrapperStyle={cols > 1 ? styles.rangeeGrille : undefined}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           ListEmptyComponent={
@@ -101,8 +107,11 @@ export default function Zones() {
               <Text style={styles.sous}>Aucune zone. Ajoutez votre première commune.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View testID={`zone-${item.commune}`} style={styles.carte}>
+          renderItem={({ item }: any) =>
+            item.vide ? (
+              <View style={styles.carteGrille} />
+            ) : (
+            <View testID={`zone-${item.commune}`} style={[styles.carte, cols > 1 && styles.carteGrille]}>
               <View style={styles.texte}>
                 <Text style={styles.nom}>{item.commune}</Text>
                 <Text style={[styles.etat, { color: item.active ? colors.success : colors.muted }]}>
@@ -124,7 +133,8 @@ export default function Zones() {
                 <Icone name="trash-2" size={18} color={colors.error} />
               </Pressable>
             </View>
-          )}
+            )
+          }
         />
       )}
 
@@ -205,7 +215,21 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
-  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.sm },
+  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
+  rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
+  carteGrille: { flex: 1 },
+  btnPrimaire: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+  },
+  btnPrimaireTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onBrandPrimary },
+
   carte: {
     flexDirection: "row",
     alignItems: "center",

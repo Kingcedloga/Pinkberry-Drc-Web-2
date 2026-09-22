@@ -137,14 +137,43 @@ export default function FormulaireAdresse() {
     router.push("/commande/paiement");
   };
 
+  const blocCarte = coords ? (
+    <View style={styles.bloc}>
+      <Text style={styles.label}>{t("adresse.ajusterPin")}</Text>
+      <Carte
+        testID="carte-choix-adresse"
+        client={coords}
+        mode="choix"
+        hauteur={bureau ? 380 : 220}
+        onPosition={(pos) => setCoords(pos)}
+      />
+      {zoneGps && !zoneGps.couverte ? (
+        <View testID="alerte-zone-gps" style={styles.alerteRouge}>
+          <Text style={styles.alerteRougeTexte}>{t("adresse.horsZoneGps", { commune: zoneGps.commune ?? "?" })}</Text>
+        </View>
+      ) : null}
+    </View>
+  ) : null;
+
+  const cta = (
+    <Bouton
+      testID="btn-continuer-adresse"
+      label={t("adresse.continuer")}
+      disabled={!peutContinuer}
+      onPress={continuer}
+    />
+  );
+
   return (
     <View testID="ecran-adresse" style={styles.ecran}>
-      <KeyboardAwareScrollView bottomOffset={120} contentContainerStyle={styles.contenu}>
-        <TitrePage
-          titre={t("adresse.titre")}
-          sousTitre="Étape 1 sur 2 · Livraison"
-          retour="/panier"
-        />
+      <KeyboardAwareScrollView
+        bottomOffset={120}
+        contentContainerStyle={[styles.contenu, bureau && styles.contenuBureau]}
+      >
+        <TitrePage titre={t("adresse.titre")} sousTitre="Étape 1 sur 2 · Livraison" retour="/panier" />
+
+        <View style={bureau ? styles.colonnes : styles.pile}>
+          <View style={bureau ? styles.colGauche : styles.pile}>
         <View style={styles.bloc}>
           <Champ
             label={t("adresse.rechercher")}
@@ -230,25 +259,7 @@ export default function FormulaireAdresse() {
           )
         ) : null}
 
-        {coords ? (
-          <View style={styles.bloc}>
-            <Text style={styles.label}>{t("adresse.ajusterPin")}</Text>
-            <Carte
-              testID="carte-choix-adresse"
-              client={coords}
-              mode="choix"
-              hauteur={bureau ? 360 : 220}
-              onPosition={(p) => setCoords(p)}
-            />
-            {zoneGps && !zoneGps.couverte ? (
-              <View testID="alerte-zone-gps" style={styles.alerteRouge}>
-                <Text style={styles.alerteRougeTexte}>
-                  {t("adresse.horsZoneGps", { commune: zoneGps.commune ?? "?" })}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
+        {!bureau ? blocCarte : null}
 
         <Champ label={t("adresse.avenue")} testID="input-avenue" value={avenue} onChangeText={setAvenue} placeholder="Av. de la Justice" />
         <Champ label={t("adresse.numero")} testID="input-numero" value={numero} onChangeText={setNumero} placeholder="12B" />
@@ -285,13 +296,28 @@ export default function FormulaireAdresse() {
           placeholder="0990000001"
           keyboardType="phone-pad"
         />
+          </View>
+
+          {bureau ? (
+            <View style={styles.colDroite}>
+              {blocCarte}
+              <View style={styles.carteAction}>
+                <Text style={styles.carteActionTitre}>Livraison à Kinshasa</Text>
+                <Text style={styles.carteActionTexte}>
+                  Vérifiez la commune et le repère : le livreur vous appellera à l&apos;arrivée.
+                </Text>
+                {cta}
+              </View>
+            </View>
+          ) : null}
+        </View>
       </KeyboardAwareScrollView>
 
-      <KeyboardStickyView offset={{ closed: 0, opened: spacing.lg }}>
-        <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>
-          <Bouton testID="btn-continuer-adresse" label={t("adresse.continuer")} disabled={!peutContinuer} onPress={continuer} />
-        </View>
-      </KeyboardStickyView>
+      {!bureau ? (
+        <KeyboardStickyView offset={{ closed: 0, opened: spacing.lg }}>
+          <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>{cta}</View>
+        </KeyboardStickyView>
+      ) : null}
 
       <Modal visible={listeOuverte} animationType="slide" transparent onRequestClose={() => setListeOuverte(false)}>
         <View style={styles.voile}>
@@ -345,6 +371,22 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface },
   contenu: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  contenuBureau: { maxWidth: 1160, padding: spacing.xl },
+  pile: { gap: spacing.md },
+  colonnes: { flexDirection: "row", alignItems: "flex-start", gap: spacing.xl },
+  colGauche: { flex: 1.1, gap: spacing.md, minWidth: 0 },
+  colDroite: { flex: 1, gap: spacing.md, minWidth: 0 },
+  carteAction: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  carteActionTitre: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
+  carteActionTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.muted },
+
   bloc: { gap: spacing.xs },
   suggestions: {
     backgroundColor: colors.surface,

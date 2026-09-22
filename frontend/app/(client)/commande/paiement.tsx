@@ -14,7 +14,7 @@ import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { TitrePage } from "@/src/components/TitrePage";
-import { LARGEUR_CONTENU } from "@/src/reactif";
+import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useConfigApp, useMontant } from "@/src/taux";
@@ -24,6 +24,7 @@ export default function Confirmation() {
   useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { bureau } = useEcran();
   const toast = useToast();
   const qc = useQueryClient();
   const t = useT();
@@ -92,14 +93,23 @@ export default function Confirmation() {
     }
   };
 
+  const cta = (
+    <Bouton
+      testID="btn-passer-commande"
+      label={t("confirmation.passer")}
+      icone="check"
+      loading={loading}
+      onPress={passerCommande}
+    />
+  );
+
   return (
     <View testID="ecran-confirmation" style={styles.ecran}>
-      <ScrollView contentContainerStyle={styles.contenu}>
-        <TitrePage
-          titre={t("confirmation.titre")}
-          sousTitre="Étape 2 sur 2 · Paiement"
-          retour="/commande/adresse"
-        />
+      <ScrollView contentContainerStyle={[styles.contenu, bureau && styles.contenuBureau]}>
+        <TitrePage titre={t("confirmation.titre")} sousTitre="Étape 2 sur 2 · Paiement" retour="/commande/adresse" />
+
+        <View style={bureau ? styles.colonnes : styles.pile}>
+          <View style={bureau ? styles.colGauche : styles.pile}>
         <View style={styles.carte}>
           <View style={styles.carteTitreRow}>
             <Icone name="map-pin" size={16} color={colors.brandPrimary} />
@@ -139,7 +149,9 @@ export default function Confirmation() {
           setDevise={setDevise}
           equivalent={devise === "USD" ? `Montant débité : ${usd(total)}` : `Montant débité : ${fc(total)}`}
         />
+          </View>
 
+          <View style={bureau ? styles.colDroite : styles.pile}>
         <View style={styles.carte}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t("confirmation.sousTotal")}</Text>
@@ -158,6 +170,9 @@ export default function Confirmation() {
               </Text>
               <Text style={styles.grandTotalFc}>≈ {fc(total)}</Text>
             </View>
+          </View>
+          {bureau ? <View style={styles.ctaBureau}>{cta}</View> : null}
+        </View>
           </View>
         </View>
       </ScrollView>
@@ -197,15 +212,9 @@ export default function Confirmation() {
         />
       ) : null}
 
-      <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>
-        <Bouton
-          testID="btn-passer-commande"
-          label={t("confirmation.passer")}
-          icone="check"
-          loading={loading}
-          onPress={passerCommande}
-        />
-      </View>
+      {!bureau ? (
+        <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>{cta}</View>
+      ) : null}
     </View>
   );
 }
@@ -226,6 +235,12 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface },
   contenu: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md },
+  contenuBureau: { maxWidth: 1160, padding: spacing.xl },
+  pile: { gap: spacing.md },
+  colonnes: { flexDirection: "row", alignItems: "flex-start", gap: spacing.xl },
+  colGauche: { flex: 1.15, gap: spacing.md, minWidth: 0 },
+  colDroite: { flex: 1, gap: spacing.md, minWidth: 0 },
+  ctaBureau: { marginTop: spacing.md },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,

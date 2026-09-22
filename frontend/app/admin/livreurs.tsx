@@ -10,7 +10,8 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
-import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
+import { TitrePage } from "@/src/components/TitrePage";
+import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -18,6 +19,8 @@ import { useToast } from "@/src/toast";
 export default function Livreurs() {
   useTheme();
   const insets = useSafeAreaInsets();
+  const { bureau, large } = useEcran();
+  const cols = large ? 3 : bureau ? 2 : 1;
   const toast = useToast();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -70,13 +73,19 @@ export default function Livreurs() {
 
   return (
     <View testID="ecran-admin-livreurs" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
-        <Text style={styles.titre}>Livreurs</Text>
-        {estSuper ? (
-          <Pressable testID="btn-ajouter-livreur" onPress={() => setOuvert(true)} style={styles.ajouter}>
-            <Icone name="plus" size={20} color={colors.onBrandPrimary} />
-          </Pressable>
-        ) : null}
+      <View style={styles.enteteWeb}>
+        <TitrePage
+          titre="Livreurs"
+          sousTitre="Équipe de livraison et disponibilité"
+          actions={
+            estSuper ? (
+              <Pressable testID="btn-ajouter-livreur" onPress={() => setOuvert(true)} style={styles.btnPrimaire}>
+                <Icone name="plus" size={16} color={colors.onBrandPrimary} />
+                <Text style={styles.btnPrimaireTexte}>Nouveau livreur</Text>
+              </Pressable>
+            ) : null
+          }
+        />
       </View>
 
       {q.isLoading ? (
@@ -86,13 +95,19 @@ export default function Livreurs() {
       ) : (
         <FlatList
           testID="liste-admin-livreurs"
-          data={q.data ?? []}
+          data={completerGrille(q.data ?? [], cols)}
           keyExtractor={(l) => l.id}
           contentContainerStyle={[styles.liste, { paddingBottom: spacing.xxxl }]}
+          key={`livreurs-${cols}`}
+          numColumns={cols}
+          columnWrapperStyle={cols > 1 ? styles.rangeeGrille : undefined}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
-          renderItem={({ item }) => (
-            <View testID={`livreur-${item.nom}`} style={styles.carte}>
+          renderItem={({ item }: any) =>
+            item.vide ? (
+              <View style={styles.carteGrille} />
+            ) : (
+            <View testID={`livreur-${item.nom}`} style={[styles.carte, cols > 1 && styles.carteGrille]}>
               <View style={styles.avatar}>
                 <Text style={styles.initiale}>{item.nom.charAt(0)}</Text>
               </View>
@@ -117,7 +132,8 @@ export default function Livreurs() {
                 trackColor={{ true: colors.success, false: colors.border }}
               />
             </View>
-          )}
+            )
+          }
         />
       )}
 
@@ -161,7 +177,21 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     justifyContent: "center",
   },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
-  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.md },
+  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
+  rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
+  carteGrille: { flex: 1 },
+  btnPrimaire: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+  },
+  btnPrimaireTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onBrandPrimary },
+
   carte: {
     flexDirection: "row",
     alignItems: "center",

@@ -37,3 +37,15 @@ export function useEcran(): Ecran {
   const colonnes = large ? 4 : bureau ? 3 : tablette ? 2 : 1;
   return { largeur: width, hauteur: height, mobile, tablette, bureau, large, colonnes };
 }
+
+/**
+ * Complète la dernière rangée d'une grille avec des cellules invisibles pour que
+ * les cartes conservent leur largeur (FlatList + numColumns).
+ */
+export function completerGrille<T extends { id: string }>(items: T[], colonnes: number): T[] {
+  if (colonnes <= 1) return items;
+  const reste = items.length % colonnes;
+  if (reste === 0) return items;
+  const bouchons = Array.from({ length: colonnes - reste }, (_, i) => ({ id: `vide-${i}`, vide: true }));
+  return [...items, ...(bouchons as unknown as T[])];
+}

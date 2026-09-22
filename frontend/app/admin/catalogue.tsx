@@ -3,7 +3,7 @@ import { Icone } from "@/src/components/Icone";
 import { ListeOptions, type Option } from "@/src/components/ListeOptions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Linking,
@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -23,7 +24,8 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usd } from "@/src/money";
-import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
+import { TitrePage } from "@/src/components/TitrePage";
+import { LARGEUR_FEUILLE, LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -67,6 +69,16 @@ export default function Catalogue() {
   const [tauxOuvert, setTauxOuvert] = useState(false);
   const [tauxTexte, setTauxTexte] = useState("");
   const [catsOuvert, setCatsOuvert] = useState(false);
+  const [recherche, setRecherche] = useState("");
+  const { bureau } = useEcran();
+
+  const produits = useMemo(() => {
+    const texte = recherche.trim().toLowerCase();
+    return (q.data ?? []).filter(
+      (p: any) =>
+        !texte || p.nom.toLowerCase().includes(texte) || String(p.categorie ?? "").toLowerCase().includes(texte),
+    );
+  }, [q.data, recherche]);
   const [nouvelleCat, setNouvelleCat] = useState("");
   const [catASupprimer, setCatASupprimer] = useState<{ id: string; nom: string; nbProduits: number } | null>(null);
 
@@ -274,16 +286,23 @@ export default function Catalogue() {
 
   return (
     <View testID="ecran-admin-catalogue" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
-        <Text style={styles.titre}>Catalogue</Text>
-        <View style={styles.actionsEntete}>
-          <Pressable testID="btn-gerer-categories" onPress={() => setCatsOuvert(true)} style={styles.secondaire}>
-            <Icone name="grid" size={20} color={colors.brandPrimary} />
-          </Pressable>
-          <Pressable testID="btn-ajouter-produit" onPress={() => ouvrir(null)} style={styles.ajouter}>
-            <Icone name="plus" size={20} color={colors.onBrandPrimary} />
-          </Pressable>
-        </View>
+      <View style={styles.enteteWeb}>
+        <TitrePage
+          titre="Catalogue"
+          sousTitre="Produits, catégories et taux de change"
+          actions={
+            <>
+              <Pressable testID="btn-gerer-categories" onPress={() => setCatsOuvert(true)} style={styles.btnSecondaire}>
+                <Icone name="grid" size={16} color={colors.brandPrimary} />
+                <Text style={styles.btnSecondaireTexte}>Catégories</Text>
+              </Pressable>
+              <Pressable testID="btn-ajouter-produit" onPress={() => ouvrir(null)} style={styles.btnPrimaire}>
+                <Icone name="plus" size={16} color={colors.onBrandPrimary} />
+                <Text style={styles.btnPrimaireTexte}>Nouveau produit</Text>
+              </Pressable>
+            </>
+          }
+        />
       </View>
 
       <Pressable
@@ -311,29 +330,85 @@ export default function Catalogue() {
       ) : (
         <FlatList
           testID="liste-admin-produits"
-          data={q.data ?? []}
+          data={produits}
           keyExtractor={(p) => p.id}
           contentContainerStyle={[styles.liste, { paddingBottom: spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
-          renderItem={({ item }) => (
-            <View testID={`admin-produit-${item.nom}`} style={styles.carte}>
-              <PhotoProduit image={item.image} taille={56} rayon={radius.md} />
-              <View style={styles.texte}>
-                <Text style={styles.nom}>{item.nom}</Text>
-                <Text style={styles.cat}>{item.categorie}</Text>
-                <Text style={styles.prix}>{usd(item.prix)}</Text>
-                {!item.disponible ? <Text style={styles.rupture}>En rupture</Text> : null}
-                {item.enAvant ? <Text style={styles.enAvant}>⭐ Recommandé</Text> : null}
+          ListHeaderComponent={
+            <View style={styles.outils}>
+              <View style={styles.rechercheWrap}>
+                <Icone name="search" size={16} color={colors.muted} />
+                <TextInput
+                  testID="input-recherche-produits"
+                  value={recherche}
+                  onChangeText={setRecherche}
+                  placeholder="Rechercher un produit ou une catégorie"
+                  placeholderTextColor={colors.muted}
+                  style={styles.rechercheChamp}
+                />
               </View>
-              <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
-                <Icone name="edit-2" size={17} color={colors.brandPrimary} />
-              </Pressable>
-              <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
-                <Icone name="trash-2" size={17} color={colors.error} />
-              </Pressable>
+              <Text style={styles.compteur}>
+                {produits.length} produit{produits.length > 1 ? "s" : ""}
+              </Text>
+              {bureau ? (
+                <View testID="entete-tableau-produits" style={styles.ligneEnteteTable}>
+                  <Text style={[styles.celluleEntete, styles.colProduit]}>Produit</Text>
+                  <Text style={[styles.celluleEntete, styles.colCategorie]}>Catégorie</Text>
+                  <Text style={[styles.celluleEntete, styles.colPrix]}>Prix</Text>
+                  <Text style={[styles.celluleEntete, styles.colEtat]}>État</Text>
+                  <Text style={[styles.celluleEntete, styles.colActions]}>Actions</Text>
+                </View>
+              ) : null}
             </View>
-          )}
+          }
+          renderItem={({ item }) =>
+            bureau ? (
+              <View testID={`admin-produit-${item.nom}`} style={styles.ligneTable}>
+                <View style={[styles.colProduit, styles.cellProduit]}>
+                  <PhotoProduit image={item.image} taille={44} rayon={radius.md} />
+                  <Text style={styles.nom} numberOfLines={1}>
+                    {item.nom}
+                  </Text>
+                </View>
+                <Text style={[styles.cat, styles.colCategorie]}>{item.categorie}</Text>
+                <Text style={[styles.prix, styles.colPrix]}>{usd(item.prix)}</Text>
+                <View style={[styles.colEtat, styles.cellEtat]}>
+                  {item.disponible ? (
+                    <Text style={styles.badgeVert}>Disponible</Text>
+                  ) : (
+                    <Text style={styles.rupture}>En rupture</Text>
+                  )}
+                  {item.enAvant ? <Text style={styles.enAvant}>⭐ Recommandé</Text> : null}
+                </View>
+                <View style={[styles.colActions, styles.cellActions]}>
+                  <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
+                    <Icone name="edit-2" size={17} color={colors.brandPrimary} />
+                  </Pressable>
+                  <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
+                    <Icone name="trash-2" size={17} color={colors.error} />
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <View testID={`admin-produit-${item.nom}`} style={styles.carte}>
+                <PhotoProduit image={item.image} taille={56} rayon={radius.md} />
+                <View style={styles.texte}>
+                  <Text style={styles.nom}>{item.nom}</Text>
+                  <Text style={styles.cat}>{item.categorie}</Text>
+                  <Text style={styles.prix}>{usd(item.prix)}</Text>
+                  {!item.disponible ? <Text style={styles.rupture}>En rupture</Text> : null}
+                  {item.enAvant ? <Text style={styles.enAvant}>⭐ Recommandé</Text> : null}
+                </View>
+                <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
+                  <Icone name="edit-2" size={17} color={colors.brandPrimary} />
+                </Pressable>
+                <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
+                  <Icone name="trash-2" size={17} color={colors.error} />
+                </Pressable>
+              </View>
+            )
+          }
         />
       )}
 
@@ -587,7 +662,71 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   alerteTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
-  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
+  liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.md },
+  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
+  btnSecondaire: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+  },
+  btnSecondaireTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
+  btnPrimaire: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+  },
+  btnPrimaireTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onBrandPrimary },
+  outils: { gap: spacing.md },
+  rechercheWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    height: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    maxWidth: 420,
+  },
+  rechercheChamp: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: colors.onSurface, outlineStyle: "none" } as any,
+  compteur: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.muted },
+  ligneEnteteTable: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.lg },
+  celluleEntete: {
+    fontFamily: fonts.text,
+    fontSize: 11,
+    fontWeight: "800",
+    color: colors.muted,
+    textTransform: "uppercase",
+  },
+  ligneTable: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  colProduit: { flex: 2 },
+  colCategorie: { flex: 1 },
+  colPrix: { width: 90 },
+  colEtat: { flex: 1 },
+  colActions: { width: 96 },
+  cellProduit: { flexDirection: "row", alignItems: "center", gap: spacing.md, minWidth: 0 },
+  cellEtat: { gap: 2 },
+  cellActions: { flexDirection: "row", justifyContent: "flex-end", gap: spacing.xs },
+  badgeVert: { fontFamily: fonts.text, fontSize: 12, fontWeight: "800", color: colors.success },
   carte: {
     flexDirection: "row",
     alignItems: "center",
