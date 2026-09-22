@@ -72,7 +72,7 @@ export function CarteAuth({ children, testID }: { children: React.ReactNode; tes
   const { width, height } = useWindowDimensions();
   const largeur = Math.min(width - spacing.md * 2, 520);
   // Sur grand écran, la carte devient une boîte centrée au lieu d'occuper toute la hauteur.
-  const borne = height > 820 ? Math.min(height - spacing.xxxl * 2, 760) : undefined;
+  const borne = height > 760 ? Math.min(height - spacing.xxxl * 2, 640) : undefined;
 
   return (
     <View testID={testID} style={[styles.ecran, borne ? styles.ecranCentre : null]}>

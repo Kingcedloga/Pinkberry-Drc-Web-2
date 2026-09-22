@@ -572,3 +572,43 @@ métadonnées et enregistrement du service worker dans `app/+html.tsx` (+ apple-
 ### Validation
 Itération 26 (testing agent, frontend) : 7/7 scénarios PASS — desktop 1440 client/admin/livreur,
 mobile 390 non-régression, tablette 820, mode sombre, manifest + service worker en 200.
+
+## Bascule en application web desktop-first (juin 2026, itérations 27-28)
+Le produit **n'est plus une application mobile** : c'est une **application web** conçue pour le
+navigateur (desktop d'abord, mobile en adaptation). Le back-end, le modèle de données et toutes
+les fonctionnalités métier sont inchangés ; seule la couche interface a changé.
+
+### URLs (routage web, `expo-router` + `<Slot/>`)
+- Visiteur : `/bienvenue` (page d'accueil du site), `/connexion`, `/inscription`, `/otp`, `/telephone`
+- Client : `/menu`, `/panier`, `/commande/adresse`, `/commande/paiement`, `/commandes`,
+  `/suivi/{id}`, `/compte`, `/parametres`, `/archives`
+- Admin : `/admin`, `/admin/catalogue`, `/admin/zones`, `/admin/livreurs`, `/admin/personnel`,
+  `/admin/rapports`, `/admin/archives`, `/admin/parametres`
+- Livreur : `/livreur`, `/livreur/course/{id}`, `/livreur/rapports`, `/livreur/archives`,
+  `/livreur/parametres`
+Les anciens groupes `(admin)`, `(livreur)`, `(commande)`, `client/`, `suivi/` et les navigateurs
+d'onglets Expo ont été supprimés : la navigation se fait par **liens** (`router.push`), donc le
+**bouton retour du navigateur** fonctionne et chaque page est partageable par URL.
+
+### Coquille d'interface (`src/components/Coquille.tsx`, `src/nav-web.ts`)
+- ≥ 1024 px : **header web** (logo, liens de pages, bouton panier avec total + badge, déconnexion)
+  pour le client et le livreur ; **sidebar fixe 252 px** pour le back office (5 sections + Rapports /
+  Archives / Paramètres + déconnexion).
+- < 1024 px : header compact + **barre d'onglets basse** (choix explicite de l'utilisateur).
+- `src/components/TitrePage.tsx` : titre de page, sous-titre, lien retour, actions à droite.
+
+### Pages clés
+- `/bienvenue` : hero web 2 colonnes (accroche, arguments, CTA) + illustration ; carte compacte sur mobile.
+- `/menu` : hero + recherche, **colonne de filtres catégories**, grille produits 1/2/3/4 colonnes,
+  fiche produit en **modale centrée** (bottom sheet sur mobile).
+- `/panier` : 2 colonnes (articles + récapitulatif sticky).
+- `/commande/adresse` → `/commande/paiement` : tunnel en 2 étapes annoncées (« Étape 1/2 »).
+- `/suivi/{id}` : 2 colonnes (carte Mapbox à gauche ; progression, livreur, détail, annulation à droite).
+- `/admin` : KPI + ventes du jour sur 2 colonnes, **barre de filtres** (recherche texte + 7 filtres de
+  statut + compteur), **tableau 7 colonnes**, modale de détail centrée (assignation, statuts, archivage).
+- `/livreur` : 3 KPI (courses en cours, terminées, montant à encaisser) + grille de courses.
+
+### Validation
+Itération 27 : routage et interface validés (25+ URLs, 0 « Unmatched Route », retour navigateur OK).
+Itération 28 : parcours métier complet validé (commande PB-1980 : client → admin → assignation
+Jonas Mbala → statuts → livreur → suivi client), CRUD back office, page d'accueil web, mobile 390.

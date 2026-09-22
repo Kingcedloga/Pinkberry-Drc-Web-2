@@ -128,7 +128,7 @@ export default function DetailCourse() {
 
   return (
     <View testID="ecran-course-detail" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Pressable testID="btn-retour-course" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
           <Icone name="arrow-left" size={22} color={colors.onSurface} />
         </Pressable>

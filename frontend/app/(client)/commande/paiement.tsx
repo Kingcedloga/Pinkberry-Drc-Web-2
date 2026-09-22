@@ -2,7 +2,7 @@ import { Icone } from "@/src/components/Icone";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
@@ -13,6 +13,7 @@ import { ChoixPaiement, type Devise, type ModePaiement, type Operateur } from "@
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
+import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -93,15 +94,12 @@ export default function Confirmation() {
 
   return (
     <View testID="ecran-confirmation" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable testID="btn-retour-confirmation" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
-          <Icone name="arrow-left" size={22} color={colors.onSurface} />
-        </Pressable>
-        <Text style={styles.titre}>{t("confirmation.titre")}</Text>
-        <View style={styles.iconeBtn} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.contenu}>
+        <TitrePage
+          titre={t("confirmation.titre")}
+          sousTitre="Étape 2 sur 2 · Paiement"
+          retour="/commande/adresse"
+        />
         <View style={styles.carte}>
           <View style={styles.carteTitreRow}>
             <Icone name="map-pin" size={16} color={colors.brandPrimary} />

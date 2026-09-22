@@ -4,12 +4,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { usd } from "@/src/money";
+import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -26,9 +26,8 @@ const LIBELLES: Record<string, string> = {
 
 export default function Courses() {
   useTheme();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, deconnexion } = useAuth();
+  const { user } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
   const { colonnes } = useEcran();
@@ -62,48 +61,6 @@ export default function Courses() {
 
   return (
     <View testID="ecran-livreur-courses" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <View style={styles.enteteInterieur}>
-        <View>
-          <Text style={styles.titre}>Mes courses</Text>
-          <Text style={styles.sous}>{user?.nom}</Text>
-        </View>
-        <View style={styles.enteteActions}>
-          <Pressable
-            testID="btn-livreur-rapports"
-            onPress={() => router.push("/livreur/rapports")}
-            style={styles.iconeBtn}
-          >
-            <Icone name="download" size={20} color={colors.brandPrimary} />
-          </Pressable>
-          <Pressable
-            testID="btn-livreur-archives"
-            onPress={() => router.push("/livreur/archives")}
-            style={styles.iconeBtn}
-          >
-            <Icone name="archive" size={20} color={colors.brandPrimary} />
-          </Pressable>
-          <Pressable
-            testID="btn-livreur-parametres"
-            onPress={() => router.push("/livreur/parametres")}
-            style={styles.iconeBtn}
-          >
-            <Icone name="settings" size={20} color={colors.brandPrimary} />
-          </Pressable>
-          <Pressable
-            testID="btn-livreur-deconnexion"
-          onPress={async () => {
-            await deconnexion();
-            router.replace("/bienvenue");
-          }}
-            style={styles.iconeBtn}
-          >
-            <Icone name="log-out" size={20} color={colors.brandPrimary} />
-          </Pressable>
-        </View>
-        </View>
-      </View>
-
       {q.isLoading ? (
         <View style={styles.centre}>
           <Chargement taille={52} />
@@ -120,7 +77,24 @@ export default function Courses() {
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           ListHeaderComponent={
-            <CarteNotifications texte="Activez-les pour recevoir vos nouvelles courses, même app fermée." />
+            <View style={styles.enteteListe}>
+              <TitrePage titre="Mes courses" sousTitre={user?.nom ?? undefined} />
+              <View style={styles.kpis}>
+                <View testID="kpi-actives" style={styles.kpi}>
+                  <Text style={styles.kpiValeur}>{actives.length}</Text>
+                  <Text style={styles.kpiLabel}>course{actives.length > 1 ? "s" : ""} en cours</Text>
+                </View>
+                <View testID="kpi-terminees" style={styles.kpi}>
+                  <Text style={[styles.kpiValeur, { color: colors.success }]}>{terminees.length}</Text>
+                  <Text style={styles.kpiLabel}>terminée{terminees.length > 1 ? "s" : ""}</Text>
+                </View>
+                <View testID="kpi-encaisse" style={styles.kpi}>
+                  <Text style={styles.kpiValeur}>{usd(actives.reduce((t, c) => t + (c.total ?? 0), 0))}</Text>
+                  <Text style={styles.kpiLabel}>à encaisser</Text>
+                </View>
+              </View>
+              <CarteNotifications texte="Activez-les pour recevoir vos nouvelles courses, même app fermée." />
+            </View>
           }
           ListEmptyComponent={
             <View style={styles.centre}>
@@ -135,7 +109,7 @@ export default function Courses() {
             ) : (
             <Pressable
               testID={`course-${item.numero}`}
-              onPress={() => router.push(`/course/${item.id}`)}
+              onPress={() => router.push(`/livreur/course/${item.id}`)}
               style={({ pressed }) => [
                 styles.carte,
                 cols > 1 && styles.carteGrille,
@@ -222,7 +196,20 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   vide: { fontFamily: fonts.text, fontSize: 15, fontWeight: "700", color: colors.onSurface },
   videSous: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   videEmoji: { fontSize: 46 },
-  liste: { padding: spacing.lg, gap: spacing.md },
+  liste: { padding: spacing.xl, gap: spacing.md },
+  enteteListe: { gap: spacing.lg, marginBottom: spacing.xs },
+  kpis: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },
+  kpi: {
+    flexGrow: 1,
+    flexBasis: 180,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+  },
+  kpiValeur: { fontFamily: fonts.display, fontSize: 26, color: colors.brandPrimary },
+  kpiLabel: { fontFamily: fonts.text, fontSize: 12, color: colors.muted, fontWeight: "700" },
   rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
   carteGrille: { flex: 1 },
   carte: {

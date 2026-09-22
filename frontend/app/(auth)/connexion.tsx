@@ -31,10 +31,10 @@ export default function Connexion() {
       toast.show(`Bonjour ${u.nom} !`, "succes");
       router.replace(
         u.role === "admin" || u.role === "superadmin"
-          ? "/dashboard"
+          ? "/admin"
           : u.role === "livreur"
-            ? "/courses"
-            : "/accueil",
+            ? "/livreur"
+            : "/menu",
       );
     } catch (e: any) {
       toast.show(e.message, "erreur");

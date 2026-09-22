@@ -19,8 +19,8 @@ export default function Index() {
   if (loading || reporte === null) return <EcranDemarrage testID="ecran-chargement" />;
 
   if (!user) return <Redirect href="/bienvenue" />;
-  if (user.role === "admin" || user.role === "superadmin") return <Redirect href="/dashboard" />;
-  if (user.role === "livreur") return <Redirect href="/courses" />;
+  if (user.role === "admin" || user.role === "superadmin") return <Redirect href="/admin" />;
+  if (user.role === "livreur") return <Redirect href="/livreur" />;
   if (!user.telephone && !reporte) return <Redirect href="/telephone" />;
-  return <Redirect href="/accueil" />;
+  return <Redirect href="/menu" />;
 }

@@ -2,14 +2,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useT, type CleTexte } from "@/src/i18n";
+import { TitrePage } from "@/src/components/TitrePage";
 import { usd } from "@/src/money";
-import { hauteurOngletsNatifs } from "@/src/nav";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -24,7 +23,6 @@ export function couleurStatut(statut: string) {
 
 export default function Commandes() {
   useTheme();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
   const t = useT();
@@ -49,18 +47,6 @@ export default function Commandes() {
 
   return (
     <View testID="ecran-commandes" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
-        <Text style={styles.titre}>{t("commandes.titre")}</Text>
-        <Pressable
-          testID="btn-archives-client"
-          onPress={() => router.push("/client/archives")}
-          style={styles.lienArchives}
-        >
-          <Icone name="package" size={16} color={colors.brandPrimary} />
-          <Text style={styles.lienArchivesTexte}>{t("commandes.archives")}</Text>
-        </Pressable>
-      </View>
-
       {q.isLoading ? (
         <View style={styles.centre}>
           <Chargement taille={52} />
@@ -70,14 +56,30 @@ export default function Commandes() {
           testID="liste-commandes"
           data={q.data ?? []}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
+          contentContainerStyle={styles.liste}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
+          ListHeaderComponent={
+            <TitrePage
+              titre={t("commandes.titre")}
+              sousTitre="Suivez l'avancement de vos commandes"
+              actions={
+                <Pressable
+                  testID="btn-archives-client"
+                  onPress={() => router.push("/archives")}
+                  style={styles.lienArchives}
+                >
+                  <Icone name="package" size={16} color={colors.brandPrimary} />
+                  <Text style={styles.lienArchivesTexte}>{t("commandes.archives")}</Text>
+                </Pressable>
+              }
+            />
+          }
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="receipt" size={42} color={colors.brandTertiary} />
               <Text style={styles.vide}>{t("commandes.vide")}</Text>
-              <Pressable testID="btn-vers-catalogue" onPress={() => router.push("/accueil")} style={styles.lien}>
+              <Pressable testID="btn-vers-catalogue" onPress={() => router.push("/menu")} style={styles.lien}>
                 <Text style={styles.lienTexte}>{t("commandes.voirCarte")}</Text>
               </Pressable>
             </View>
@@ -146,7 +148,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     backgroundColor: colors.brandTertiary,
   },
   lienArchivesTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.brandPrimary },
-  liste: { ...LARGEUR_CONTENU, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
+  liste: { ...LARGEUR_CONTENU, padding: spacing.xl, gap: spacing.md },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl, gap: spacing.sm },
   vide: { fontFamily: fonts.text, fontSize: 14, fontWeight: poids.corps, color: colors.muted },
   lien: { minHeight: 44, justifyContent: "center", paddingHorizontal: spacing.lg },

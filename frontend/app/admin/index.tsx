@@ -2,15 +2,14 @@ import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
-import { Logo } from "@/src/components/Logo";
-import { hauteurOngletsNatifs } from "@/src/nav";
+import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -25,6 +24,16 @@ const LIBELLES: Record<string, string> = {
   livree: "Livrée",
   annulee: "Annulée",
 };
+
+const FILTRES = [
+  { cle: "tous", libelle: "Toutes" },
+  { cle: "en_cours", libelle: "En cours" },
+  { cle: "recue", libelle: "Reçues" },
+  { cle: "en_preparation", libelle: "En préparation" },
+  { cle: "en_route", libelle: "En route" },
+  { cle: "livree", libelle: "Livrées" },
+  { cle: "annulee", libelle: "Annulées" },
+];
 
 const SUIVANTS: Record<string, string[]> = {
   recue: ["en_preparation", "annulee"],
@@ -67,6 +76,8 @@ export default function Dashboard() {
   const { usd, fc } = useMontant();
   const { bureau } = useEcran();
   const [ouverte, setOuverte] = useState<any>(null);
+  const [filtreStatut, setFiltreStatut] = useState("tous");
+  const [recherche, setRecherche] = useState("");
 
   const commandesQ = useQuery({
     queryKey: ["admin-commandes"],
@@ -133,30 +144,27 @@ export default function Dashboard() {
   const stats = statsQ.data;
   const ventes = ventesQ.data;
 
+  const commandes = useMemo(() => {
+    const q = recherche.trim().toLowerCase();
+    return (commandesQ.data ?? []).filter((c: any) => {
+      const okStatut =
+        filtreStatut === "tous"
+          ? true
+          : filtreStatut === "en_cours"
+            ? !["livree", "annulee"].includes(c.statut)
+            : c.statut === filtreStatut;
+      const okTexte =
+        !q ||
+        String(c.numero).toLowerCase().includes(q) ||
+        String(c.clientNom ?? "").toLowerCase().includes(q) ||
+        String(c.clientTelephone ?? "").toLowerCase().includes(q) ||
+        String(c.adresse?.commune ?? "").toLowerCase().includes(q);
+      return okStatut && okTexte;
+    });
+  }, [commandesQ.data, filtreStatut, recherche]);
+
   return (
     <View testID="ecran-admin-dashboard" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <View style={styles.enteteInterieur}>
-          <View>
-            {bureau ? (
-              <Text style={styles.titrePage}>Commandes</Text>
-            ) : (
-              <Logo taille={20} />
-            )}
-            <Text style={styles.sousTitre}>
-              {bureau ? "Suivi temps réel des commandes" : "Back office administrateur"}
-            </Text>
-          </View>
-          <Pressable
-            testID="btn-admin-parametres"
-            onPress={() => router.push("/admin/parametres")}
-            style={styles.iconeBtn}
-          >
-            <Icone name="settings" size={20} color={colors.brandPrimary} />
-          </Pressable>
-        </View>
-      </View>
-
       {commandesQ.isLoading ? (
         <View style={styles.centre}>
           <Chargement taille={52} />
@@ -164,17 +172,27 @@ export default function Dashboard() {
       ) : (
         <FlatList
           testID="liste-admin-commandes"
-          data={commandesQ.data ?? []}
+          data={commandes}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={[
-            styles.liste,
-            LARGEUR_LARGE,
-            { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) },
-          ]}
+          contentContainerStyle={[styles.liste, LARGEUR_LARGE]}
           refreshing={commandesQ.isRefetching}
           onRefresh={rafraichir}
           ListHeaderComponent={
             <View style={styles.enteteListe}>
+              <TitrePage
+                titre="Commandes"
+                sousTitre="Suivi temps réel de la boutique"
+                actions={
+                  <Pressable
+                    testID="btn-admin-parametres"
+                    onPress={() => router.push("/admin/parametres")}
+                    style={styles.boutonAction}
+                  >
+                    <Icone name="settings" size={16} color={colors.brandPrimary} />
+                    <Text style={styles.boutonActionTexte}>Paramètres</Text>
+                  </Pressable>
+                }
+              />
               <CarteNotifications texte="Activez-les pour être alerté de chaque nouvelle commande, même app fermée." />
               <View style={bureau ? styles.grilleBureau : styles.enteteListe}>
               <View testID="carte-ventes-jour" style={[styles.ventesCarte, bureau && { flex: 2 }]}>
@@ -235,6 +253,40 @@ export default function Dashboard() {
                   </View>
                 ))}
               </View>
+              </View>
+
+              <View style={styles.barreFiltres}>
+                <View style={styles.rechercheWrap}>
+                  <Icone name="search" size={16} color={colors.muted} />
+                  <TextInput
+                    testID="input-recherche-commandes"
+                    value={recherche}
+                    onChangeText={setRecherche}
+                    placeholder="Rechercher un numéro, un client, une commune"
+                    placeholderTextColor={colors.muted}
+                    style={styles.rechercheChamp}
+                  />
+                </View>
+                <View style={styles.filtresStatut}>
+                  {FILTRES.map((f) => {
+                    const actif = f.cle === filtreStatut;
+                    return (
+                      <Pressable
+                        key={f.cle}
+                        testID={`filtre-statut-${f.cle}`}
+                        onPress={() => setFiltreStatut(f.cle)}
+                        style={[styles.filtreChip, actif && styles.filtreChipActif]}
+                      >
+                        <Text style={[styles.filtreChipTexte, actif && { color: colors.onBrandPrimary }]}>
+                          {f.libelle}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Text style={styles.compteur}>
+                  {commandes.length} commande{commandes.length > 1 ? "s" : ""}
+                </Text>
               </View>
 
               {bureau ? (
@@ -495,7 +547,52 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl, gap: spacing.sm },
   vide: { fontFamily: fonts.text, fontSize: 14, color: colors.muted },
-  liste: { padding: spacing.lg, gap: spacing.md },
+  liste: { padding: spacing.xl, gap: spacing.md },
+  boutonAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+  },
+  boutonActionTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
+  barreFiltres: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  rechercheWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    height: 44,
+    minWidth: 260,
+    flexGrow: 1,
+    flexBasis: 260,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  rechercheChamp: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: colors.onSurface, outlineStyle: "none" } as any,
+  filtresStatut: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  filtreChip: {
+    minHeight: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filtreChipActif: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
+  filtreChipTexte: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.onSurface },
+  compteur: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.muted },
   statsRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.xs },
   statsColonne: { flexDirection: "column", flex: 1, marginBottom: 0 },
   grilleBureau: { flexDirection: "row", gap: spacing.md, alignItems: "stretch" },

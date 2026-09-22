@@ -23,7 +23,7 @@ export default function ParametresLivreur() {
 
   return (
     <View testID="ecran-parametres-livreur" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Pressable testID="btn-retour-parametres-livreur" onPress={() => router.back()} style={styles.iconeBtn}>
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>

@@ -7,8 +7,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useT } from "@/src/i18n";
+import { TitrePage } from "@/src/components/TitrePage";
 import { usePanier } from "@/src/panier";
-import { LARGEUR_CONTENU } from "@/src/reactif";
+import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
@@ -17,19 +18,13 @@ export default function Panier() {
   useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { bureau } = useEcran();
   const t = useT();
   const { usd, fc } = useMontant();
   const { articles, changerQuantite, retirer, sousTotal, nbArticles } = usePanier();
 
   return (
     <View testID="ecran-panier" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable testID="btn-retour-panier" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
-          <Icone name="arrow-left" size={22} color={colors.onSurface} />
-        </Pressable>
-        <Text style={styles.titre}>{t("panier.titre")}</Text>
-        <View style={styles.iconeBtn} />
-      </View>
 
       {articles.length === 0 ? (
         <View style={styles.centre}>
@@ -39,12 +34,13 @@ export default function Panier() {
             testID="btn-retour-catalogue"
             label={t("panier.retourCatalogue")}
             variant="secondaire"
-            onPress={() => router.replace("/accueil")}
+            onPress={() => router.replace("/menu")}
           />
         </View>
       ) : (
-        <>
-          <ScrollView contentContainerStyle={styles.liste}>
+        <View style={bureau ? styles.page : styles.pageMobile}>
+          <ScrollView contentContainerStyle={[styles.liste, bureau && styles.listeBureau]} style={styles.colonne}>
+            <TitrePage titre={t("panier.titre")} sousTitre={t("panier.sousTotal", { n: nbArticles })} retour="/menu" />
             {articles.map((a) => (
               <View key={a.cle} testID={`panier-article-${a.produitId}`} style={styles.carte}>
                 {a.image ? (
@@ -89,7 +85,13 @@ export default function Panier() {
             ))}
           </ScrollView>
 
-          <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>
+          <View
+            style={[
+              styles.pied,
+              bureau ? styles.recap : { paddingBottom: insets.bottom + spacing.lg },
+            ]}
+          >
+            {bureau ? <Text style={styles.recapTitre}>Récapitulatif</Text> : null}
             <View style={styles.ligneTotal}>
               <Text style={styles.sousTotalLabel}>{t("panier.sousTotal", { n: nbArticles })}</Text>
               <View>
@@ -103,10 +105,13 @@ export default function Panier() {
               testID="btn-choisir-adresse"
               label={t("panier.choisirAdresse")}
               icone="map-pin"
-              onPress={() => router.push("/adresse")}
+              onPress={() => router.push("/commande/adresse")}
             />
+            {bureau ? (
+              <Text style={styles.recapNote}>Frais de livraison confirmés à l&apos;étape suivante.</Text>
+            ) : null}
           </View>
-        </>
+        </View>
       )}
     </View>
   );
@@ -130,7 +135,31 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg, paddingHorizontal: spacing.xl },
   vide: { fontFamily: fonts.text, fontSize: 15, color: colors.muted },
   videEmoji: { fontSize: 46 },
+  page: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.xl,
+    width: "100%",
+    maxWidth: 1160,
+    alignSelf: "center",
+    padding: spacing.xl,
+  },
+  pageMobile: { flex: 1 },
+  colonne: { flex: 1, minWidth: 0 },
   liste: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md },
+  listeBureau: { maxWidth: undefined, padding: 0, gap: spacing.md },
+  recap: {
+    width: 360,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.xl,
+    maxWidth: undefined,
+    alignSelf: "flex-start",
+  },
+  recapTitre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface },
+  recapNote: { fontFamily: fonts.text, fontSize: 12, color: colors.muted, textAlign: "center" },
   carte: {
     flexDirection: "row",
     gap: spacing.md,

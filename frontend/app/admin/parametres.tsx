@@ -109,7 +109,7 @@ export default function Parametres() {
 
   return (
     <View testID="ecran-parametres" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Pressable
           testID="btn-retour-parametres"
           onPress={() => (vue === "menu" ? router.back() : setVue("menu"))}
@@ -254,13 +254,13 @@ export default function Parametres() {
                 testID="ligne-taux"
                 icone="repeat"
                 label={t("admin.taux")}
-                onPress={() => router.replace("/catalogue")}
+                onPress={() => router.replace("/admin/catalogue")}
               />
               <Ligne
                 testID="ligne-zones"
                 icone="map"
                 label={t("admin.zones")}
-                onPress={() => router.replace("/zones")}
+                onPress={() => router.replace("/admin/zones")}
               />
               {estSuper ? (
                 <Ligne
@@ -268,7 +268,7 @@ export default function Parametres() {
                   icone="users"
                   label={t("admin.personnel")}
                   valeur={t("admin.personnelDetail")}
-                  onPress={() => router.replace("/personnel")}
+                  onPress={() => router.replace("/admin/personnel")}
                 />
               ) : null}
             </Section>

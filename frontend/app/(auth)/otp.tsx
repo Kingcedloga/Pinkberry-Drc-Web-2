@@ -42,10 +42,10 @@ export default function VerificationOtp() {
       toast.show("Compte vérifié, bienvenue !", "succes");
       router.replace(
         u.role === "admin" || u.role === "superadmin"
-          ? "/dashboard"
+          ? "/admin"
           : u.role === "livreur"
-            ? "/courses"
-            : "/accueil",
+            ? "/livreur"
+            : "/menu",
       );
     } catch (e: any) {
       toast.show(e.message, "erreur");

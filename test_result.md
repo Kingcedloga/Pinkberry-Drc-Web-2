@@ -137,3 +137,62 @@ le mode sombre et l'installation PWA.
 ### Identifiants
 Voir `/app/memory/test_credentials.md` (client 0990000001/client123, admin 0810000000/admin123,
 livreur 0820000001/livreur123).
+
+## Itération 27 — Bascule complète en application web (desktop-first)
+
+### Demande utilisateur
+Le produit n'est plus une app mobile : c'est une **application web** pensée navigateur
+(desktop d'abord, mobile en adaptation). Abandon du format « écran de téléphone », navigation
+web (header + sidebar), URLs propres, pages web classiques, back-end et modèle de données inchangés.
+
+### Restructuration des routes (URLs propres)
+- Client (groupe `(client)`, invisible dans l'URL) : `/menu`, `/panier`, `/commande/adresse`,
+  `/commande/paiement`, `/commandes`, `/compte`, `/parametres`, `/archives`, `/suivi/{id}`
+- Admin (`app/admin/`) : `/admin`, `/admin/catalogue`, `/admin/zones`, `/admin/livreurs`,
+  `/admin/personnel`, `/admin/rapports`, `/admin/archives`, `/admin/parametres`
+- Livreur (`app/livreur/`) : `/livreur`, `/livreur/course/{id}`, `/livreur/rapports`,
+  `/livreur/archives`, `/livreur/parametres`
+- Auth inchangée : `/bienvenue`, `/connexion`, `/inscription`, `/otp`, `/telephone`
+- Les anciens groupes `(admin)`, `(livreur)`, `(commande)`, `client/`, `suivi/` ont été supprimés.
+- Plus aucun navigateur d'onglets : chaque espace utilise `<Slot/>` + navigation par liens
+  (`src/components/Coquille.tsx`), donc le bouton retour du navigateur fonctionne.
+
+### Interface
+- `Coquille` : header web (logo + liens + bouton panier + déconnexion) sur ≥1024 px pour
+  client/livreur ; **sidebar fixe 252 px** pour l'admin ; sur petit écran header compact +
+  **barre d'onglets basse** (choix utilisateur).
+- `TitrePage` : titres de page web (titre, sous-titre, lien retour, actions).
+- `/menu` : hero + recherche, **colonne de filtres catégories** à gauche (desktop) et grille
+  produits 1/2/3/4 colonnes ; fiche produit en **modale centrée** (bottom sheet sur mobile).
+- `/panier` : 2 colonnes (articles + récapitulatif sticky) sur desktop.
+- `/admin` : sidebar + KPI 2 colonnes + **barre de filtres** (recherche texte + 7 filtres de
+  statut + compteur) + tableau 7 colonnes ; cartes sur mobile.
+- `/livreur` : titre + 3 KPI (en cours, terminées, à encaisser) + grille de courses 1/2/3 colonnes.
+
+### À tester (frontend)
+1. URLs : toutes les pages ci-dessus répondent, aucun « Unmatched Route », bouton retour navigateur OK.
+2. Client desktop 1440 : /menu (filtres catégories, grille, recherche), modale produit centrée,
+   ajout panier, /panier 2 colonnes, /commande/adresse, /commande/paiement, /suivi/{id}, /commandes,
+   /compte, /parametres, /archives.
+3. Admin desktop 1440 : sidebar (7 liens + déconnexion), filtres statut + recherche, tableau,
+   modale détail centrée, assignation livreur, changement de statut, archivage, pages catalogue/
+   zones/livreurs/personnel/rapports/archives/parametres.
+4. Livreur desktop 1440 : /livreur (KPI + grille), /livreur/course/{id} (carte), rapports, archives, parametres.
+5. Mobile 390 : header compact + barre d'onglets basse pour les 3 rôles, navigation complète.
+6. Non-régression fonctionnelle : passer une commande de bout en bout (cash), voir la commande
+   côté admin, l'assigner, changer le statut, la suivre côté client.
+
+### Itération 27 — compléments après retour du testing agent
+- Parcours de commande client validé manuellement de bout en bout (Pot Fraise + taille →
+  /panier → /commande/adresse (Gombe) → /commande/paiement (cash) → /suivi/{id}) : OK.
+- `/suivi/{id}` passe en **2 colonnes** sur desktop (carte à gauche, progression / livreur /
+  détail / annulation à droite).
+- `/bienvenue` devient une **vraie page d'accueil web** : header site (logo + Se connecter),
+  hero 2 colonnes (accroche, arguments, CTA) et illustration ; carte compacte conservée sur mobile.
+- Cartes d'authentification : hauteur bornée à 640 px sur grand écran.
+
+### Reste à tester (itération 28)
+1. Non-régression métier complète : commande client → visible admin → assignation livreur →
+   changement de statut → visible côté livreur → mise à jour du suivi client.
+2. Back office : ajout/modification d'un produit (catalogue), zones, livreurs, rapports, archives.
+3. Nouvelle page d'accueil web `/bienvenue` (desktop + mobile) et écrans d'auth.

@@ -2,19 +2,13 @@ import { Redirect } from "expo-router";
 import React from "react";
 
 import { useAuth } from "@/src/auth";
+import { accueilDuRole } from "@/src/nav-web";
 import { EcranDemarrage } from "@/src/components/EcranDemarrage";
 
 export type Role = "client" | "livreur" | "admin" | "superadmin";
 
 export const TOUS_ROLES: Role[] = ["client", "livreur", "admin", "superadmin"];
 
-/** Écran d'accueil par défaut d'un rôle, utilisé pour rediriger un accès interdit. */
-export function accueilDuRole(role?: string) {
-  if (role === "admin" || role === "superadmin") return "/dashboard";
-  if (role === "livreur") return "/courses";
-  if (role === "client") return "/accueil";
-  return "/bienvenue";
-}
 
 /**
  * Renvoie un écran de blocage (chargement ou redirection) si l'utilisateur n'a pas

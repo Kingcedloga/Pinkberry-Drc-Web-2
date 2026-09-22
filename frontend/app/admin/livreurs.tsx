@@ -10,7 +10,6 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
-import { hauteurOngletsNatifs } from "@/src/nav";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -71,7 +70,7 @@ export default function Livreurs() {
 
   return (
     <View testID="ecran-admin-livreurs" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Text style={styles.titre}>Livreurs</Text>
         {estSuper ? (
           <Pressable testID="btn-ajouter-livreur" onPress={() => setOuvert(true)} style={styles.ajouter}>
@@ -89,7 +88,7 @@ export default function Livreurs() {
           testID="liste-admin-livreurs"
           data={q.data ?? []}
           keyExtractor={(l) => l.id}
-          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
+          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           renderItem={({ item }) => (

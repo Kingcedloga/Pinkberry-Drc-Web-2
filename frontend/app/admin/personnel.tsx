@@ -12,7 +12,6 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
-import { hauteurOngletsNatifs } from "@/src/nav";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -53,7 +52,7 @@ export default function Personnel() {
   const [vehicule, setVehicule] = useState("Moto");
   const [plaque, setPlaque] = useState("");
 
-  if (!estSuper) return <Redirect href="/dashboard" />;
+  if (!estSuper) return <Redirect href="/admin" />;
 
   const reinitialiser = () => {
     setNom("");
@@ -120,7 +119,7 @@ export default function Personnel() {
   return (
     <Garde roles={["superadmin"]}>
     <View testID="ecran-personnel" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <View>
           <Text style={styles.titre}>Personnel</Text>
           <Text style={styles.sousTitre}>Comptes admin et livreur</Text>
@@ -139,7 +138,7 @@ export default function Personnel() {
           testID="liste-comptes"
           data={q.data ?? []}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
+          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           ListEmptyComponent={

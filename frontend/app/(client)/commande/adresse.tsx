@@ -14,6 +14,7 @@ import { Carte } from "@/src/components/Carte";
 import { Champ } from "@/src/components/Champ";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
+import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_CONTENU, LARGEUR_FEUILLE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -133,20 +134,17 @@ export default function FormulaireAdresse() {
 
   const continuer = () => {
     setAdresse({ label, commune, avenue, numero, repere, telephone, lat: coords?.lat, lng: coords?.lng });
-    router.push("/confirmation");
+    router.push("/commande/paiement");
   };
 
   return (
     <View testID="ecran-adresse" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable testID="btn-retour-adresse" onPress={() => router.back()} style={styles.iconeBtn} hitSlop={8}>
-          <Icone name="arrow-left" size={22} color={colors.onSurface} />
-        </Pressable>
-        <Text style={styles.titre}>{t("adresse.titre")}</Text>
-        <View style={styles.iconeBtn} />
-      </View>
-
       <KeyboardAwareScrollView bottomOffset={120} contentContainerStyle={styles.contenu}>
+        <TitrePage
+          titre={t("adresse.titre")}
+          sousTitre="Étape 1 sur 2 · Livraison"
+          retour="/panier"
+        />
         <View style={styles.bloc}>
           <Champ
             label={t("adresse.rechercher")}

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { ArticlePanier, Garniture } from "@/src/panier";
-import { LARGEUR_FEUILLE } from "@/src/reactif";
+import { LARGEUR_FEUILLE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useMontant } from "@/src/taux";
 
@@ -36,6 +36,7 @@ export function FeuilleProduit({
   onAjouter: (a: Omit<ArticlePanier, "cle">) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { bureau } = useEcran();
   const { usd, fc } = useMontant();
   const [tailleIndex, setTailleIndex] = useState(0);
   const [garnituresChoisies, setGarnitures] = useState<string[]>([]);
@@ -74,11 +75,28 @@ export function FeuilleProduit({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.voile}>
-        <Pressable style={styles.zoneFermeture} onPress={onClose} testID="fermer-feuille-fond" />
-        <View testID="feuille-produit" style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
-          <View style={styles.poignee} />
+    <Modal visible={visible} animationType={bureau ? "fade" : "slide"} transparent onRequestClose={onClose}>
+      <View style={[styles.voile, bureau && styles.voileCentre]}>
+        <Pressable
+          style={bureau ? StyleSheet.absoluteFill : styles.zoneFermeture}
+          onPress={onClose}
+          testID="fermer-feuille-fond"
+        />
+        <View
+          testID="feuille-produit"
+          style={[
+            styles.feuille,
+            { paddingBottom: bureau ? spacing.lg : insets.bottom + spacing.lg },
+            bureau && styles.dialogue,
+          ]}
+        >
+          {bureau ? (
+            <Pressable testID="btn-fermer-feuille" onPress={onClose} style={styles.fermer}>
+              <Icone name="x" size={20} color={colors.muted} />
+            </Pressable>
+          ) : (
+            <View style={styles.poignee} />
+          )}
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.entete}>
               <PhotoProduit image={produit.image} taille={96} rayon={radius.lg} />
@@ -177,6 +195,9 @@ export function FeuilleProduit({
 
 const styles = stylesDynamiques(() => StyleSheet.create({
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
+  voileCentre: { justifyContent: "center", alignItems: "center", padding: spacing.xl },
+  dialogue: { borderRadius: radius.xl, maxWidth: 560, maxHeight: "88%", paddingTop: spacing.lg },
+  fermer: { alignSelf: "flex-end", width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   zoneFermeture: { flex: 1 },
   feuille: {
     ...LARGEUR_FEUILLE,

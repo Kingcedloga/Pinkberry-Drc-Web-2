@@ -9,7 +9,6 @@ import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
-import { hauteurOngletsNatifs } from "@/src/nav";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -72,7 +71,7 @@ export default function Zones() {
 
   return (
     <View testID="ecran-admin-zones" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <View style={styles.enteteHaut}>
           <Text style={styles.titre}>Zones de livraison</Text>
           <Pressable testID="btn-ajouter-zone" onPress={() => setOuvert(true)} style={styles.ajouter}>
@@ -94,7 +93,7 @@ export default function Zones() {
           testID="liste-zones"
           data={q.data ?? []}
           keyExtractor={(z) => z.id}
-          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
+          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           ListEmptyComponent={

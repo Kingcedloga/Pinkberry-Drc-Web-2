@@ -55,7 +55,7 @@ export default function Archives() {
 
   return (
     <View testID="ecran-archives" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Pressable testID="btn-retour-archives" onPress={() => router.back()} style={styles.iconeBtn}>
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>

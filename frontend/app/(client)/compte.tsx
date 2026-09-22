@@ -2,14 +2,12 @@ import { Icone } from "@/src/components/Icone";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
-import { Logo } from "@/src/components/Logo";
+import { TitrePage } from "@/src/components/TitrePage";
 import { useT } from "@/src/i18n";
-import { hauteurOngletsNatifs } from "@/src/nav";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -17,7 +15,6 @@ import { useToast } from "@/src/toast";
 
 export default function Compte() {
   useTheme();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
   const t = useT();
@@ -42,12 +39,9 @@ export default function Compte() {
   return (
     <View testID="ecran-compte" style={styles.ecran}>
       <ScrollView
-        contentContainerStyle={[
-          styles.contenu,
-          { paddingTop: insets.top + spacing.lg, paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) },
-        ]}
+        contentContainerStyle={styles.contenu}
       >
-        <Logo taille={24} />
+        <TitrePage titre="Mon compte" sousTitre={user?.nom ?? undefined} />
 
         <View style={styles.carte}>
           <View style={styles.avatar}>
@@ -82,7 +76,7 @@ export default function Compte() {
           label={t("compte.parametres")}
           variant="secondaire"
           icone="settings"
-          onPress={() => router.push("/client/parametres")}
+          onPress={() => router.push("/parametres")}
         />
         <Bouton
           testID="btn-mes-commandes"
@@ -154,7 +148,7 @@ export default function Compte() {
 
 const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
-  contenu: { ...LARGEUR_CONTENU, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.lg },
+  contenu: { ...LARGEUR_CONTENU, padding: spacing.xl, gap: spacing.lg },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,

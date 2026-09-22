@@ -1,15 +1,17 @@
-import { Stack } from "expo-router";
+import { Slot } from "expo-router";
 import React from "react";
 
+import { Coquille } from "@/src/components/Coquille";
 import { Garde } from "@/src/components/Garde";
-import { colors } from "@/src/theme";
-import { useTheme } from "@/src/theme-contexte";
+import { NAV_LIVREUR } from "@/src/nav-web";
 
-export default function LivreurPilesLayout() {
-  useTheme();
+/** Espace livreur : tableau de bord web des courses. */
+export default function LivreurLayout() {
   return (
     <Garde roles={["livreur"]}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceSecondary } }} />
+      <Coquille liens={NAV_LIVREUR}>
+        <Slot />
+      </Coquille>
     </Garde>
   );
 }

@@ -23,7 +23,6 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { usd } from "@/src/money";
-import { hauteurOngletsNatifs } from "@/src/nav";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -275,7 +274,7 @@ export default function Catalogue() {
 
   return (
     <View testID="ecran-admin-catalogue" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.lg }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Text style={styles.titre}>Catalogue</Text>
         <View style={styles.actionsEntete}>
           <Pressable testID="btn-gerer-categories" onPress={() => setCatsOuvert(true)} style={styles.secondaire}>
@@ -314,7 +313,7 @@ export default function Catalogue() {
           testID="liste-admin-produits"
           data={q.data ?? []}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xl + hauteurOngletsNatifs(insets.bottom) }]}
+          contentContainerStyle={[styles.liste, { paddingBottom: spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
           renderItem={({ item }) => (

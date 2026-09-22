@@ -169,7 +169,7 @@ export default function ParametresClient() {
 
   return (
     <View testID="ecran-parametres-client" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
+      <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Pressable
           testID="btn-retour-parametres-client"
           onPress={() => (vue === "menu" ? router.back() : setVue("menu"))}
@@ -317,7 +317,7 @@ export default function ParametresClient() {
                 icone="package"
                 label={t("params.archives")}
                 valeur={t("params.archivesDetail")}
-                onPress={() => router.push("/client/archives")}
+                onPress={() => router.push("/archives")}
               />
               <Ligne
                 testID="ligne-client-partage"

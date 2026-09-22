@@ -13,6 +13,7 @@ import { Etapes } from "@/src/components/Etapes";
 import { useT } from "@/src/i18n";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { Etoiles } from "@/src/components/Etoiles";
+import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -78,7 +79,7 @@ export default function SuiviCommande() {
       qc.invalidateQueries({ queryKey: ["mes-commandes"] });
       setNotationOuverte(false);
       toast.show(t("suivi.merci"), "succes");
-      router.replace("/accueil");
+      router.replace("/menu");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -86,18 +87,21 @@ export default function SuiviCommande() {
 
   return (
     <View testID="ecran-suivi" style={styles.ecran}>
-      <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable testID="btn-retour-suivi" onPress={() => router.replace("/accueil")} style={styles.iconeBtn} hitSlop={8}>
-          <Icone name="arrow-left" size={22} color={colors.onSurface} />
-        </Pressable>
-        <View>
-          <Text style={styles.titre}>Suivi {cmd.numero}</Text>
-          <Text style={styles.sousTitre}>{usd(cmd.total)} ≈ {fc(cmd.total)} à régler en cash</Text>
-        </View>
-        <View style={styles.iconeBtn} />
-      </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.contenu,
+          bureau && styles.contenuBureau,
+          { paddingBottom: insets.bottom + spacing.xxl },
+        ]}
+      >
+        <TitrePage
+          titre={`Suivi ${cmd.numero}`}
+          sousTitre={`${usd(cmd.total)} ≈ ${fc(cmd.total)}`}
+          retour="/commandes"
+        />
 
-      <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: insets.bottom + spacing.xxl }]}>
+        <View style={bureau ? styles.colonnes : styles.pile}>
+          <View style={bureau ? styles.colGauche : styles.pile}>
         <View style={styles.carteWrap}>
           <Carte
             client={positionClient}
@@ -137,7 +141,9 @@ export default function SuiviCommande() {
             />
           </View>
         ) : null}
+          </View>
 
+          <View style={bureau ? styles.colDroite : styles.pile}>
         <View style={styles.carte}>
           <Text style={styles.carteTitre}>{t("suivi.progression")}</Text>
           {cmd.statut === "annulee" ? (
@@ -217,6 +223,8 @@ export default function SuiviCommande() {
             onPress={() => setConfirmAnnuler(true)}
           />
         ) : null}
+          </View>
+        </View>
       </ScrollView>
 
       <Modal visible={confirmAnnuler} transparent animationType="fade" onRequestClose={() => setConfirmAnnuler(false)}>
@@ -266,6 +274,11 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 19, color: colors.onSurface, textAlign: "center" },
   sousTitre: { fontFamily: fonts.text, fontSize: 11, color: colors.muted, textAlign: "center" },
   contenu: { ...LARGEUR_CONTENU, padding: spacing.lg, gap: spacing.md },
+  contenuBureau: { maxWidth: 1160, padding: spacing.xl },
+  pile: { gap: spacing.md },
+  colonnes: { flexDirection: "row", alignItems: "flex-start", gap: spacing.xl },
+  colGauche: { flex: 1.25, gap: spacing.md, minWidth: 0 },
+  colDroite: { flex: 1, gap: spacing.md, minWidth: 0 },
   carteWrap: { position: "relative" },
   eta: {
     position: "absolute",
