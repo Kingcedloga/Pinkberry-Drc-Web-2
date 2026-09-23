@@ -10,6 +10,7 @@ import { BoutonGoogle } from "@/src/components/BoutonGoogle";
 import { Champ } from "@/src/components/Champ";
 import { CarteAuth, EnteteMarque } from "@/src/components/DecorAuth";
 import { LARGEUR_ETROITE } from "@/src/reactif";
+import { useLangue } from "@/src/i18n";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -18,6 +19,7 @@ export default function Inscription() {
   useTheme();
   const router = useRouter();
   const { inscription, connexionGoogle } = useAuth();
+  const { t } = useLangue();
   const toast = useToast();
 
   const [nom, setNom] = useState("");
@@ -91,6 +93,18 @@ export default function Inscription() {
 
         <Bouton testID="btn-valider-inscription" label="Créer mon compte" loading={loading} onPress={valider} />
 
+        <View style={styles.acceptation}>
+          <Text style={styles.acceptationTexte}>{t("inscription.acceptation")} </Text>
+          <Pressable testID="lien-conditions-inscription" onPress={() => router.push("/legal/conditions")}>
+            <Text style={styles.acceptationLien}>{t("params.conditions")}</Text>
+          </Pressable>
+          <Text style={styles.acceptationTexte}> {t("inscription.et")} </Text>
+          <Pressable testID="lien-confidentialite-inscription" onPress={() => router.push("/legal/confidentialite")}>
+            <Text style={styles.acceptationLien}>{t("params.confidentialite")}</Text>
+          </Pressable>
+          <Text style={styles.acceptationTexte}>.</Text>
+        </View>
+
         <View style={styles.separateurRow}>
           <View style={styles.trait} />
           <Text style={styles.ou}>ou</Text>
@@ -139,6 +153,9 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 24, fontWeight: poids.fort, color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, textAlign: "center" },
   form: { gap: spacing.md },
+  acceptation: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", paddingHorizontal: spacing.sm },
+  acceptationTexte: { fontFamily: fonts.text, fontSize: 12, lineHeight: 19, color: colors.muted, textAlign: "center" },
+  acceptationLien: { fontFamily: fonts.text, fontSize: 12, lineHeight: 19, fontWeight: poids.fort, color: colors.brandPrimary, textDecorationLine: "underline" },
   separateurRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   trait: { flex: 1, height: 1, backgroundColor: colors.divider },
   ou: { fontFamily: fonts.text, fontSize: 12, color: colors.muted, fontWeight: poids.fort },

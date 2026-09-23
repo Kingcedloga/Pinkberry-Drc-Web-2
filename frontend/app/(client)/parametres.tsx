@@ -342,6 +342,21 @@ export default function ParametresClient() {
               />
             </Section>
 
+            <Section titre={t("params.legal")}>
+              <Ligne
+                testID="ligne-politique-confidentialite"
+                icone="info"
+                label={t("params.confidentialite")}
+                onPress={() => router.push("/legal/confidentialite")}
+              />
+              <Ligne
+                testID="ligne-conditions-utilisation"
+                icone="receipt"
+                label={t("params.conditions")}
+                onPress={() => router.push("/legal/conditions")}
+              />
+            </Section>
+
             <Bouton
               testID="btn-deconnexion-client"
               label={t("compte.deconnexion")}
