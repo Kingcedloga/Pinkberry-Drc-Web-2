@@ -2,6 +2,8 @@
 import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
 
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL || "https://pinkberry-drc.preview.emergentagent.com";
+
 /**
  * Coquille HTML de la web app Pinkberry (responsive + installable en PWA).
  */
@@ -16,10 +18,29 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no"
         />
         <title>Pinkberry Drc</title>
+        <link rel="canonical" href={`${SITE_URL}/`} />
         <meta
           name="description"
           content="Commandez vos yogourts glacés Pinkberry à Kinshasa : catalogue, paiement à la livraison et suivi de livraison en direct."
         />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Pinkberry Drc" />
+        <meta property="og:locale" content="fr_FR" />
+        <meta property="og:title" content="Pinkberry Drc" />
+        <meta
+          property="og:description"
+          content="Commandez vos yogourts glacés Pinkberry à Kinshasa, avec paiement à la livraison et suivi en direct."
+        />
+        <meta property="og:url" content={`${SITE_URL}/`} />
+        <meta property="og:image" content={`${SITE_URL}/PINK%20LOGOS.png`} />
+        <meta property="og:image:alt" content="Pinkberry Drc" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Pinkberry Drc" />
+        <meta
+          name="twitter:description"
+          content="Commandez vos yogourts glacés Pinkberry à Kinshasa, avec paiement à la livraison."
+        />
+        <meta name="twitter:image" content={`${SITE_URL}/PINK%20LOGOS.png`} />
 
         {/* PWA : installable sur mobile et ordinateur */}
         <link rel="manifest" href="/manifest.json" />
@@ -28,8 +49,8 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Pinkberry" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icones/icon-180.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icones/icon-192.png" />
+        <link rel="apple-touch-icon" href="/PINK%20LOGO%20icon%20.png" />
+        <link rel="icon" type="image/png" href="/PINK%20LOGO%20icon%20.png" />
 
         {/*
           Disable body scrolling on web to make ScrollView components work correctly.
