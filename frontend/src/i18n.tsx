@@ -27,6 +27,11 @@ const FR = {
   "commun.desarchiver": "Désarchiver",
   "commun.chargement": "Chargement...",
 
+  "auth.acceptationPrefix": "En créant un compte, tu acceptes nos",
+  "auth.conditions": "Conditions d'utilisation",
+  "auth.et": "et notre",
+  "auth.confidentialite": "Politique de confidentialité",
+
   "compte.parametres": "Paramètres",
   "compte.parametresDetail": "Langue, notifications, profil",
   "compte.mesCommandes": "Mes commandes",
@@ -57,6 +62,9 @@ const FR = {
   "params.archivesDetail": "Vos commandes terminées mises de côté",
   "params.partage": "Partager l'application",
   "params.partageDetail": "Invitez vos amis à commander",
+  "params.legal": "À propos / Légal",
+  "params.confidentialite": "Politique de confidentialité",
+  "params.conditions": "Conditions d'utilisation",
   "params.enregistre": "Préférences enregistrées",
   "params.profilTitre": "Modifier le profil",
   "params.nom": "Nom",
@@ -208,6 +216,11 @@ const EN: Record<keyof typeof FR, string> = {
   "commun.desarchiver": "Unarchive",
   "commun.chargement": "Loading...",
 
+  "auth.acceptationPrefix": "By creating an account, you agree to our",
+  "auth.conditions": "Terms of Use",
+  "auth.et": "and our",
+  "auth.confidentialite": "Privacy Policy",
+
   "compte.parametres": "Settings",
   "compte.parametresDetail": "Language, notifications, profile",
   "compte.mesCommandes": "My orders",
@@ -238,6 +251,9 @@ const EN: Record<keyof typeof FR, string> = {
   "params.archivesDetail": "Your completed orders set aside",
   "params.partage": "Share the app",
   "params.partageDetail": "Invite your friends to order",
+  "params.legal": "About / Legal",
+  "params.confidentialite": "Privacy policy",
+  "params.conditions": "Terms of use",
   "params.enregistre": "Preferences saved",
   "params.profilTitre": "Edit profile",
   "params.nom": "Name",

@@ -10,6 +10,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { ChoixTheme } from "@/src/components/ChoixTheme";
 import { Icone, type NomIcone } from "@/src/components/Icone";
+import { LiensLegaux } from "@/src/components/LiensLegaux";
 import { useLangue, type CleTexte, type Langue } from "@/src/i18n";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -326,6 +327,8 @@ export default function ParametresClient() {
                 onPress={partager}
               />
             </Section>
+
+            <LiensLegaux />
 
             <Bouton
               testID="btn-deconnexion-client"
