@@ -92,7 +92,7 @@ export default function Menu() {
       <View style={styles.hero}>
         <Text style={styles.heroTitre}>Le vrai frozen yogurt, livré chez vous à Kinshasa</Text>
         <Text style={styles.heroSous}>
-          Choisissez vos pots, smoothies et garnitures. Paiement Mobile Money ou à la livraison.
+          Choisissez vos pots, smoothies et garnitures. Paiement à la livraison.
         </Text>
         <View style={styles.rechercheWrap}>
           <Icone name="search" size={18} color={colors.muted} />

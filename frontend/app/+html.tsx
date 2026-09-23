@@ -18,7 +18,7 @@ export default function Root({ children }: PropsWithChildren) {
         <title>Pinkberry Drc</title>
         <meta
           name="description"
-          content="Commandez vos yogourts glacés Pinkberry à Kinshasa : catalogue, paiement Mobile Money et suivi de livraison en direct."
+          content="Commandez vos yogourts glacés Pinkberry à Kinshasa : catalogue, paiement à la livraison et suivi de livraison en direct."
         />
 
         {/* PWA : installable sur mobile et ordinateur */}

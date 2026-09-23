@@ -67,13 +67,13 @@ export default function Bienvenue() {
             <Text style={styles.badgeSite}>Livraison à Kinshasa</Text>
             <Text style={styles.titreSite}>Le vrai frozen yogurt, livré chez vous</Text>
             <Text style={styles.sousTitreSite}>
-              Pots de crème, smoothies et garnitures Pinkberry. Commandez en quelques clics, payez par Mobile Money
-              ou à la livraison, et suivez votre livreur en direct sur la carte.
+              Pots de crème, smoothies et garnitures Pinkberry. Commandez en quelques clics, payez à la livraison,
+              et suivez votre livreur en direct sur la carte.
             </Text>
             <View style={styles.actionsSite}>{actions}</View>
             <View style={styles.pointsForts}>
               <Text style={styles.pointFort}>• Zones couvertes : Gombe, Limete, Ngaliema, Lingwala</Text>
-              <Text style={styles.pointFort}>• Paiement M-Pesa, Airtel Money, Orange Money ou cash</Text>
+              <Text style={styles.pointFort}>• Paiement en espèces à la livraison</Text>
               <Text style={styles.pointFort}>• Suivi de livraison en temps réel</Text>
             </View>
           </View>

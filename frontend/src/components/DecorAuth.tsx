@@ -12,7 +12,7 @@ const VISUEL = require("@/assets/images/livreur-pinkberry-v2.webp");
 
 const ARGUMENTS = [
   "Commandez en quelques clics depuis votre navigateur",
-  "Paiement M-Pesa, Airtel Money, Orange Money ou cash",
+  "Paiement en espèces à la livraison",
   "Suivi de votre livreur en direct sur la carte",
 ];
 
