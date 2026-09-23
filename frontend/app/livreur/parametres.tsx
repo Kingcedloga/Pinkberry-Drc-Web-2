@@ -7,6 +7,7 @@ import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { ChoixTheme } from "@/src/components/ChoixTheme";
 import { Icone } from "@/src/components/Icone";
+import { LiensLegaux } from "@/src/components/LiensLegaux";
 import { useLangue, type Langue } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -71,6 +72,8 @@ export default function ParametresLivreur() {
             </View>
           </View>
         </View>
+
+        <LiensLegaux />
 
         <Bouton
           testID="btn-deconnexion-livreur"
