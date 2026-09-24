@@ -53,7 +53,7 @@ FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "2.5"))
 SUPERADMIN_EMAIL = (os.environ.get("SUPERADMIN_EMAIL") or "mecedloga@gmail.com").strip().lower()
 # Comptes de demonstration (admin / client / livreurs) : uniquement si les mots de
 # passe sont fournis par l'environnement, et desactivables d'un coup.
-SEED_DEMO = (os.environ.get("SEED_DEMO_ACCOUNTS") or "true").strip().lower() not in ("0", "false", "no")
+SEED_DEMO = (os.environ.get("SEED_DEMO_ACCOUNTS") or "false").strip().lower() not in ("0", "false", "no")
 MDP_ADMIN = os.environ.get("DEMO_ADMIN_PASSWORD") or ""
 MDP_CLIENT = os.environ.get("DEMO_CLIENT_PASSWORD") or ""
 MDP_LIVREUR = os.environ.get("DEMO_LIVREUR_PASSWORD") or ""
@@ -495,8 +495,8 @@ async def inscription(body: InscriptionIn):
     )
     logger.info(f"OTP pour {tel}: {code}")
     reponse = {"ok": True, "telephone": tel, "email": doc["email"], "emailEnvoye": envoye}
-    # Le code n'est renvoye a l'app qu'en demo ou si l'email n'a pas pu partir.
-    if SEED_DEMO or not envoye:
+    # En production, ne jamais exposer le code OTP dans la reponse API.
+    if SEED_DEMO:
         reponse["codeDemo"] = code
     return reponse
 
@@ -523,7 +523,7 @@ async def renvoyer_otp(body: ConnexionIn):
             )
         )
     reponse: Dict[str, Any] = {"ok": True, "emailEnvoye": envoye}
-    if SEED_DEMO or not envoye:
+    if SEED_DEMO:
         reponse["codeDemo"] = code
     return reponse
 
@@ -2698,6 +2698,16 @@ async def root():
     return {"app": "Pinkberry Drc API", "ok": True}
 
 
+@api_router.get("/health")
+async def api_health():
+    try:
+        await db.command("ping")
+    except Exception as exc:
+        logger.error("MongoDB health check failed: %s", exc)
+        return JSONResponse({"status": "degraded", "database": "unavailable"}, status_code=503)
+    return {"status": "ok", "database": "ok", "demo": SEED_DEMO}
+
+
 # -------------------------------------------------------------------- seed data
 COMMUNES = [
     ("Gombe", True), ("Limete", True), ("Ngaliema", True), ("Lingwala", True),
@@ -2852,7 +2862,7 @@ app.include_router(api_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return await api_health()
 
 app.add_middleware(
     CORSMiddleware,

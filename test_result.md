@@ -277,3 +277,28 @@ dans Chrome/Edge/Chrome Android.
    supprimé (410 de FCM), preuve que `envoyer_webpush` est bien appelé sur chaque événement.
 6. Non-régression : `notifier_client/admins/livreur` ne doivent jamais faire échouer la requête
    métier même sans clé push native (EMERGENT_PUSH_KEY absente).
+
+## Itération 31 — Pages légales (confidentialité + conditions)
+- `src/legal.ts` : contenu complet FR + EN (Politique de confidentialité en 10 sections :
+  données collectées, finalités, stockage, partage livreurs/PawaPay/prestataires, durées de
+  conservation, droits, sécurité, mineurs, modifications, contact ; Conditions d'utilisation en
+  10 sections : service, compte, règles de commande, paiement cash/Mobile Money, annulation et
+  remboursement, zones couvertes, limitation de responsabilité, propriété intellectuelle, droit
+  applicable, contact). Date de mise à jour et email de contact centralisés
+  (`MAJ_LEGALE`, `CONTACT_LEGAL = contact@pinkberrydrc.cd`).
+- `src/components/PageLegale.tsx` : gabarit lisible (titre, sous-titre, date de dernière mise à
+  jour en haut, titres de sections roses, paragraphes 15/24, lien mailto de contact), clair/sombre.
+- Routes publiques (accessibles sans connexion) : `/legal/confidentialite`, `/legal/conditions`.
+- Accès : section « À propos / Légal » dans les paramètres client (Section) et
+  admin/livreur (`src/components/LiensLegaux.tsx`) ; mention sur `/inscription` :
+  « En créant un compte, tu acceptes nos **Conditions d'utilisation** et notre
+  **Politique de confidentialité** » avec liens cliquables.
+- Clés i18n ajoutées (FR/EN) : `params.legal`, `params.confidentialite`, `params.conditions`,
+  `inscription.acceptation`, `inscription.et`.
+
+### Vérifié (navigateur, desktop 1440)
+1. Mention + liens sur `/inscription` (déconnecté) → ouverture des 2 pages, retour OK.
+2. Accès depuis les paramètres admin (section « À propos / Légal »).
+3. Rendu en **mode sombre** lisible.
+4. Bascule **English** → contenu entièrement traduit (Terms of Use / Privacy Policy, « Last
+   updated: June 20, 2026 »), puis retour au français.

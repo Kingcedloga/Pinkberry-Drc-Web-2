@@ -659,3 +659,20 @@ cloisonnement, nettoyage des abonnements expirés, déclenchement sur les évén
 régression. L'abonnement réel du navigateur doit être testé dans Chrome/Edge (le Chromium
 d'automatisation refuse la permission notifications). Sur iPhone, le push web exige que le site
 soit ajouté à l'écran d'accueil (PWA).
+
+## Pages légales (itération 31)
+Obligatoires pour la publication App Store / Google Play.
+- Contenu bilingue FR/EN dans `src/legal.ts` (date de mise à jour et email de contact centralisés),
+  gabarit d'affichage `src/components/PageLegale.tsx` (clair/sombre, titres de sections, date en haut).
+- URLs publiques, accessibles sans compte : `/legal/confidentialite` et `/legal/conditions`
+  (à fournir aux stores comme liens de politique de confidentialité et de conditions).
+- **Politique de confidentialité** : données collectées (nom, téléphone, email, adresse et point
+  de repère, position GPS, historique de commandes, moyen de paiement), finalités, stockage et
+  sécurité, partage (livreurs, agrégateur Mobile Money PawaPay, prestataires techniques),
+  durées de conservation, droits (accès, correction, suppression de compte), contact.
+- **Conditions d'utilisation** : service, création et responsabilité du compte, règles de
+  commande, paiement (cash à la livraison et Mobile Money), annulation et remboursement, zones
+  de livraison couvertes, limitation de responsabilité, propriété intellectuelle, droit
+  applicable, contact.
+- Accès : section « À propos / Légal » des paramètres (client, admin, livreur) et mention
+  d'acceptation avec liens cliquables sur l'écran d'inscription.
