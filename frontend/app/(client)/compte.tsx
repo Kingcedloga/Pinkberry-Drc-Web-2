@@ -28,7 +28,7 @@ export default function Compte() {
       await supprimerCompte();
       setConfirmation(null);
       router.replace("/bienvenue");
-      toast.show("Votre compte a été supprimé", "succes");
+      toast.show(t("compte.suppressionOk"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     } finally {
@@ -54,7 +54,7 @@ export default function Compte() {
           {user?.email ? <Text style={styles.detail}>{user.email}</Text> : null}
         </View>
 
-        <CarteNotifications texte="Reçois les infos de ta commande en temps réel, même quand l'application est fermée." />
+        <CarteNotifications texte={t("compte.notifications")} />
 
         <View style={styles.carteInfo}>
           <View style={styles.ligneInfo}>
@@ -107,27 +107,22 @@ export default function Compte() {
             <Icone name="alert-circle" size={30} color={colors.error} />
             {confirmation === 1 ? (
               <>
-                <Text style={styles.boiteTitre}>Supprimer votre compte ?</Text>
-                <Text style={styles.boiteTexte}>
-                  Votre profil, vos adresses et votre accès seront effacés. Vos commandes passées sont conservées de
-                  façon anonyme pour la comptabilité de la boutique.
-                </Text>
+                <Text style={styles.boiteTitre}>{t("compte.supprimerTitre")}</Text>
+                <Text style={styles.boiteTexte}>{t("compte.supprimerTexte")}</Text>
                 <Bouton
                   testID="btn-confirmer-suppression-1"
-                  label="Continuer"
+                  label={t("compte.continuer")}
                   variant="danger"
                   onPress={() => setConfirmation(2)}
                 />
               </>
             ) : (
               <>
-                <Text style={styles.boiteTitre}>Confirmation définitive</Text>
-                <Text style={styles.boiteTexte}>
-                  Cette action est irréversible. Vous devrez créer un nouveau compte pour commander à nouveau.
-                </Text>
+                <Text style={styles.boiteTitre}>{t("compte.confirmationDefinitive")}</Text>
+                <Text style={styles.boiteTexte}>{t("compte.confirmationTexte")}</Text>
                 <Bouton
                   testID="btn-confirmer-suppression-2"
-                  label={enCours ? "Suppression..." : "Supprimer définitivement"}
+                  label={enCours ? t("compte.suppressionEnCours") : t("compte.supprimerDefinitivement")}
                   variant="danger"
                   onPress={supprimer}
                 />
@@ -135,7 +130,7 @@ export default function Compte() {
             )}
             <Bouton
               testID="btn-annuler-suppression"
-              label="Annuler"
+              label={t("commun.annuler")}
               variant="contour"
               onPress={() => setConfirmation(null)}
             />

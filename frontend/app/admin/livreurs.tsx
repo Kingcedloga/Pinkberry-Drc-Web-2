@@ -11,6 +11,7 @@ import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { TitrePage } from "@/src/components/TitrePage";
+import { useLangue } from "@/src/i18n";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -22,6 +23,7 @@ export default function Livreurs() {
   const { bureau, large } = useEcran();
   const cols = large ? 3 : bureau ? 2 : 1;
   const toast = useToast();
+  const { t } = useLangue();
   const qc = useQueryClient();
   const { user } = useAuth();
   const estSuper = user?.role === "superadmin";
@@ -40,7 +42,7 @@ export default function Livreurs() {
 
   const ajouter = async () => {
     if (!nom.trim() || telephone.trim().length < 9) {
-      toast.show("Nom et téléphone requis", "erreur");
+      toast.show(t("admin.nomTelephoneRequis"), "erreur");
       return;
     }
     try {
@@ -53,7 +55,7 @@ export default function Livreurs() {
       setNom("");
       setTelephone("");
       setPlaque("");
-      toast.show("Livreur ajouté", "succes");
+      toast.show(t("admin.livreurAjoute"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -75,13 +77,13 @@ export default function Livreurs() {
     <View testID="ecran-admin-livreurs" style={styles.ecran}>
       <View style={styles.enteteWeb}>
         <TitrePage
-          titre="Livreurs"
-          sousTitre="Équipe de livraison et disponibilité"
+          titre={t("admin.livreursTitre")}
+          sousTitre={t("admin.livreursSousTitre")}
           actions={
             estSuper ? (
               <Pressable testID="btn-ajouter-livreur" onPress={() => setOuvert(true)} style={styles.btnPrimaire}>
                 <Icone name="plus" size={16} color={colors.onBrandPrimary} />
-                <Text style={styles.btnPrimaireTexte}>Nouveau livreur</Text>
+                <Text style={styles.btnPrimaireTexte}>{t("admin.nouveauLivreur")}</Text>
               </Pressable>
             ) : null
           }
@@ -121,7 +123,7 @@ export default function Livreurs() {
                   <Text style={styles.pos}>
                     {item.position
                       ? `${item.position.lat.toFixed(3)}, ${item.position.lng.toFixed(3)}`
-                      : "Position inconnue"}
+                      : t("admin.positionInconnue")}
                   </Text>
                 </View>
               </View>
@@ -142,14 +144,14 @@ export default function Livreurs() {
           <Pressable style={{ flex: 1 }} onPress={() => setOuvert(false)} />
           <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
             <KeyboardAwareScrollView bottomOffset={60} contentContainerStyle={styles.feuilleContenu}>
-              <Text style={styles.feuilleTitre}>Nouveau livreur</Text>
-              <Champ label="Nom" testID="input-livreur-nom" value={nom} onChangeText={setNom} />
-              <Champ label="Téléphone" testID="input-livreur-telephone" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" />
-              <Champ label="Véhicule" testID="input-livreur-vehicule" value={vehicule} onChangeText={setVehicule} />
-              <Champ label="Plaque" testID="input-livreur-plaque" value={plaque} onChangeText={setPlaque} />
-              <Champ label="Mot de passe de connexion" testID="input-livreur-motdepasse" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry />
-              <Bouton testID="btn-enregistrer-livreur" label="Ajouter le livreur" onPress={ajouter} />
-              <Bouton testID="btn-annuler-livreur" label="Annuler" variant="contour" onPress={() => setOuvert(false)} />
+              <Text style={styles.feuilleTitre}>{t("admin.nouveauLivreur")}</Text>
+              <Champ label={t("params.nom")} testID="input-livreur-nom" value={nom} onChangeText={setNom} />
+              <Champ label={t("params.telephone")} testID="input-livreur-telephone" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" />
+              <Champ label={t("admin.vehicule")} testID="input-livreur-vehicule" value={vehicule} onChangeText={setVehicule} />
+              <Champ label={t("admin.plaque")} testID="input-livreur-plaque" value={plaque} onChangeText={setPlaque} />
+              <Champ label={t("admin.mdpConnexion")} testID="input-livreur-motdepasse" value={motDePasse} onChangeText={setMotDePasse} secureTextEntry />
+              <Bouton testID="btn-enregistrer-livreur" label={t("admin.ajouterLivreur")} onPress={ajouter} />
+              <Bouton testID="btn-annuler-livreur" label={t("commun.annuler")} variant="contour" onPress={() => setOuvert(false)} />
             </KeyboardAwareScrollView>
           </View>
         </View>

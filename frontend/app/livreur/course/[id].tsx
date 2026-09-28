@@ -12,6 +12,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { TitrePage } from "@/src/components/TitrePage";
+import { useLangue } from "@/src/i18n";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -23,6 +24,7 @@ export default function DetailCourse() {
   const insets = useSafeAreaInsets();
   const { bureau } = useEcran();
   const toast = useToast();
+  const { t } = useLangue();
   const qc = useQueryClient();
   const { usd, fc } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -65,7 +67,7 @@ export default function DetailCourse() {
       }
     }
     if (statut !== "granted") {
-      toast.show("Position refusée : utilisez la simulation de trajet", "erreur");
+      toast.show(t("livreur.gpsRefuse"), "erreur");
       return;
     }
     setGpsBloque(false);
@@ -74,7 +76,7 @@ export default function DetailCourse() {
       (pos) => envoyerPosition(pos.coords.latitude, pos.coords.longitude),
     );
     setPartageGps(true);
-    toast.show("Partage de position activé", "succes");
+    toast.show(t("livreur.gpsActif"), "succes");
   };
 
   const arreterPartage = () => {
@@ -91,7 +93,7 @@ export default function DetailCourse() {
     const lat = dep.lat + (dest.lat - dep.lat) * 0.35;
     const lng = dep.lng + (dest.lng - dep.lng) * 0.35;
     await envoyerPosition(lat, lng);
-    toast.show("Position avancée vers le client", "succes");
+    toast.show(t("livreur.positionAvancee"), "succes");
   };
 
   const changerStatut = async (statut: string) => {
@@ -100,7 +102,7 @@ export default function DetailCourse() {
       qc.invalidateQueries({ queryKey: ["course", id] });
       qc.invalidateQueries({ queryKey: ["livreur-courses"] });
       if (statut === "en_route" && !partageGps) demarrerPartage();
-      toast.show("Statut mis à jour", "succes");
+      toast.show(t("livreur.statutOk"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -112,7 +114,7 @@ export default function DetailCourse() {
       arreterPartage();
       qc.invalidateQueries({ queryKey: ["course", id] });
       qc.invalidateQueries({ queryKey: ["livreur-courses"] });
-      toast.show("Cash encaissé, course clôturée", "succes");
+      toast.show(t("livreur.cashEncaisse"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -135,7 +137,7 @@ export default function DetailCourse() {
           { paddingBottom: insets.bottom + spacing.xxl },
         ]}
       >
-        <TitrePage titre={`Course ${cmd.numero}`} sousTitre={cmd.adresse?.commune} retour="/livreur" />
+        <TitrePage titre={`${t("livreur.courseRecuperee")} ${cmd.numero}`} sousTitre={cmd.adresse?.commune} retour="/livreur" />
 
         <View style={bureau ? styles.colonnes : styles.pile}>
           <View style={bureau ? styles.colGauche : styles.pile}>
@@ -150,7 +152,7 @@ export default function DetailCourse() {
           <View testID="bloc-eta-livreur" style={styles.etaBloc}>
             <Icone name="clock" size={16} color={colors.brandPrimary} />
             <Text style={styles.etaTexte}>
-              Arrivée estimée dans {dureeLisible(itineraire.data.etaSecondes)}
+              {t("livreur.arriveeEstimee", { duree: dureeLisible(itineraire.data.etaSecondes) ?? "" })}
               {distanceLisible(itineraire.data.distanceMetres)
                 ? ` · ${distanceLisible(itineraire.data.distanceMetres)}`
                 : ""}
@@ -159,16 +161,16 @@ export default function DetailCourse() {
         ) : null}
 
         <View style={styles.carte}>
-          <Text style={styles.carteTitre}>Client</Text>
+          <Text style={styles.carteTitre}>{t("livreur.client")}</Text>
           <Text style={styles.nom}>{cmd.clientNom}</Text>
           <Text style={styles.ligne}>
             {cmd.adresse?.avenue} n° {cmd.adresse?.numero}, {cmd.adresse?.commune}
           </Text>
-          <Text style={styles.repere}>Repère : {cmd.adresse?.repere}</Text>
+          <Text style={styles.repere}>{t("livreur.repere", { repere: cmd.adresse?.repere ?? "" })}</Text>
           <View style={styles.boutonsRow}>
             <Bouton
               testID="btn-appeler-client"
-              label="Appeler"
+              label={t("livreur.appeler")}
               icone="phone"
               variant="succes"
               petit
@@ -177,7 +179,7 @@ export default function DetailCourse() {
             />
             <Bouton
               testID="btn-navigation"
-              label="Itinéraire"
+              label={t("livreur.itineraire")}
               icone="navigation"
               variant="secondaire"
               petit
@@ -192,7 +194,7 @@ export default function DetailCourse() {
         </View>
 
         <View style={styles.carte}>
-          <Text style={styles.carteTitre}>À encaisser en cash</Text>
+          <Text style={styles.carteTitre}>{t("livreur.cashAEncaisser")}</Text>
           <Text testID="montant-a-encaisser" style={styles.montant}>
             {usd(cmd.total)}
           </Text>
@@ -208,18 +210,18 @@ export default function DetailCourse() {
 
           <View style={bureau ? styles.colDroite : styles.pile}>
         <View style={styles.carte}>
-          <Text style={styles.carteTitre}>Mise à jour du statut</Text>
+          <Text style={styles.carteTitre}>{t("livreur.changerStatut")}</Text>
           {cmd.statut === "recue" || cmd.statut === "en_preparation" ? (
-            <Bouton testID="btn-course-recuperee" label="Course récupérée" icone="package" onPress={() => changerStatut("recuperee")} />
+            <Bouton testID="btn-course-recuperee" label={t("livreur.courseRecuperee")} icone="package" onPress={() => changerStatut("recuperee")} />
           ) : null}
           {cmd.statut === "recuperee" ? (
-            <Bouton testID="btn-en-route" label="Je suis en route" icone="navigation" onPress={() => changerStatut("en_route")} />
+            <Bouton testID="btn-en-route" label={t("livreur.jeSuisEnRoute")} icone="navigation" onPress={() => changerStatut("en_route")} />
           ) : null}
           {cmd.statut === "en_route" ? (
             <>
               <Bouton
                 testID="btn-partage-gps"
-                label={partageGps ? "Partage GPS actif — arrêter" : "Partager ma position"}
+                label={partageGps ? t("livreur.partageGpsArreter") : t("livreur.partagerPosition")}
                 icone="crosshair"
                 variant={partageGps ? "succes" : "secondaire"}
                 onPress={partageGps ? arreterPartage : demarrerPartage}
@@ -227,7 +229,7 @@ export default function DetailCourse() {
               {gpsBloque ? (
                 <Bouton
                   testID="btn-reglages-gps"
-                  label="Ouvrir les réglages"
+                  label={t("livreur.ouvrirReglages")}
                   variant="contour"
                   petit
                   onPress={() => Linking.openSettings()}
@@ -235,21 +237,21 @@ export default function DetailCourse() {
               ) : null}
               <Bouton
                 testID="btn-simuler-trajet"
-                label="Avancer vers le client (démo)"
+                label={t("livreur.avancerDemo")}
                 icone="fast-forward"
                 variant="contour"
                 onPress={avancerDemo}
               />
-              <Bouton testID="btn-livre" label="Marquer comme livré" icone="check" variant="succes" onPress={() => changerStatut("livree")} />
+              <Bouton testID="btn-livre" label={t("livreur.marquerLivree")} icone="check" variant="succes" onPress={() => changerStatut("livree")} />
             </>
           ) : null}
           {cmd.statut === "livree" && !cmd.cashEncaisse ? (
-            <Bouton testID="btn-encaisser" label="J'ai reçu le cash — clôturer" icone="dollar-sign" variant="succes" onPress={encaisser} />
+            <Bouton testID="btn-encaisser" label={t("livreur.cashCloture")} icone="dollar-sign" variant="succes" onPress={encaisser} />
           ) : null}
           {cmd.cashEncaisse ? (
             <View style={styles.termine}>
               <Icone name="check-circle" size={18} color={colors.success} />
-              <Text style={styles.termineTexte}>Course terminée, cash encaissé</Text>
+              <Text style={styles.termineTexte}>{t("livreur.termineeCash")}</Text>
             </View>
           ) : null}
         </View>

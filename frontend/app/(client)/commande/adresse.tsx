@@ -126,7 +126,7 @@ export default function FormulaireAdresse() {
       setGpsRefuse(false);
       toast.show(t("adresse.gpsOk"), "succes");
     } catch {
-      toast.show("Impossible d'obtenir votre position", "erreur");
+      toast.show(t("adresse.positionImpossible"), "erreur");
     } finally {
       setGpsEnCours(false);
     }
@@ -170,7 +170,7 @@ export default function FormulaireAdresse() {
         bottomOffset={120}
         contentContainerStyle={[styles.contenu, bureau && styles.contenuBureau]}
       >
-        <TitrePage titre={t("adresse.titre")} sousTitre="Étape 1 sur 2 · Livraison" retour="/panier" />
+        <TitrePage titre={t("adresse.titre")} sousTitre={t("adresse.etape")} retour="/panier" />
 
         <View style={bureau ? styles.colonnes : styles.pile}>
           <View style={bureau ? styles.colGauche : styles.pile}>
@@ -183,7 +183,7 @@ export default function FormulaireAdresse() {
               setRecherche(v);
               setSuggestionsFermees(false);
             }}
-            placeholder="Av. de la Justice, Gombe"
+            placeholder={t("adresse.rechercheExemple")}
           />
           {suggestions.length > 0 ? (
             <View testID="liste-suggestions" style={styles.suggestions}>
@@ -261,20 +261,20 @@ export default function FormulaireAdresse() {
 
         {!bureau ? blocCarte : null}
 
-        <Champ label={t("adresse.avenue")} testID="input-avenue" value={avenue} onChangeText={setAvenue} placeholder="Av. de la Justice" />
+        <Champ label={t("adresse.avenue")} testID="input-avenue" value={avenue} onChangeText={setAvenue} placeholder={t("adresse.avenueExemple")} />
         <Champ label={t("adresse.numero")} testID="input-numero" value={numero} onChangeText={setNumero} placeholder="12B" />
 
         <View style={styles.bloc}>
           <Text style={styles.label}>{t("adresse.nomAdresse")}</Text>
           <View style={styles.labelsRow}>
-            {["Maison", "Bureau", "Autre"].map((l) => (
+            { ([{ valeur: "Maison", cle: "adresse.maison" }, { valeur: "Bureau", cle: "adresse.bureau" }, { valeur: "Autre", cle: "adresse.autre" }] as const).map(({ valeur, cle }) => (
               <Pressable
-                key={l}
-                testID={`label-${l}`}
-                onPress={() => setLabel(l)}
-                style={[styles.labelChip, label === l && styles.labelChipActif]}
+                key={valeur}
+                testID={`label-${valeur}`}
+                onPress={() => setLabel(valeur)}
+                style={[styles.labelChip, label === valeur && styles.labelChipActif]}
               >
-                <Text style={[styles.labelChipTexte, label === l && { color: colors.onBrandPrimary }]}>{l}</Text>
+                <Text style={[styles.labelChipTexte, label === valeur && { color: colors.onBrandPrimary }]}>{t(cle)}</Text>
               </Pressable>
             ))}
           </View>
@@ -302,10 +302,8 @@ export default function FormulaireAdresse() {
             <View style={styles.colDroite}>
               {blocCarte}
               <View style={styles.carteAction}>
-                <Text style={styles.carteActionTitre}>Livraison à Kinshasa</Text>
-                <Text style={styles.carteActionTexte}>
-                  Vérifiez la commune et le repère : le livreur vous appellera à l&apos;arrivée.
-                </Text>
+                <Text style={styles.carteActionTitre}>{t("adresse.livraisonKinshasa")}</Text>
+                <Text style={styles.carteActionTexte}>{t("adresse.conseilRepere")}</Text>
                 {cta}
               </View>
             </View>

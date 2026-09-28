@@ -145,7 +145,7 @@ export default function SuiviCommande() {
           </View>
 
           <View style={bureau ? styles.colDroite : styles.pile}>
-        <CarteNotifications texte="Reçois les infos de ta commande en temps réel, même quand l'application est fermée." />
+        <CarteNotifications texte={t("suivi.notifications")} />
 
         <View style={styles.carte}>
           <Text style={styles.carteTitre}>{t("suivi.progression")}</Text>
@@ -161,7 +161,7 @@ export default function SuiviCommande() {
 
         {cmd.livreur ? (
           <View testID="carte-livreur" style={styles.carte}>
-            <Text style={styles.carteTitre}>Votre livreur</Text>
+            <Text style={styles.carteTitre}>{t("suivi.votreLivreur")}</Text>
             <View style={styles.livreurRow}>
               <View style={styles.livreurAvatar}>
                 <Text style={styles.livreurInitiale}>{cmd.livreur.nom.charAt(0)}</Text>
@@ -187,7 +187,7 @@ export default function SuiviCommande() {
           </View>
         ) : (
           <View style={styles.carte}>
-            <Text style={styles.carteTitre}>Votre livreur</Text>
+            <Text style={styles.carteTitre}>{t("suivi.votreLivreur")}</Text>
             <Text style={styles.attente}>{t("suivi.attenteLivreur")}</Text>
           </View>
         )}
@@ -249,9 +249,9 @@ export default function SuiviCommande() {
       <Modal visible={notationOuverte} transparent animationType="fade" onRequestClose={() => setNotationOuverte(false)}>
         <View style={styles.voile}>
           <View testID="modal-notation" style={styles.dialogue}>
-            <Text style={styles.dialogueTitre}>Merci ! Notez votre livraison</Text>
+            <Text style={styles.dialogueTitre}>{t("suivi.noteTitre")}</Text>
             <Etoiles valeur={note} onChange={setNote} />
-            <Bouton testID="btn-valider-note" label="Valider" onPress={confirmerPaiement} />
+            <Bouton testID="btn-valider-note" label={t("suivi.valider")} onPress={confirmerPaiement} />
           </View>
         </View>
       </Modal>

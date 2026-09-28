@@ -8,6 +8,7 @@ import { apiFetch } from "@/src/api";
 import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
+import { useLangue } from "@/src/i18n";
 import { usd } from "@/src/money";
 import { LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -19,6 +20,7 @@ export default function Archives() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
+  const { langue, t } = useLangue();
   const qc = useQueryClient();
   const [aSupprimer, setASupprimer] = useState<any>(null);
 
@@ -36,7 +38,7 @@ export default function Archives() {
     try {
       await apiFetch(`/admin/commandes/${cmd.id}/desarchiver`, { method: "POST" });
       rafraichir();
-      toast.show(`${cmd.numero} remise dans le tableau de bord`, "succes");
+      toast.show(t("archives.restauree", { numero: cmd.numero }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -47,7 +49,7 @@ export default function Archives() {
       await apiFetch(`/admin/commandes/${aSupprimer.id}`, { method: "DELETE" });
       setASupprimer(null);
       rafraichir();
-      toast.show("Commande supprimée définitivement", "succes");
+      toast.show(t("archives.supprimee"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -60,8 +62,8 @@ export default function Archives() {
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.titre}>Archives</Text>
-          <Text style={styles.sousTitre}>Toujours comptées dans les rapports</Text>
+          <Text style={styles.titre}>{t("archives.titre")}</Text>
+          <Text style={styles.sousTitre}>{t("archives.rapportDetail")}</Text>
         </View>
       </View>
 
@@ -80,7 +82,7 @@ export default function Archives() {
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="package" size={40} color={colors.brandTertiary} />
-              <Text style={styles.vide}>Aucune commande archivée</Text>
+              <Text style={styles.vide}>{t("archives.vide")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -93,14 +95,14 @@ export default function Archives() {
                     { backgroundColor: item.statut === "annulee" ? colors.error : colors.success },
                   ]}
                 >
-                  <Text style={styles.pastilleTexte}>{item.statut === "annulee" ? "Annulée" : "Livrée"}</Text>
+                  <Text style={styles.pastilleTexte}>{t(`statut.${item.statut}` as any)}</Text>
                 </View>
               </View>
               <Text style={styles.client}>
                 {item.clientNom} · {usd(item.total)}
               </Text>
               <Text style={styles.detail} numberOfLines={1}>
-                {item.adresse?.commune} — {new Date(item.createdAt).toLocaleDateString("fr-FR")}
+                {item.adresse?.commune} — {new Date(item.createdAt).toLocaleDateString(langue === "fr" ? "fr-FR" : "en-US")}
               </Text>
               <View style={styles.actions}>
                 <Pressable
@@ -109,7 +111,7 @@ export default function Archives() {
                   style={styles.action}
                 >
                   <Icone name="refresh-cw" size={16} color={colors.brandPrimary} />
-                  <Text style={styles.actionTexte}>Restaurer</Text>
+                  <Text style={styles.actionTexte}>{t("archives.restaurer")}</Text>
                 </Pressable>
                 <Pressable
                   testID={`btn-supprimer-${item.numero}`}
@@ -117,7 +119,7 @@ export default function Archives() {
                   style={[styles.action, styles.actionDanger]}
                 >
                   <Icone name="trash-2" size={16} color={colors.error} />
-                  <Text style={[styles.actionTexte, { color: colors.error }]}>Supprimer</Text>
+                  <Text style={[styles.actionTexte, { color: colors.error }]}>{t("commun.supprimer")}</Text>
                 </Pressable>
               </View>
             </View>
@@ -129,20 +131,17 @@ export default function Archives() {
         <View style={styles.voile}>
           <View testID="modal-suppression-commande" style={styles.dialogue}>
             <Icone name="alert-circle" size={30} color={colors.error} />
-            <Text style={styles.dialogueTitre}>Supprimer {aSupprimer?.numero} ?</Text>
-            <Text style={styles.dialogueTexte}>
-              La commande sera retirée définitivement de l&apos;application et de vos rapports. Cette action est
-              irréversible.
-            </Text>
+            <Text style={styles.dialogueTitre}>{t("archives.supprimerTitre", { numero: aSupprimer?.numero ?? "" })}</Text>
+            <Text style={styles.dialogueTexte}>{t("archives.supprimerTexte")}</Text>
             <Bouton
               testID="btn-confirmer-suppression-commande"
-              label="Supprimer définitivement"
+              label={t("archives.supprimerDefinitivement")}
               variant="danger"
               onPress={supprimer}
             />
             <Bouton
               testID="btn-annuler-suppression-commande"
-              label="Annuler"
+              label={t("commun.annuler")}
               variant="contour"
               onPress={() => setASupprimer(null)}
             />

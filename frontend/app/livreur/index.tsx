@@ -10,25 +10,18 @@ import { useAuth } from "@/src/auth";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { usd } from "@/src/money";
 import { TitrePage } from "@/src/components/TitrePage";
+import { useLangue } from "@/src/i18n";
 import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
-
-const LIBELLES: Record<string, string> = {
-  recue: "À récupérer",
-  en_preparation: "À récupérer",
-  recuperee: "Course récupérée",
-  en_route: "En route",
-  livree: "Livrée",
-  annulee: "Annulée",
-};
 
 export default function Courses() {
   useTheme();
   const router = useRouter();
   const { user } = useAuth();
   const toast = useToast();
+  const { t } = useLangue();
   const qc = useQueryClient();
   const { colonnes } = useEcran();
   const cols = Math.min(colonnes, 3);
@@ -44,7 +37,7 @@ export default function Courses() {
       await apiFetch(`/livreur/courses/${id}/archiver`, { method: "POST" });
       qc.invalidateQueries({ queryKey: ["livreur-courses"] });
       qc.invalidateQueries({ queryKey: ["livreur-archives"] });
-      toast.show("Course archivée", "succes");
+      toast.show(t("livreur.archivee"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -78,29 +71,29 @@ export default function Courses() {
           onRefresh={() => q.refetch()}
           ListHeaderComponent={
             <View style={styles.enteteListe}>
-              <TitrePage titre="Mes courses" sousTitre={user?.nom ?? undefined} />
+              <TitrePage titre={t("livreur.courses")} sousTitre={user?.nom ?? undefined} />
               <View style={styles.kpis}>
                 <View testID="kpi-actives" style={styles.kpi}>
                   <Text style={styles.kpiValeur}>{actives.length}</Text>
-                  <Text style={styles.kpiLabel}>course{actives.length > 1 ? "s" : ""} en cours</Text>
+                  <Text style={styles.kpiLabel}>{t("livreur.coursEnCours")}</Text>
                 </View>
                 <View testID="kpi-terminees" style={styles.kpi}>
                   <Text style={[styles.kpiValeur, { color: colors.success }]}>{terminees.length}</Text>
-                  <Text style={styles.kpiLabel}>terminée{terminees.length > 1 ? "s" : ""}</Text>
+                  <Text style={styles.kpiLabel}>{t("livreur.coursTerminees")}</Text>
                 </View>
                 <View testID="kpi-encaisse" style={styles.kpi}>
                   <Text style={styles.kpiValeur}>{usd(actives.reduce((t, c) => t + (c.total ?? 0), 0))}</Text>
-                  <Text style={styles.kpiLabel}>à encaisser</Text>
+                  <Text style={styles.kpiLabel}>{t("livreur.aEncaisser")}</Text>
                 </View>
               </View>
-              <CarteNotifications texte="Activez-les pour recevoir vos nouvelles courses, même app fermée." />
+              <CarteNotifications texte={t("livreur.notifications")} />
             </View>
           }
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="scooter" size={46} color={colors.brandTertiary} />
-              <Text style={styles.vide}>Aucune course assignée</Text>
-              <Text style={styles.videSous}>En attente d&apos;une assignation de l&apos;administrateur</Text>
+              <Text style={styles.vide}>{t("livreur.vide")}</Text>
+              <Text style={styles.videSous}>{t("livreur.videDetail")}</Text>
             </View>
           }
           renderItem={({ item }) =>
@@ -133,7 +126,7 @@ export default function Courses() {
                     },
                   ]}
                 >
-                  <Text style={styles.pastilleTexte}>{LIBELLES[item.statut]}</Text>
+                  <Text style={styles.pastilleTexte}>{t(`statut.${item.statut}` as any)}</Text>
                 </View>
               </View>
               <Text style={styles.client}>{item.clientNom}</Text>
@@ -159,7 +152,7 @@ export default function Courses() {
                   style={styles.archiver}
                 >
                   <Icone name="archive" size={16} color={colors.brandPrimary} />
-                  <Text style={styles.archiverTexte}>Archiver</Text>
+                  <Text style={styles.archiverTexte}>{t("commun.archiver")}</Text>
                 </Pressable>
               ) : null}
             </Pressable>

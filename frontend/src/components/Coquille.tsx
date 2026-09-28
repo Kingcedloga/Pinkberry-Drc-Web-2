@@ -9,6 +9,7 @@ import { Logo } from "@/src/components/Logo";
 import { LienNav, lienActif } from "@/src/nav-web";
 import { usePanier } from "@/src/panier";
 import { useEcran } from "@/src/reactif";
+import { useLangue } from "@/src/i18n";
 import { useMontant } from "@/src/taux";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -18,6 +19,7 @@ function BoutonPanier() {
   const router = useRouter();
   const { nbArticles, sousTotal } = usePanier();
   const { usd } = useMontant();
+  const { t } = useLangue();
 
   return (
     <Pressable
@@ -26,7 +28,7 @@ function BoutonPanier() {
       style={({ pressed }) => [styles.panierBtn, pressed && { opacity: 0.85 }]}
     >
       <Icone name="shopping-cart" size={18} color={colors.onBrandPrimary} />
-      <Text style={styles.panierTexte}>{nbArticles > 0 ? usd(sousTotal) : "Panier"}</Text>
+      <Text style={styles.panierTexte}>{nbArticles > 0 ? usd(sousTotal) : t("nav.panier")}</Text>
       {nbArticles > 0 ? (
         <View style={styles.panierBadge}>
           <Text style={styles.panierBadgeTexte}>{nbArticles}</Text>
@@ -39,6 +41,7 @@ function BoutonPanier() {
 function BoutonDeconnexion({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const { deconnexion } = useAuth();
+  const { t } = useLangue();
 
   const sortir = async () => {
     await deconnexion();
@@ -59,7 +62,7 @@ function BoutonDeconnexion({ compact = false }: { compact?: boolean }) {
       style={({ pressed }) => [styles.lienLateral, pressed && { backgroundColor: colors.brandTertiary }]}
     >
       <Icone name="log-out" size={20} color={colors.muted} />
-      <Text style={[styles.lienLateralTexte, { color: colors.muted }]}>Déconnexion</Text>
+      <Text style={[styles.lienLateralTexte, { color: colors.muted }]}>{t("nav.deconnexion")}</Text>
     </Pressable>
   );
 }
@@ -77,6 +80,7 @@ function EnteteWeb({
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { t } = useLangue();
 
   return (
     <View testID="entete-web" style={[styles.entete, { paddingTop: insets.top }]}>
@@ -99,7 +103,9 @@ function EnteteWeb({
                   !actif && pressed && { backgroundColor: colors.surfaceSecondary },
                 ]}
               >
-                <Text style={[styles.lienTexte, actif && { color: colors.brandPrimary }]}>{l.libelle}</Text>
+                <Text style={[styles.lienTexte, actif && { color: colors.brandPrimary }]}>
+                  {l.cle ? t(l.cle) : l.libelle}
+                </Text>
               </Pressable>
             );
           })}
@@ -137,6 +143,7 @@ function BarreOnglets({ liens }: { liens: LienNav[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { t } = useLangue();
 
   return (
     <View testID="barre-onglets" style={[styles.onglets, { paddingBottom: insets.bottom }]}>
@@ -152,7 +159,7 @@ function BarreOnglets({ liens }: { liens: LienNav[] }) {
           >
             <Icone name={l.icone} size={22} color={couleur} />
             <Text style={[styles.ongletTexte, { color: couleur }]} numberOfLines={1}>
-              {l.libelle}
+              {l.cle ? t(l.cle) : l.libelle}
             </Text>
           </Pressable>
         );
@@ -175,6 +182,7 @@ function BarreLaterale({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useLangue();
 
   const rendre = (l: LienNav, secondaire = false) => {
     const actif = lienActif(pathname, l.href);
@@ -191,7 +199,7 @@ function BarreLaterale({
         ]}
       >
         <Icone name={l.icone} size={20} color={couleur} />
-        <Text style={[styles.lienLateralTexte, { color: couleur }]}>{l.libelle}</Text>
+        <Text style={[styles.lienLateralTexte, { color: couleur }]}>{l.cle ? t(l.cle) : l.libelle}</Text>
       </Pressable>
     );
   };

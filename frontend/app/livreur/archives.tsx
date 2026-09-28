@@ -9,18 +9,18 @@ import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { usd } from "@/src/money";
+import { useLangue, type CleTexte } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
-
-const LIBELLES: Record<string, string> = { livree: "Livrée", annulee: "Annulée" };
 
 export default function ArchivesLivreur() {
   useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
+  const { t } = useLangue();
   const qc = useQueryClient();
   const [aSupprimer, setASupprimer] = useState<any | null>(null);
 
@@ -38,7 +38,7 @@ export default function ArchivesLivreur() {
     try {
       await apiFetch(`/livreur/courses/${id}/desarchiver`, { method: "POST" });
       rafraichir();
-      toast.show("Course remise dans la liste", "succes");
+      toast.show(t("livreur.courseRestauree"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -50,7 +50,7 @@ export default function ArchivesLivreur() {
       await apiFetch(`/livreur/courses/${aSupprimer.id}/masquer`, { method: "DELETE" });
       setASupprimer(null);
       rafraichir();
-      toast.show("Course supprimée de votre historique", "succes");
+      toast.show(t("livreur.courseSupprimee"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -63,8 +63,8 @@ export default function ArchivesLivreur() {
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.titre}>Courses archivées</Text>
-          <Text style={styles.sousTitre}>Vous seul les voyez ici</Text>
+          <Text style={styles.titre}>{t("livreur.archivesTitre")}</Text>
+          <Text style={styles.sousTitre}>{t("livreur.archivesSousTitre")}</Text>
         </View>
       </View>
 
@@ -83,7 +83,7 @@ export default function ArchivesLivreur() {
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="archive" size={42} color={colors.brandTertiary} />
-              <Text style={styles.vide}>Aucune course archivée</Text>
+              <Text style={styles.vide}>{t("livreur.archivesVide")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -93,8 +93,8 @@ export default function ArchivesLivreur() {
                 <Text style={styles.montant}>{usd(item.total)}</Text>
               </View>
               <Text style={styles.statut}>
-                {LIBELLES[item.statut] ?? item.statut}
-                {item.cashEncaisse ? " · cash encaissé" : ""}
+                {t(`statut.${item.statut}` as CleTexte)}
+                {item.cashEncaisse ? ` · ${t("livreur.cashEncaisseCourt")}` : ""}
               </Text>
               <Text style={styles.adresse} numberOfLines={1}>
                 {item.adresse?.commune} — {item.adresse?.avenue} n° {item.adresse?.numero}
@@ -106,7 +106,7 @@ export default function ArchivesLivreur() {
                   style={styles.action}
                 >
                   <Icone name="package" size={16} color={colors.brandPrimary} />
-                  <Text style={styles.actionTexte}>Désarchiver</Text>
+                  <Text style={styles.actionTexte}>{t("commun.desarchiver")}</Text>
                 </Pressable>
                 <Pressable
                   testID={`btn-supprimer-course-${item.numero}`}
@@ -114,7 +114,7 @@ export default function ArchivesLivreur() {
                   style={styles.action}
                 >
                   <Icone name="trash-2" size={16} color={colors.error} />
-                  <Text style={[styles.actionTexte, { color: colors.error }]}>Supprimer</Text>
+                  <Text style={[styles.actionTexte, { color: colors.error }]}>{t("commun.supprimer")}</Text>
                 </Pressable>
               </View>
             </View>
@@ -126,20 +126,17 @@ export default function ArchivesLivreur() {
         <View style={styles.voile}>
           <View testID="modal-supprimer-course" style={styles.boite}>
             <Icone name="alert-circle" size={30} color={colors.error} />
-            <Text style={styles.boiteTitre}>Supprimer cette course ?</Text>
-            <Text style={styles.boiteTexte}>
-              Elle disparaîtra de votre historique. La boutique la conserve pour ses rapports et sa
-              comptabilité.
-            </Text>
+            <Text style={styles.boiteTitre}>{t("livreur.supprimerCourseTitre")}</Text>
+            <Text style={styles.boiteTexte}>{t("livreur.supprimerCourseTexte")}</Text>
             <Bouton
               testID="btn-confirmer-suppression-course"
-              label="Supprimer"
+              label={t("commun.supprimer")}
               variant="danger"
               onPress={supprimer}
             />
             <Bouton
               testID="btn-annuler-suppression-course"
-              label="Annuler"
+              label={t("commun.annuler")}
               variant="contour"
               onPress={() => setASupprimer(null)}
             />

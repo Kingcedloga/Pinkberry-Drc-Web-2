@@ -10,6 +10,7 @@ import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
+import { useLangue } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useToast } from "@/src/toast";
@@ -50,6 +51,7 @@ export function EcranRapport({
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
+  const { t } = useLangue();
   const p = periodes();
 
   const [debut, setDebut] = useState(p.mois.debut);
@@ -60,7 +62,7 @@ export function EcranRapport({
 
   const telecharger = async (format: "xlsx" | "pdf") => {
     if (!valide) {
-      toast.show("Dates attendues au format AAAA-MM-JJ", "erreur");
+      toast.show(t("rapport.datesInvalides"), "erreur");
       return;
     }
     setEnCours(format);
@@ -69,7 +71,7 @@ export function EcranRapport({
       const res = await fetch(url, { headers: { Authorization: `Bearer ${obtenirToken()}` } });
       if (!res.ok) {
         const txt = await res.text();
-        throw new Error(txt.includes("detail") ? JSON.parse(txt).detail : "Rapport indisponible");
+        throw new Error(txt.includes("detail") ? JSON.parse(txt).detail : t("rapport.indisponible"));
       }
       const nom = `${prefixeFichier}-${debut}-${fin}.${format}`;
 
@@ -88,7 +90,7 @@ export function EcranRapport({
         fichier.write(octets);
         if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fichier.uri);
       }
-      toast.show("Rapport prêt", "succes");
+      toast.show(t("rapport.pret"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     } finally {
@@ -97,9 +99,9 @@ export function EcranRapport({
   };
 
   const raccourcis = [
-    { cle: "aujourdhui", label: "Aujourd'hui", ...p.aujourdhui },
-    { cle: "semaine", label: "Cette semaine", ...p.semaine },
-    { cle: "mois", label: "Ce mois", ...p.mois },
+    { cle: "aujourdhui", label: t("rapport.aujourdhui"), ...p.aujourdhui },
+    { cle: "semaine", label: t("rapport.semaine"), ...p.semaine },
+    { cle: "mois", label: t("rapport.mois"), ...p.mois },
   ];
 
   return (
@@ -116,7 +118,7 @@ export function EcranRapport({
 
       <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: insets.bottom + spacing.xxxl }]}>
         <View style={styles.carte}>
-          <Text style={styles.sectionTitre}>Filtres rapides</Text>
+          <Text style={styles.sectionTitre}>{t("rapport.filtresRapides")}</Text>
           <View style={styles.raccourcis}>
             {raccourcis.map((r) => {
               const actif = debut === r.debut && fin === r.fin;
@@ -138,9 +140,9 @@ export function EcranRapport({
         </View>
 
         <View style={styles.carte}>
-          <Text style={styles.sectionTitre}>Période personnalisée</Text>
+          <Text style={styles.sectionTitre}>{t("rapport.periodePerso")}</Text>
           <Champ
-            label="Du (AAAA-MM-JJ)"
+            label={t("rapport.du")}
             testID="input-rapport-debut"
             value={debut}
             onChangeText={setDebut}
@@ -148,7 +150,7 @@ export function EcranRapport({
             autoCapitalize="none"
           />
           <Champ
-            label="Au (AAAA-MM-JJ)"
+            label={t("rapport.au")}
             testID="input-rapport-fin"
             value={fin}
             onChangeText={setFin}
@@ -158,17 +160,17 @@ export function EcranRapport({
         </View>
 
         <View style={styles.carte}>
-          <Text style={styles.sectionTitre}>Télécharger le rapport</Text>
+          <Text style={styles.sectionTitre}>{t("rapport.telecharger")}</Text>
           <Text style={styles.aide}>{aide}</Text>
           <Bouton
             testID="btn-rapport-xlsx"
-            label={enCours === "xlsx" ? "Génération..." : "Télécharger en Excel (.xlsx)"}
+            label={enCours === "xlsx" ? t("rapport.generation") : t("rapport.excel")}
             icone="download"
             onPress={() => telecharger("xlsx")}
           />
           <Bouton
             testID="btn-rapport-pdf"
-            label={enCours === "pdf" ? "Génération..." : "Télécharger en PDF"}
+            label={enCours === "pdf" ? t("rapport.generation") : t("rapport.pdf")}
             variant="secondaire"
             icone="download"
             onPress={() => telecharger("pdf")}

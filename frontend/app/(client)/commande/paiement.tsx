@@ -106,7 +106,7 @@ export default function Confirmation() {
   return (
     <View testID="ecran-confirmation" style={styles.ecran}>
       <ScrollView contentContainerStyle={[styles.contenu, bureau && styles.contenuBureau]}>
-        <TitrePage titre={t("confirmation.titre")} sousTitre="Étape 2 sur 2 · Paiement" retour="/commande/adresse" />
+        <TitrePage titre={t("confirmation.titre")} sousTitre={t("confirmation.etape")} retour="/commande/adresse" />
 
         <View style={bureau ? styles.colonnes : styles.pile}>
           <View style={bureau ? styles.colGauche : styles.pile}>
@@ -147,7 +147,7 @@ export default function Confirmation() {
           setTelephone={setTelephone}
           devise={devise}
           setDevise={setDevise}
-          equivalent={devise === "USD" ? `Montant débité : ${usd(total)}` : `Montant débité : ${fc(total)}`}
+          equivalent={t("confirmation.montantDebite", { montant: devise === "USD" ? usd(total) : fc(total) })}
         />
           </View>
 
@@ -186,7 +186,7 @@ export default function Confirmation() {
             qc.invalidateQueries({ queryKey: ["mes-commandes"] });
             const id = paiement.commandeId;
             setPaiement(null);
-            toast.show("Paiement confirmé, merci !", "succes");
+            toast.show(t("confirmation.paiementConfirme"), "succes");
             router.replace(`/suivi/${id}`);
           }}
           onReessayer={async () => {
@@ -202,7 +202,7 @@ export default function Confirmation() {
             const id = paiement.commandeId;
             try {
               await apiFetch(`/paiements/${id}/cash`, { method: "POST" });
-              toast.show("Vous paierez en espèces à la livraison", "succes");
+              toast.show(t("confirmation.cashLivraison"), "succes");
             } catch (e: any) {
               toast.show(e.message, "erreur");
             }

@@ -13,6 +13,7 @@ import { Champ } from "@/src/components/Champ";
 import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { TitrePage } from "@/src/components/TitrePage";
+import { useLangue } from "@/src/i18n";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -36,6 +37,7 @@ export default function Personnel() {
   const { bureau, large } = useEcran();
   const cols = large ? 3 : bureau ? 2 : 1;
   const toast = useToast();
+  const { t } = useLangue();
   const qc = useQueryClient();
   const { user } = useAuth();
   const estSuper = user?.role === "superadmin";
@@ -68,11 +70,11 @@ export default function Personnel() {
 
   const creer = async () => {
     if (!nom.trim() || telephone.trim().length < 9) {
-      toast.show("Nom et téléphone requis", "erreur");
+      toast.show(t("admin.nomTelephoneRequis"), "erreur");
       return;
     }
     if (motDePasse.length < 6) {
-      toast.show("Mot de passe : 6 caractères minimum", "erreur");
+      toast.show(t("params.mdpCourt"), "erreur");
       return;
     }
     try {
@@ -91,7 +93,7 @@ export default function Personnel() {
       qc.invalidateQueries({ queryKey: ["admin-livreurs"] });
       setOuvert(false);
       reinitialiser();
-      toast.show(type === "admin" ? "Admin créé" : "Livreur créé", "succes");
+      toast.show(type === "admin" ? t("admin.adminCree") : t("admin.livreurAjoute"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -102,7 +104,7 @@ export default function Personnel() {
       await apiFetch(`/superadmin/comptes/${c.id}/actif`, { method: "PATCH", body: { actif } });
       qc.invalidateQueries({ queryKey: ["superadmin-comptes"] });
       qc.invalidateQueries({ queryKey: ["admin-livreurs"] });
-      toast.show(actif ? `${c.nom} activé` : `${c.nom} désactivé`, "info");
+      toast.show(t(actif ? "admin.compteActive" : "admin.compteDesactiveNom", { nom: c.nom }), "info");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -113,7 +115,7 @@ export default function Personnel() {
       await apiFetch(`/superadmin/comptes/${c.id}`, { method: "DELETE" });
       qc.invalidateQueries({ queryKey: ["superadmin-comptes"] });
       qc.invalidateQueries({ queryKey: ["admin-livreurs"] });
-      toast.show(`${c.nom} supprimé`, "succes");
+      toast.show(t("admin.compteSupprime", { nom: c.nom }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -124,12 +126,12 @@ export default function Personnel() {
     <View testID="ecran-personnel" style={styles.ecran}>
       <View style={styles.enteteWeb}>
         <TitrePage
-          titre="Personnel"
-          sousTitre="Comptes administrateurs et livreurs"
+          titre={t("admin.personnelTitre")}
+          sousTitre={t("admin.personnelSousTitre")}
           actions={
             <Pressable testID="btn-ajouter-compte" onPress={() => setOuvert(true)} style={styles.btnPrimaire}>
               <Icone name="user-plus" size={16} color={colors.onBrandPrimary} />
-              <Text style={styles.btnPrimaireTexte}>Nouveau compte</Text>
+              <Text style={styles.btnPrimaireTexte}>{t("admin.nouveauCompte")}</Text>
             </Pressable>
           }
         />
@@ -153,7 +155,7 @@ export default function Personnel() {
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="users" size={36} color={colors.muted} />
-              <Text style={styles.refus}>Aucun compte personnel</Text>
+              <Text style={styles.refus}>{t("admin.aucunComptePersonnel")}</Text>
             </View>
           }
           renderItem={({ item }: any) =>
@@ -174,7 +176,7 @@ export default function Personnel() {
                       { color: item.role === "admin" ? colors.brandPrimary : colors.brandSecondary },
                     ]}
                   >
-                    {item.role === "admin" ? "Admin" : "Livreur"}
+                    {item.role === "admin" ? t("admin.personnelTitre") : t("admin.livreursTitre")}
                   </Text>
                 </View>
                 <Switch
@@ -198,7 +200,7 @@ export default function Personnel() {
                 {item.email ? ` · ${item.email}` : ""}
                 {item.vehicule ? ` · ${item.vehicule} ${item.plaque ?? ""}` : ""}
               </Text>
-              {!item.actif ? <Text style={styles.desactive}>Compte désactivé : connexion bloquée</Text> : null}
+              {!item.actif ? <Text style={styles.desactive}>{t("admin.compteDesactive")}</Text> : null}
             </View>
             )
           }
@@ -210,7 +212,7 @@ export default function Personnel() {
           <Pressable style={{ flex: 1 }} onPress={() => setOuvert(false)} />
           <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
             <KeyboardAwareScrollView bottomOffset={60} contentContainerStyle={styles.feuilleContenu}>
-              <Text style={styles.feuilleTitre}>Nouveau compte</Text>
+              <Text style={styles.feuilleTitre}>{t("admin.nouveauCompte")}</Text>
 
               <View style={styles.selecteur}>
                 {(["admin", "livreur"] as const).map((r) => (
@@ -226,16 +228,16 @@ export default function Personnel() {
                       color={type === r ? colors.onBrandPrimary : colors.muted}
                     />
                     <Text style={[styles.optionTexte, type === r && styles.optionTexteActive]}>
-                      {r === "admin" ? "Admin" : "Livreur"}
+                      {r === "admin" ? t("admin.personnelTitre") : t("admin.livreursTitre")}
                     </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Champ label="Nom" testID="input-compte-nom" value={nom} onChangeText={setNom} />
+              <Champ label={t("params.nom")} testID="input-compte-nom" value={nom} onChangeText={setNom} />
               {type === "admin" ? (
                 <Champ
-                  label="Email"
+                  label={t("params.email")}
                   testID="input-compte-email"
                   value={email}
                   onChangeText={setEmail}
@@ -244,7 +246,7 @@ export default function Personnel() {
                 />
               ) : null}
               <Champ
-                label="Téléphone"
+                label={t("params.telephone")}
                 testID="input-compte-telephone"
                 value={telephone}
                 onChangeText={setTelephone}
@@ -252,12 +254,12 @@ export default function Personnel() {
               />
               {type === "livreur" ? (
                 <>
-                  <Champ label="Véhicule" testID="input-compte-vehicule" value={vehicule} onChangeText={setVehicule} />
-                  <Champ label="Plaque" testID="input-compte-plaque" value={plaque} onChangeText={setPlaque} />
+                  <Champ label={t("admin.vehicule")} testID="input-compte-vehicule" value={vehicule} onChangeText={setVehicule} />
+                  <Champ label={t("admin.plaque")} testID="input-compte-plaque" value={plaque} onChangeText={setPlaque} />
                 </>
               ) : null}
               <Champ
-                label="Mot de passe initial"
+                label={t("admin.mdpInitial")}
                 testID="input-compte-motdepasse"
                 value={motDePasse}
                 onChangeText={setMotDePasse}
@@ -265,8 +267,8 @@ export default function Personnel() {
                 autoCapitalize="none"
               />
 
-              <Bouton testID="btn-creer-compte" label="Créer le compte" onPress={creer} />
-              <Bouton testID="btn-annuler-compte" label="Annuler" variant="contour" onPress={() => setOuvert(false)} />
+              <Bouton testID="btn-creer-compte" label={t("admin.creerCompte")} onPress={creer} />
+              <Bouton testID="btn-annuler-compte" label={t("commun.annuler")} variant="contour" onPress={() => setOuvert(false)} />
             </KeyboardAwareScrollView>
           </View>
         </View>

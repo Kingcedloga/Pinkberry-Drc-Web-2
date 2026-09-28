@@ -62,7 +62,7 @@ export default function Commandes() {
           ListHeaderComponent={
             <TitrePage
               titre={t("commandes.titre")}
-              sousTitre="Suivez l'avancement de vos commandes"
+              sousTitre={t("commandes.sousTitre")}
               actions={
                 <Pressable
                   testID="btn-archives-client"

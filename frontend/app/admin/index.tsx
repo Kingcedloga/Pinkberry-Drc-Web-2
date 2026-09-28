@@ -10,29 +10,21 @@ import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { TitrePage } from "@/src/components/TitrePage";
+import { useLangue, type CleTexte } from "@/src/i18n";
 import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
-const LIBELLES: Record<string, string> = {
-  recue: "Reçue",
-  en_preparation: "En préparation",
-  recuperee: "Récupérée",
-  en_route: "En route",
-  livree: "Livrée",
-  annulee: "Annulée",
-};
-
-const FILTRES = [
-  { cle: "tous", libelle: "Toutes" },
-  { cle: "en_cours", libelle: "En cours" },
-  { cle: "recue", libelle: "Reçues" },
-  { cle: "en_preparation", libelle: "En préparation" },
-  { cle: "en_route", libelle: "En route" },
-  { cle: "livree", libelle: "Livrées" },
-  { cle: "annulee", libelle: "Annulées" },
+const FILTRES: { cle: string; libelle: CleTexte }[] = [
+  { cle: "tous", libelle: "admin.filtreToutes" },
+  { cle: "en_cours", libelle: "admin.filtreEnCours" },
+  { cle: "recue", libelle: "admin.filtreRecues" },
+  { cle: "en_preparation", libelle: "admin.filtrePreparation" },
+  { cle: "en_route", libelle: "admin.filtreRoute" },
+  { cle: "livree", libelle: "admin.filtreLivrees" },
+  { cle: "annulee", libelle: "admin.filtreAnnulees" },
 ];
 
 const SUIVANTS: Record<string, string[]> = {
@@ -42,27 +34,27 @@ const SUIVANTS: Record<string, string[]> = {
   en_route: ["livree"],
 };
 
-const LIBELLES_PAIEMENT: Record<string, string> = {
-  cash: "À la livraison",
-  mpesa: "M-Pesa",
-  airtel: "Airtel Money",
-  orange: "Orange Money",
+const LIBELLES_PAIEMENT: Record<string, CleTexte> = {
+  cash: "admin.paiementCash",
+  mpesa: "admin.paiementMobile",
+  airtel: "admin.paiementMobile",
+  orange: "admin.paiementMobile",
 };
-const LIBELLES_STATUT_PAIEMENT: Record<string, string> = {
-  a_la_livraison: "à la livraison",
-  attente: "en attente",
-  paye: "payé",
-  echoue: "échoué",
+const LIBELLES_STATUT_PAIEMENT: Record<string, CleTexte> = {
+  a_la_livraison: "admin.paiementCash",
+  attente: "admin.paiementAttente",
+  paye: "admin.paiementPaye",
+  echoue: "admin.paiementEchoue",
 };
 
 /** Mode et statut de paiement d'une commande, pour l'admin. */
-function resumePaiement(cmd: any) {
+function resumePaiement(cmd: any, t: (cle: CleTexte) => string) {
   const p = cmd?.paiement;
-  if (!p || typeof p !== "object") return { mode: "À la livraison", statut: "à la livraison", paye: false };
+  if (!p || typeof p !== "object") return { mode: t("admin.paiementCash"), statut: t("admin.paiementCash"), paye: false };
   const cle = p.mode === "mobile" ? p.operateur : "cash";
   return {
-    mode: LIBELLES_PAIEMENT[cle] ?? "Mobile Money",
-    statut: LIBELLES_STATUT_PAIEMENT[p.statut] ?? p.statut,
+    mode: t(LIBELLES_PAIEMENT[cle] ?? "admin.paiementMobile"),
+    statut: t(LIBELLES_STATUT_PAIEMENT[p.statut] ?? "admin.paiementAttente"),
     paye: p.statut === "paye",
   };
 }
@@ -74,6 +66,7 @@ export default function Dashboard() {
   const toast = useToast();
   const qc = useQueryClient();
   const { usd, fc } = useMontant();
+  const { t } = useLangue();
   const { bureau } = useEcran();
   const [ouverte, setOuverte] = useState<any>(null);
   const [filtreStatut, setFiltreStatut] = useState("tous");
@@ -110,7 +103,7 @@ export default function Dashboard() {
       });
       setOuverte(maj);
       rafraichir();
-      toast.show("Livreur assigné", "succes");
+      toast.show(t("admin.livreurAssigne"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -124,7 +117,7 @@ export default function Dashboard() {
       });
       setOuverte(maj);
       rafraichir();
-      toast.show(`Statut : ${LIBELLES[statut]}`, "succes");
+      toast.show(`${t("admin.statut")} : ${t(`statut.${statut}` as CleTexte)}`, "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -135,7 +128,7 @@ export default function Dashboard() {
       await apiFetch(`/admin/commandes/${cmd.id}/archiver`, { method: "POST" });
       rafraichir();
       qc.invalidateQueries({ queryKey: ["admin-archives"] });
-      toast.show(`${cmd.numero} archivée`, "succes");
+      toast.show(`${cmd.numero} ${t("commun.archiver").toLowerCase()}`, "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -180,8 +173,8 @@ export default function Dashboard() {
           ListHeaderComponent={
             <View style={styles.enteteListe}>
               <TitrePage
-                titre="Commandes"
-                sousTitre="Suivi temps réel de la boutique"
+                titre={t("admin.commandes")}
+                sousTitre={t("admin.suiviBoutique")}
                 actions={
                   <Pressable
                     testID="btn-admin-parametres"
@@ -189,17 +182,17 @@ export default function Dashboard() {
                     style={styles.boutonAction}
                   >
                     <Icone name="settings" size={16} color={colors.brandPrimary} />
-                    <Text style={styles.boutonActionTexte}>Paramètres</Text>
+                    <Text style={styles.boutonActionTexte}>{t("params.titre")}</Text>
                   </Pressable>
                 }
               />
-              <CarteNotifications texte="Activez-les pour être alerté de chaque nouvelle commande, même app fermée." />
+              <CarteNotifications texte={t("admin.notifications")} />
               <View style={bureau ? styles.grilleBureau : styles.enteteListe}>
               <View testID="carte-ventes-jour" style={[styles.ventesCarte, bureau && { flex: 2 }]}>
                 <View style={styles.ventesHaut}>
                   <View>
-                    <Text style={styles.ventesTitre}>Ventes du jour</Text>
-                    <Text style={styles.ventesDate}>{ventes?.date ?? "—"} · commandes livrées</Text>
+                    <Text style={styles.ventesTitre}>{t("admin.ventesJour")}</Text>
+                    <Text style={styles.ventesDate}>{ventes?.date ?? "—"} · {t("admin.commandesLivrees")}</Text>
                   </View>
                   <Icone name="dollar-sign" size={20} color={colors.brandPrimary} />
                 </View>
@@ -214,17 +207,17 @@ export default function Dashboard() {
                     <Text testID="ventes-nb-commandes" style={styles.ventesMiniValeur}>
                       {ventes?.nbCommandes ?? 0}
                     </Text>
-                    <Text style={styles.ventesMiniLabel}>commandes</Text>
+                    <Text style={styles.ventesMiniLabel}>{t("admin.commandes")}</Text>
                   </View>
                   <View style={styles.ventesMini}>
                     <Text style={styles.ventesMiniValeur}>{usd(ventes?.panierMoyen ?? 0)}</Text>
-                    <Text style={styles.ventesMiniLabel}>panier moyen</Text>
+                    <Text style={styles.ventesMiniLabel}>{t("admin.panierMoyen")}</Text>
                   </View>
                 </View>
 
-                <Text style={styles.topTitre}>Les plus commandés</Text>
+                <Text style={styles.topTitre}>{t("admin.plusCommandes")}</Text>
                 {(ventes?.topProduits ?? []).length === 0 ? (
-                  <Text style={styles.topVide}>Aucune vente livrée aujourd&apos;hui</Text>
+                  <Text style={styles.topVide}>{t("admin.aucuneVente")}</Text>
                 ) : (
                   (ventes?.topProduits ?? []).map((p: any, i: number) => (
                     <View key={p.nom} testID={`top-produit-${i}`} style={styles.topLigne}>
@@ -243,9 +236,9 @@ export default function Dashboard() {
 
               <View style={[styles.statsRow, bureau && styles.statsColonne]}>
                 {[
-                  { l: "En cours", v: stats?.enCours ?? 0, c: colors.brandPrimary },
-                  { l: "Livrées", v: stats?.livrees ?? 0, c: colors.success },
-                  { l: "Revenus", v: usd(stats?.revenus ?? 0), c: colors.onSurface },
+                  { l: t("admin.enCours"), v: stats?.enCours ?? 0, c: colors.brandPrimary },
+                  { l: t("admin.livrees"), v: stats?.livrees ?? 0, c: colors.success },
+                  { l: t("admin.revenus"), v: usd(stats?.revenus ?? 0), c: colors.onSurface },
                 ].map((s) => (
                   <View key={s.l} testID={`stat-${s.l}`} style={[styles.statCarte, bureau && styles.statCarteBureau]}>
                     <Text style={[styles.statValeur, { color: s.c }]}>{s.v}</Text>
@@ -262,7 +255,7 @@ export default function Dashboard() {
                     testID="input-recherche-commandes"
                     value={recherche}
                     onChangeText={setRecherche}
-                    placeholder="Rechercher un numéro, un client, une commune"
+                    placeholder={t("admin.rechercherCommandes")}
                     placeholderTextColor={colors.muted}
                     style={styles.rechercheChamp}
                   />
@@ -278,33 +271,33 @@ export default function Dashboard() {
                         style={[styles.filtreChip, actif && styles.filtreChipActif]}
                       >
                         <Text style={[styles.filtreChipTexte, actif && { color: colors.onBrandPrimary }]}>
-                          {f.libelle}
+                          {t(f.libelle)}
                         </Text>
                       </Pressable>
                     );
                   })}
                 </View>
                 <Text style={styles.compteur}>
-                  {commandes.length} commande{commandes.length > 1 ? "s" : ""}
+                  {t(commandes.length === 1 ? "admin.uneCommande" : "admin.plusieursCommandes", { n: commandes.length })}
                 </Text>
               </View>
 
               {bureau ? (
                 <View testID="entete-tableau" style={styles.ligneEnteteTable}>
-                  <Text style={[styles.celluleEntete, styles.colNumero]}>Commande</Text>
-                  <Text style={[styles.celluleEntete, styles.colClient]}>Client</Text>
-                  <Text style={[styles.celluleEntete, styles.colAdresse]}>Adresse</Text>
-                  <Text style={[styles.celluleEntete, styles.colLivreur]}>Livreur</Text>
-                  <Text style={[styles.celluleEntete, styles.colPaiement]}>Paiement</Text>
-                  <Text style={[styles.celluleEntete, styles.colStatut]}>Statut</Text>
-                  <Text style={[styles.celluleEntete, styles.colTotal]}>Total</Text>
+                  <Text style={[styles.celluleEntete, styles.colNumero]}>{t("admin.commande")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colClient]}>{t("admin.client")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colAdresse]}>{t("admin.adresse")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colLivreur]}>{t("admin.livreur")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colPaiement]}>{t("admin.paiement")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colStatut]}>{t("admin.statut")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colTotal]}>{t("admin.total")}</Text>
                 </View>
               ) : null}
             </View>
           }
           ListEmptyComponent={
             <View style={styles.centre}>
-              <Text style={styles.vide}>Aucune commande pour l&apos;instant</Text>
+              <Text style={styles.vide}>{t("admin.aucuneCommande")}</Text>
             </View>
           }
           renderItem={({ item }) =>
@@ -328,19 +321,19 @@ export default function Dashboard() {
                   style={[styles.cellule, styles.colLivreur, !item.livreur && { color: colors.muted }]}
                   numberOfLines={1}
                 >
-                  {item.livreur ? item.livreur.nom : "Non assigné"}
+                  {item.livreur ? item.livreur.nom : t("admin.nonAssigne")}
                 </Text>
                 <View testID={`paiement-${item.numero}`} style={styles.colPaiement}>
                   <Text style={styles.cellule} numberOfLines={1}>
-                    {resumePaiement(item).mode}
+                    {resumePaiement(item, t).mode}
                   </Text>
                   <Text
                     style={[
                       styles.celluleFaible,
-                      resumePaiement(item).paye && { color: colors.success, fontWeight: "800" },
+                      resumePaiement(item, t).paye && { color: colors.success, fontWeight: "800" },
                     ]}
                   >
-                    {resumePaiement(item).statut}
+                    {resumePaiement(item, t).statut}
                   </Text>
                 </View>
                 <View style={styles.colStatut}>
@@ -357,7 +350,7 @@ export default function Dashboard() {
                       },
                     ]}
                   >
-                    <Text style={styles.pastilleTexte}>{LIBELLES[item.statut]}</Text>
+                    <Text style={styles.pastilleTexte}>{t(`statut.${item.statut}` as CleTexte)}</Text>
                   </View>
                   {item.statut === "livree" || item.statut === "annulee" ? (
                     <Pressable
@@ -366,7 +359,7 @@ export default function Dashboard() {
                       style={({ pressed }) => [styles.archiverMini, pressed && { opacity: 0.7 }]}
                     >
                       <Icone name="package" size={13} color={colors.brandPrimary} />
-                      <Text style={styles.archiverTexte}>Archiver</Text>
+                      <Text style={styles.archiverTexte}>{t("commun.archiver")}</Text>
                     </Pressable>
                   ) : null}
                 </View>
@@ -386,7 +379,7 @@ export default function Dashboard() {
                     { backgroundColor: item.statut === "annulee" ? colors.error : item.statut === "livree" ? colors.success : colors.brandPrimary },
                   ]}
                 >
-                  <Text style={styles.pastilleTexte}>{LIBELLES[item.statut]}</Text>
+                  <Text style={styles.pastilleTexte}>{t(`statut.${item.statut}` as CleTexte)}</Text>
                 </View>
               </View>
               <Text style={styles.client}>
@@ -403,19 +396,19 @@ export default function Dashboard() {
                     color={item.livreur ? colors.brandPrimary : colors.muted}
                   />
                   <Text style={[styles.livreurTag, !item.livreur && { color: colors.muted }]}>
-                    {item.livreur ? item.livreur.nom : "Aucun livreur assigné"}
+                    {item.livreur ? item.livreur.nom : t("admin.aucunLivreur")}
                   </Text>
                 </View>
                 <Text style={styles.total}>{usd(item.total)}</Text>
               </View>
               <View testID={`paiement-${item.numero}`} style={styles.paiementRow}>
                 <Icone
-                  name={resumePaiement(item).paye ? "check-circle" : "credit-card"}
+                  name={resumePaiement(item, t).paye ? "check-circle" : "credit-card"}
                   size={13}
-                  color={resumePaiement(item).paye ? colors.success : colors.muted}
+                  color={resumePaiement(item, t).paye ? colors.success : colors.muted}
                 />
                 <Text style={styles.paiementTexte}>
-                  {resumePaiement(item).mode} · {resumePaiement(item).statut}
+                  {resumePaiement(item, t).mode} · {resumePaiement(item, t).statut}
                 </Text>
               </View>
               {item.statut === "livree" || item.statut === "annulee" ? (
@@ -425,7 +418,7 @@ export default function Dashboard() {
                   style={({ pressed }) => [styles.archiver, pressed && { opacity: 0.7 }]}
                 >
                   <Icone name="package" size={15} color={colors.brandPrimary} />
-                  <Text style={styles.archiverTexte}>Archiver</Text>
+                  <Text style={styles.archiverTexte}>{t("commun.archiver")}</Text>
                 </Pressable>
               ) : null}
             </Pressable>
@@ -445,38 +438,38 @@ export default function Dashboard() {
             ]}
           >
             <ScrollView contentContainerStyle={styles.feuilleContenu}>
-              <Text style={styles.feuilleTitre}>Commande {ouverte?.numero}</Text>
+              <Text style={styles.feuilleTitre}>{t("admin.commande")} {ouverte?.numero}</Text>
               <Text style={styles.feuilleSous}>
                 {ouverte?.clientNom} · {ouverte?.clientTelephone}
               </Text>
 
               <View style={styles.blocInfo}>
-                <Text style={styles.blocTitre}>Adresse</Text>
+                <Text style={styles.blocTitre}>{t("admin.adresse")}</Text>
                 <Text style={styles.blocTexte}>
                   {ouverte?.adresse?.avenue} n° {ouverte?.adresse?.numero}, {ouverte?.adresse?.commune}
                 </Text>
-                <Text style={styles.blocRepere}>Repère : {ouverte?.adresse?.repere}</Text>
+                <Text style={styles.blocRepere}>{t("admin.repere", { repere: ouverte?.adresse?.repere ?? "" })}</Text>
               </View>
 
               <View style={styles.blocInfo}>
-                <Text style={styles.blocTitre}>Paiement</Text>
+                <Text style={styles.blocTitre}>{t("admin.paiement")}</Text>
                 <Text style={styles.blocTexte}>
-                  {resumePaiement(ouverte).mode} — {resumePaiement(ouverte).statut}
+                  {resumePaiement(ouverte, t).mode} — {resumePaiement(ouverte, t).statut}
                 </Text>
               </View>
 
               <View style={styles.blocInfo}>
-                <Text style={styles.blocTitre}>Articles</Text>
+                <Text style={styles.blocTitre}>{t("admin.articles")}</Text>
                 {ouverte?.items?.map((i: any, idx: number) => (
                   <Text key={idx} style={styles.blocTexte}>
                     {i.quantite}× {i.nom} {i.taille ? `(${i.taille})` : ""} — {usd(i.prixUnitaire * i.quantite)}
                   </Text>
                 ))}
-                <Text style={styles.blocTotal}>Total cash : {usd(ouverte?.total ?? 0)}</Text>
+                <Text style={styles.blocTotal}>{t("admin.totalCash", { montant: usd(ouverte?.total ?? 0) })}</Text>
               </View>
 
               <View style={styles.blocInfo}>
-                <Text style={styles.blocTitre}>Assigner un livreur</Text>
+                <Text style={styles.blocTitre}>{t("admin.assignerLivreur")}</Text>
                 <View style={styles.livreursRow}>
                   {(livreursQ.data ?? [])
                     .filter((l) => l.actif)
@@ -501,12 +494,12 @@ export default function Dashboard() {
               </View>
 
               <View style={styles.blocInfo}>
-                <Text style={styles.blocTitre}>Changer le statut</Text>
+                <Text style={styles.blocTitre}>{t("admin.changerStatut")}</Text>
                 {(SUIVANTS[ouverte?.statut] ?? []).map((s) => (
                   <Bouton
                     key={s}
                     testID={`statut-${s}`}
-                    label={LIBELLES[s]}
+                    label={t(`statut.${s}` as CleTexte)}
                     variant={s === "annulee" ? "danger" : "primaire"}
                     petit
                     onPress={() => changerStatut(s)}
@@ -515,7 +508,7 @@ export default function Dashboard() {
                 ))}
               </View>
 
-              <Bouton testID="btn-fermer-detail" label="Fermer" variant="contour" onPress={() => setOuverte(null)} />
+              <Bouton testID="btn-fermer-detail" label={t("admin.fermer")} variant="contour" onPress={() => setOuverte(null)} />
             </ScrollView>
           </View>
         </View>

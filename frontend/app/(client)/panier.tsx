@@ -91,7 +91,7 @@ export default function Panier() {
               bureau ? styles.recap : { paddingBottom: insets.bottom + spacing.lg },
             ]}
           >
-            {bureau ? <Text style={styles.recapTitre}>Récapitulatif</Text> : null}
+            {bureau ? <Text style={styles.recapTitre}>{t("panier.recapitulatif")}</Text> : null}
             <View style={styles.ligneTotal}>
               <Text style={styles.sousTotalLabel}>{t("panier.sousTotal", { n: nbArticles })}</Text>
               <View>
@@ -108,7 +108,7 @@ export default function Panier() {
               onPress={() => router.push("/commande/adresse")}
             />
             {bureau ? (
-              <Text style={styles.recapNote}>Frais de livraison confirmés à l&apos;étape suivante.</Text>
+              <Text style={styles.recapNote}>{t("panier.fraisEtapeSuivante")}</Text>
             ) : null}
           </View>
         </View>

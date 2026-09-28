@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EnteteMarque, MotifCoin, Vague } from "@/src/components/DecorAuth";
 import { Logo } from "@/src/components/Logo";
+import { useLangue } from "@/src/i18n";
 import { useEcran } from "@/src/reactif";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -16,6 +17,7 @@ export default function Bienvenue() {
   const { scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useLangue();
   const { width, height } = useWindowDimensions();
   const { bureau } = useEcran();
 
@@ -37,14 +39,14 @@ export default function Bienvenue() {
         onPress={() => router.push("/inscription")}
         style={({ pressed }) => [styles.cta, pressed && styles.pressee]}
       >
-        <Text style={styles.ctaTexte}>Créer un compte</Text>
+        <Text style={styles.ctaTexte}>{t("auth.creerCompte")}</Text>
       </Pressable>
       <Pressable
         testID="btn-deja-compte"
         onPress={() => router.push("/connexion")}
         style={({ pressed }) => [styles.ctaSecondaire, pressed && styles.pressee]}
       >
-        <Text style={styles.ctaSecondaireTexte}>J&apos;ai déjà un compte</Text>
+        <Text style={styles.ctaSecondaireTexte}>{t("auth.compteExistant")}</Text>
       </Pressable>
     </>
   );
@@ -57,24 +59,21 @@ export default function Bienvenue() {
           <View style={styles.enteteSiteInterieur}>
             <Logo taille={22} />
             <Pressable testID="btn-deja-compte-entete" onPress={() => router.push("/connexion")} style={styles.lienEntete}>
-              <Text style={styles.lienEnteteTexte}>Se connecter</Text>
+              <Text style={styles.lienEnteteTexte}>{t("auth.seConnecter")}</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.heroSite}>
           <View style={styles.heroTexte}>
-            <Text style={styles.badgeSite}>Livraison à Kinshasa</Text>
-            <Text style={styles.titreSite}>Le vrai frozen yogurt, livré chez vous</Text>
-            <Text style={styles.sousTitreSite}>
-              Pots de crème, smoothies et garnitures Pinkberry. Commandez en quelques clics, payez à la livraison,
-              et suivez votre livreur en direct sur la carte.
-            </Text>
+            <Text style={styles.badgeSite}>{t("auth.livraisonKinshasa")}</Text>
+            <Text style={styles.titreSite}>{t("auth.sloganWeb")}</Text>
+            <Text style={styles.sousTitreSite}>{t("auth.presentation")}</Text>
             <View style={styles.actionsSite}>{actions}</View>
             <View style={styles.pointsForts}>
-              <Text style={styles.pointFort}>• Zones couvertes : Gombe, Limete, Ngaliema, Lingwala</Text>
-              <Text style={styles.pointFort}>• Paiement en espèces à la livraison</Text>
-              <Text style={styles.pointFort}>• Suivi de livraison en temps réel</Text>
+              <Text style={styles.pointFort}>• {t("auth.pointZones")}</Text>
+              <Text style={styles.pointFort}>• {t("auth.pointPaiement")}</Text>
+              <Text style={styles.pointFort}>• {t("auth.pointSuivi")}</Text>
             </View>
           </View>
 
@@ -125,7 +124,7 @@ export default function Bienvenue() {
         </View>
 
         <View style={styles.bas}>
-          <Text style={styles.slogan}>Le vrai frozen yogurt, livré chez toi à Kinshasa</Text>
+          <Text style={styles.slogan}>{t("auth.sloganMobile")}</Text>
           {actions}
         </View>
       </View>

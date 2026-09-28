@@ -113,7 +113,7 @@ export default function ParametresClient() {
         if (maj.notifSuivi) {
           const apres = await abonnerPushWeb();
           if (!apres.abonne && apres.permission === "denied") {
-            toast.show("Autorisez les notifications dans votre navigateur", "info");
+            toast.show(t("params.autoriserNotifications"), "info");
           }
         } else {
           await desabonnerPushWeb();

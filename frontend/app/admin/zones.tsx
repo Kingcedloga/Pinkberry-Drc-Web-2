@@ -9,6 +9,7 @@ import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
+import { useLangue } from "@/src/i18n";
 import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -21,6 +22,7 @@ export default function Zones() {
   const { bureau, large } = useEcran();
   const cols = large ? 3 : bureau ? 2 : 1;
   const toast = useToast();
+  const { t } = useLangue();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["zones"], queryFn: () => apiFetch<any[]>("/zones") });
 
@@ -36,7 +38,7 @@ export default function Zones() {
       await apiFetch(`/admin/zones/${zone.id}`, { method: "PUT", body: { active: valeur } });
       rafraichir();
       toast.show(
-        valeur ? `On livre maintenant à ${zone.commune}` : `Livraison suspendue à ${zone.commune}`,
+        valeur ? t("admin.livraisonCommuneActive", { commune: zone.commune }) : t("admin.livraisonCommuneSuspendue", { commune: zone.commune }),
         "succes",
       );
     } catch (e: any) {
@@ -46,7 +48,7 @@ export default function Zones() {
 
   const ajouter = async () => {
     if (commune.trim().length < 2) {
-      toast.show("Nom de zone trop court", "erreur");
+      toast.show(t("admin.zoneNomCourt"), "erreur");
       return;
     }
     try {
@@ -55,7 +57,7 @@ export default function Zones() {
       setOuvert(false);
       setCommune("");
       setActive(true);
-      toast.show(`Zone « ${commune.trim()} » ajoutée`, "succes");
+      toast.show(t("admin.zoneAjoutee", { commune: commune.trim() }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -66,7 +68,7 @@ export default function Zones() {
       await apiFetch(`/admin/zones/${aSupprimer.id}`, { method: "DELETE" });
       rafraichir();
       setASupprimer(null);
-      toast.show("Zone supprimée", "succes");
+      toast.show(t("admin.zoneSupprimee"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -76,12 +78,12 @@ export default function Zones() {
     <View testID="ecran-admin-zones" style={styles.ecran}>
       <View style={styles.enteteWeb}>
         <TitrePage
-          titre="Zones de livraison"
-          sousTitre="Seules les communes couvertes sont proposées au client"
+          titre={t("admin.zonesTitre")}
+          sousTitre={t("admin.zonesSousTitre")}
           actions={
             <Pressable testID="btn-ajouter-zone" onPress={() => setOuvert(true)} style={styles.btnPrimaire}>
               <Icone name="plus" size={16} color={colors.onBrandPrimary} />
-              <Text style={styles.btnPrimaireTexte}>Nouvelle zone</Text>
+              <Text style={styles.btnPrimaireTexte}>{t("admin.nouvelleZone")}</Text>
             </Pressable>
           }
         />
@@ -104,7 +106,7 @@ export default function Zones() {
           onRefresh={() => q.refetch()}
           ListEmptyComponent={
             <View style={styles.centre}>
-              <Text style={styles.sous}>Aucune zone. Ajoutez votre première commune.</Text>
+              <Text style={styles.sous}>{t("admin.aucuneZone")}</Text>
             </View>
           }
           renderItem={({ item }: any) =>
@@ -115,7 +117,7 @@ export default function Zones() {
               <View style={styles.texte}>
                 <Text style={styles.nom}>{item.commune}</Text>
                 <Text style={[styles.etat, { color: item.active ? colors.success : colors.muted }]}>
-                  {item.active ? "Couverte" : "Non couverte"}
+                  {item.active ? t("admin.couverte") : t("admin.nonCouverte")}
                 </Text>
               </View>
               <Switch
@@ -143,16 +145,16 @@ export default function Zones() {
           <Pressable style={{ flex: 1 }} onPress={() => setOuvert(false)} />
           <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
             <KeyboardAwareScrollView bottomOffset={60} contentContainerStyle={styles.feuilleContenu}>
-              <Text style={styles.feuilleTitre}>Nouvelle zone</Text>
+              <Text style={styles.feuilleTitre}>{t("admin.nouvelleZone")}</Text>
               <Champ
-                label="Commune ou quartier"
+                label={t("admin.communeQuartier")}
                 testID="input-zone-commune"
                 value={commune}
                 onChangeText={setCommune}
                 placeholder="Ex. Ngaliema"
               />
               <View style={styles.ligneSwitch}>
-                <Text style={styles.switchLabel}>Activer la livraison tout de suite</Text>
+                <Text style={styles.switchLabel}>{t("admin.zoneActiveImmediate")}</Text>
                 <Switch
                   testID="switch-nouvelle-zone"
                   value={active}
@@ -160,10 +162,10 @@ export default function Zones() {
                   trackColor={{ true: colors.success, false: colors.border }}
                 />
               </View>
-              <Bouton testID="btn-creer-zone" label="Ajouter la zone" onPress={ajouter} />
+              <Bouton testID="btn-creer-zone" label={t("admin.ajouterZone")} onPress={ajouter} />
               <Bouton
                 testID="btn-annuler-zone"
-                label="Annuler"
+                label={t("commun.annuler")}
                 variant="contour"
                 onPress={() => setOuvert(false)}
               />
@@ -176,20 +178,17 @@ export default function Zones() {
         <View style={styles.voileCentre}>
           <View testID="modal-suppression-zone" style={styles.dialogue}>
             <Icone name="alert-circle" size={30} color={colors.error} />
-            <Text style={styles.dialogueTitre}>Supprimer {aSupprimer?.commune} ?</Text>
-            <Text style={styles.dialogueTexte}>
-              Cette commune ne sera plus proposée aux clients et les nouvelles commandes y seront
-              refusées. Les commandes déjà passées ne changent pas.
-            </Text>
+            <Text style={styles.dialogueTitre}>{t("admin.supprimerZoneTitre", { commune: aSupprimer?.commune ?? "" })}</Text>
+            <Text style={styles.dialogueTexte}>{t("admin.supprimerZoneTexte")}</Text>
             <Bouton
               testID="btn-confirmer-suppression-zone"
-              label="Supprimer la zone"
+              label={t("admin.supprimerZone")}
               variant="danger"
               onPress={supprimer}
             />
             <Bouton
               testID="btn-annuler-suppression-zone"
-              label="Annuler"
+              label={t("commun.annuler")}
               variant="contour"
               onPress={() => setASupprimer(null)}
             />

@@ -8,6 +8,7 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteAuth, EnteteMarque } from "@/src/components/DecorAuth";
+import { useLangue } from "@/src/i18n";
 import { LARGEUR_ETROITE } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -17,6 +18,7 @@ export default function VerificationOtp() {
   useTheme();
   const router = useRouter();
   const { verifierOtp } = useAuth();
+  const { t } = useLangue();
   const toast = useToast();
   const params = useLocalSearchParams<{
     telephone?: string;
@@ -33,13 +35,13 @@ export default function VerificationOtp() {
 
   const valider = async () => {
     if (code.length !== 4) {
-      toast.show("Entrez les 4 chiffres du code", "erreur");
+      toast.show(t("otp.codeRequis"), "erreur");
       return;
     }
     setLoading(true);
     try {
       const u = await verifierOtp(telephone, code);
-      toast.show("Compte vérifié, bienvenue !", "succes");
+      toast.show(t("otp.bienvenue"), "succes");
       router.replace(
         u.role === "admin" || u.role === "superadmin"
           ? "/admin"
@@ -62,7 +64,7 @@ export default function VerificationOtp() {
       });
       setEnvoiEchoue(r.emailEnvoye === false);
       toast.show(
-        r.emailEnvoye ? "Nouveau code envoyé par email" : "Envoi impossible, réessayez",
+        r.emailEnvoye ? t("otp.codeRenvoye") : t("otp.envoiImpossible"),
         r.emailEnvoye ? "succes" : "erreur",
       );
     } catch (e: any) {
@@ -78,8 +80,8 @@ export default function VerificationOtp() {
         <EnteteMarque taille={30} />
 
         <View style={styles.titres}>
-          <Text style={styles.titre}>Vérification</Text>
-          <Text style={styles.sous}>Entrez le code à 4 chiffres envoyé à {email || "votre adresse email"}</Text>
+          <Text style={styles.titre}>{t("otp.titre")}</Text>
+          <Text style={styles.sous}>{t("otp.sousTitre", { email: email || t("otp.emailParDefaut") })}</Text>
         </View>
 
         <Pressable style={styles.cases} onPress={() => inputRef.current?.focus()}>
@@ -105,15 +107,15 @@ export default function VerificationOtp() {
           <View testID="bloc-email-echoue" style={styles.alerte}>
             <Icone name="alert-circle" size={16} color={colors.error} />
             <Text style={styles.alerteTexte}>
-              L&apos;email n&apos;a pas pu être envoyé. Touchez « Renvoyer le code » dans quelques instants.
+              {t("otp.emailEchec")}
             </Text>
           </View>
         ) : null}
 
-        <Bouton testID="btn-valider-otp" label="Vérifier mon email" loading={loading} onPress={valider} />
+        <Bouton testID="btn-valider-otp" label={t("otp.verifier")} loading={loading} onPress={valider} />
 
         <Pressable testID="btn-renvoyer-otp" onPress={renvoyer} style={styles.lien}>
-          <Text style={styles.lienTexte}>Renvoyer le code</Text>
+          <Text style={styles.lienTexte}>{t("otp.renvoyer")}</Text>
         </Pressable>
       </KeyboardAwareScrollView>
 

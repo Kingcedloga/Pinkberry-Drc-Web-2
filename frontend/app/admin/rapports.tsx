@@ -2,14 +2,16 @@ import React from "react";
 
 import { EcranRapport } from "@/src/components/EcranRapport";
 import { useTheme } from "@/src/theme-contexte";
+import { useLangue } from "@/src/i18n";
 
 export default function Rapports() {
   useTheme();
+  const { t } = useLangue();
   return (
     <EcranRapport
-      titre="Rapport des commandes"
-      sousTitre="Excel ou PDF, archives incluses"
-      aide="Numéro, date, client, adresse, articles, montant, statut et livreur, avec un récapitulatif (commandes, chiffre d'affaires, livraisons réussies et annulées)."
+      titre={t("rapport.adminTitre")}
+      sousTitre={t("rapport.adminSousTitre")}
+      aide={t("rapport.adminAide")}
       chemin="/admin/rapport"
       prefixeFichier="pinkberry-rapport"
     />

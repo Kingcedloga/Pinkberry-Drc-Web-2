@@ -66,10 +66,8 @@ export default function Menu() {
   const enTete = (
     <View style={styles.enTete}>
       <View style={styles.hero}>
-        <Text style={styles.heroTitre}>Le vrai frozen yogurt, livré chez vous à Kinshasa</Text>
-        <Text style={styles.heroSous}>
-          Choisissez vos pots, smoothies et garnitures. Paiement à la livraison.
-        </Text>
+        <Text style={styles.heroTitre}>{t("accueil.heroTitre")}</Text>
+        <Text style={styles.heroSous}>{t("accueil.heroSousTitre")}</Text>
         <View style={styles.rechercheWrap}>
           <Icone name="search" size={18} color={colors.muted} />
           <TextInput
@@ -92,7 +90,7 @@ export default function Menu() {
       <View style={styles.titreListe}>
         <Text style={styles.sectionTitre}>{categorie === "Tous" ? t("accueil.notreCarte") : categorie}</Text>
         <Text style={styles.compteur}>
-          {filtres.length} produit{filtres.length > 1 ? "s" : ""}
+          {t(filtres.length === 1 ? "accueil.unProduit" : "accueil.plusieursProduits", { n: filtres.length })}
         </Text>
       </View>
     </View>
@@ -144,7 +142,7 @@ export default function Menu() {
             </View>
             <View style={[styles.plus, colonnes > 1 && styles.plusGrille]}>
               <Icone name="plus" size={18} color={colors.onBrandPrimary} />
-              {colonnes > 1 ? <Text style={styles.plusTexte}>Ajouter</Text> : null}
+              {colonnes > 1 ? <Text style={styles.plusTexte}>{t("accueil.ajouter")}</Text> : null}
             </View>
           </Pressable>
         )
@@ -168,7 +166,7 @@ export default function Menu() {
       ) : bureau ? (
         <View style={styles.page}>
           <View style={styles.filtres}>
-            <Text style={styles.filtresTitre}>Catégories</Text>
+            <Text style={styles.filtresTitre}>{t("accueil.categories")}</Text>
             {categories.map((c) => {
               const actif = c === categorie;
               return (
