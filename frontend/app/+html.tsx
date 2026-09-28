@@ -2,7 +2,9 @@
 import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
 
-const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL || "https://pinkberry-drc.preview.emergentagent.com";
+// Domaine public : fourni par l'environnement de deploiement. A defaut, les URLs
+// restent relatives et sont completees a l'execution depuis l'origine courante.
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "";
 
 /**
  * Coquille HTML de la web app Pinkberry (responsive + installable en PWA).
@@ -70,6 +72,17 @@ export default function Root({ children }: PropsWithChildren) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              // Complete les URLs relatives (canonical / Open Graph) avec l'origine reelle.
+              (function () {
+                var origine = window.location.origin;
+                var absolu = function (v) { return v && v.charAt(0) === '/' ? origine + v : v; };
+                var canon = document.querySelector('link[rel="canonical"]');
+                if (canon) canon.setAttribute('href', absolu(canon.getAttribute('href')));
+                document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]').forEach(function (m) {
+                  m.setAttribute('content', absolu(m.getAttribute('content')));
+                });
+              })();
+
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
                   navigator.serviceWorker.register('/sw.js').catch(function () {});

@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 32 - Verification ciblee du correctif /app/frontend/src/images.ts (urlImage force https:// pour les URLs http://, laisse https:// intact, prefixe les chemins relatifs avec EXPO_PUBLIC_BACKEND_URL). Test frontend uniquement, desktop 1440x900. RESULTAT: correctif valide, aucune regression detectee. (1) CLIENT (0990000001/client123) -> /menu: 10 cartes produits, 10/10 <img> charges (naturalWidth>0, complete=true), 0 image cassee, 0 requete image en 4xx/5xx, 0 requete image en schema http://, 0 pageerror JS. Toutes les photos Unsplash historiques (https://images.unsplash.com/...) s'affichent (screenshot iter32_menu). (2) Modale fiche produit: 11/11 imgs OK (grande photo produit + vignettes de la grille en arriere-plan). (3) /panier vide (produit non ajoute par le script - modale d'ajout affichee mais pas confirmee), pas d'image cassee. (4) /commandes: page affichee avec l'historique (PB-1980, PB-8493, PB-5099, PB-4862...), l'affichage historique ne rend pas de miniature <img> sur les lignes de la liste (design produit, pas un bug images) - la miniature PhotoProduit n'est utilisee que sur /commande/paiement recap et /panier. Aucune image cassee. (5) /legal/confidentialite: 4226 chars, accessible connecte, pas d'erreur. (6) RBAC verifie: client sur /admin et /livreur -> redirige vers /menu. (7) ADMIN (0810000000/admin123) -> /admin/catalogue: 10 lignes produits avec 10/10 vignettes OK. Creation produit test 'TEST_ITER32_63136': ouverture modale [btn-ajouter-produit], nom/prix/description/categorie renseignes, upload photo via [btn-choisir-photo] (file chooser Playwright + JPG 1.3KB genere), toast 'Photo envoyee' visible, apercu [data-testid=apercu-photo] rendu (image rose test 200x200), enregistrement [btn-enregistrer-produit] -> le nouveau produit apparait comme 3eme ligne avec sa vignette rose (src=https://pinkberry-drc.preview.emergentagent.com/api/fichiers/35dfbd64-... naturalWidth=200 complete=true), soit la preuve que urlImage() prefixe correctement le chemin relatif /api/fichiers/<id> renvoye par l'API avec EXPO_PUBLIC_BACKEND_URL. Suppression via [btn-supprimer-TEST_ITER32_63136] -> confirme (dialog accept auto) -> produit disparait. Nettoyage OK. (8) Metriques globales sur toute la session: 26+9=35 requetes d'images tracees, 0 en 4xx/5xx, 0 en http:// (fix reussi), 0 requestfailed cote reseau, 0 JS error/pageerror. Les branches urlImage() couvertes en runtime: L12 https://... (Unsplash produits existants) OK, L14 chemin relatif /api/fichiers/... (nouvelle photo uploadee) OK. La branche L13 (http:// -> https://) n'est pas exercee en runtime car aucun produit en base n'a de champ image en http://, mais le code est trivial (3 lignes, StringSlice classique) et couvert par code review.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/iter32_menu.png",
+    "/tmp/iter32_modal.jpg",
+    "/tmp/iter32_panier.jpg",
+    "/tmp/iter32_commandes.jpg",
+    "/tmp/iter32_admin_catalogue.jpg",
+    "/tmp/iter32_admin_new.jpg",
+    "/tmp/iter32_admin_upload.jpg",
+    "/tmp/iter32_admin_after_save.jpg"
+  ],
+  "action_items": [
+    "Aucune action bloquante. Le correctif urlImage() est valide en desktop web pour les deux branches actives (https:// intact, /api/fichiers/... prefixe avec EXPO_PUBLIC_BACKEND_URL). La branche http://->https:// n'a pas de fixture runtime (aucun produit avec image http://) mais la logique est triviale et le comportement iOS/Android de production ne peut pas etre teste depuis le web preview - c'etait justement la raison du correctif proactif.",
+    "Optionnel: si on veut renforcer la couverture, ajouter un test unitaire pur (jest/vitest) sur urlImage() pour figer les 4 cas (null, https, http, relatif). 6 lignes de test suffisent."
+  ],
+  "critical_code_review_comments": [
+    "src/images.ts L10-15: fonction pure, 3 branches propres, evite les URLs vides (return null). Le slice('http://'.length) est correct (=7). Le fallback L14 gere aussi bien '/api/...' que 'api/...' via le test startsWith('/'). Aucun edge case bloquant.",
+    "src/components/PhotoProduit.tsx: le composant utilise expo-image (Image de expo-image) qui gere correctement les URLs https en web via <img>. Aucune modification necessaire.",
+    "app/(client)/menu.tsx L183, admin/catalogue.tsx L369/395/425/427, panier.tsx L47, commande/paiement.tsx L132, BanniereRecommandes.tsx L42, FeuilleProduit.tsx L102 -> toutes les consommations passent par PhotoProduit -> urlImage, aucune duplication de logique URL. DRY OK.",
+    "src/images.ts L1: BASE = process.env.EXPO_PUBLIC_BACKEND_URL sans fallback -> si l'env est absent le fichier ne crashe pas mais les images relatives seraient prefixees 'undefined/...'. Acceptable en production ou l'env est protege (frontend/.env)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (backend non teste - hors scope)",
+    "frontend": "100% sur le scope demande: /menu (10/10 imgs), fiche produit modale (11/11), /panier (aucune image cassee), /commandes (aucune image cassee), /admin/catalogue (10/10 vignettes + upload+save+delete OK), /legal/confidentialite OK, RBAC OK."
+  },
+  "seed_data_creation": "Produit test 'TEST_ITER32_63136' cree ET supprime pendant le meme run. Photo uploadee reste en storage sous /api/fichiers/35dfbd64-9c60-444a-859f-5e770214c0a4 (non nettoyable via UI). Impact: 1 fichier orphelin de 1.3KB, negligeable.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Correctif urlImage() valide. Selecteurs de reference pour futurs tests: connexion=[data-testid=input-connexion-telephone/motdepasse/btn-valider-connexion], menu=[data-testid^=produit-], modale fiche=[data-testid=btn-ajouter-panier], catalogue admin=[data-testid^=admin-produit-] + [btn-ajouter-produit/btn-choisir-photo/btn-enregistrer-produit/btn-supprimer-<nom>]. L'upload de photo admin utilise page.expect_file_chooser() (expo-image-picker rend un file input dynamique cote web). L'endpoint /api/admin/photos renvoie un chemin relatif /api/fichiers/<uuid> qui est ensuite prefixe par urlImage. Aucune image en http:// dans le seed actuel (10 produits, tous Unsplash https).",
+  "rca_of_issue": "N/A - verification post-fix, aucun bug detecte."
+}

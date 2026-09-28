@@ -302,3 +302,27 @@ dans Chrome/Edge/Chrome Android.
 3. Rendu en **mode sombre** lisible.
 4. Bascule **English** → contenu entièrement traduit (Terms of Use / Privacy Policy, « Last
    updated: June 20, 2026 »), puis retour au français.
+
+## Itération 32 — Health check de déploiement
+Contrôles du deployment agent + corrections successives :
+1. `app/+html.tsx` : suppression du domaine d'aperçu codé en dur (`SITE_URL` vient désormais de
+   `EXPO_PUBLIC_SITE_URL`, avec script d'exécution qui rend absolues les URLs canonical/og/twitter
+   à partir de `window.location.origin`).
+2. Suppression de `frontend/package-lock.json` (yarn.lock seul, conforme au champ `packageManager`).
+3. Migration des constantes d'intégration vers l'environnement : `INTEGRATION_PROXY_URL`
+   (emails, stockage objet, push natif) et `EMERGENT_AUTH_SESSION_URL` dans `backend/.env` ;
+   `EXPO_PUBLIC_AUTH_PORTAL_URL` dans `frontend/.env` (utilisé par `src/auth.tsx`).
+   → 13/13 tests backend de non-régression (`test_iteration31.py`) : envoi d'email OTP, upload photo,
+   endpoint session Google (401 et non 500), endpoints publics, PWA, pages légales publiques.
+4. `EXPO_PUBLIC_SITE_URL` ajouté à `frontend/.env` (à remplacer par le domaine définitif après
+   déploiement) pour les métadonnées SEO et l'URL publique de politique de confidentialité exigée
+   par les stores.
+5. `src/images.ts` : `urlImage()` force `https://` sur toute URL d'image absolue en `http://`
+   (ATS iOS / cleartext Android bloquent le http en build de production).
+   → Validé par le testing agent (itération 32) : 35 requêtes d'images, 0 en http://, 0 erreur,
+   vignettes client et back office OK, cycle complet upload/affichage/suppression d'un produit.
+
+### Reste côté utilisateur (non bloquant pour le web)
+- Push natif iOS : il manque `frontend/GoogleService-Info.plist` (fichier Firebase iOS à fournir par
+  le propriétaire du projet) et l'entrée `expo.ios.googleServicesFile` dans `app.json`. Android est
+  déjà configuré (`google-services.json`). Le push **web** (VAPID) fonctionne indépendamment.

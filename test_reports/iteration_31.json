@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 31 - Health check pre-deploiement APRES migration des constantes codees en dur vers l'environnement. Backend 13/13 tests pytest passent (test_iteration31.py). RESULTAT: aucune regression detectee suite a la migration INTEGRATIONS_URL (INTEGRATION_PROXY_URL), EMAIL_BASE_URL, STORAGE_URL, PUSH_BASE_URL et EMERGENT_AUTH_URL (EMERGENT_AUTH_SESSION_URL). Points valides: (1) endpoints publics: GET /api/produits (10 produits), /api/categories, /api/zones (Gombe presente, champ commune), /api/config (tauxFC=2300 ok, note: le pb decrivait /api/taux mais l'endpoint reel est /api/config -> teste correctement), /api/push/web/cle-publique (actif=true, clePublique VAPID exposee, clePrivee jamais exposee) tous en 200. (2) FLOW EMAIL OTP CRITIQUE: POST /api/auth/inscription renvoie emailEnvoye:true -> preuve que EMAIL_BASE_URL (=INTEGRATIONS_URL) pointe correctement sur integrations.emergentagent.com et que la migration n'a pas casse l'envoi d'email. Note: codeDemo n'est PAS renvoye car SEED_DEMO_ACCOUNTS=false (comportement production correct). (3) UPLOAD IMAGE ADMIN: POST /api/admin/photos avec token admin repond 200 -> STORAGE_URL correctement compose depuis INTEGRATIONS_URL. (4) GOOGLE AUTH: POST /api/auth/session avec session_id bidon repond 401 (pas de 500) -> EMERGENT_AUTH_URL correctement lu depuis EMERGENT_AUTH_SESSION_URL. (5) PWA: /manifest.json et /sw.js repondent 200. (6) PAGES LEGALES: /legal/confidentialite (4226 chars, date de derniere mise a jour visible) et /legal/conditions (4050 chars) accessibles SANS session (non redirigees vers /connexion). Liens depuis /inscription: [data-testid=lien-conditions-inscription] et [data-testid=lien-confidentialite-inscription] presents (2 x 1). FRONTEND: /connexion charge sans erreur pageerror, layout 2 panneaux desktop (screenshot ok), bouton 'Continuer avec Google' present et cliquable. /inscription: bouton 'S'inscrire avec Google' present + 2 liens legaux. /menu apres connexion 0990000001/client123 affiche bien 10 produits avec prix en $/FC (preuve /api/produits + /api/config OK cote client). AUCUN pageerror JavaScript capture. Parcours metier complet client/admin/livreur non re-execute cette fois (deja valide iter 27-29 comme indique par le main agent). Auth portal URL cote frontend (EXPO_PUBLIC_AUTH_PORTAL_URL) correctement lu par src/auth.tsx L11.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration31.py",
+    "/app/test_reports/pytest/pytest_iter31.xml",
+    "/tmp/i31_connexion.png",
+    "/tmp/i31_menu.png",
+    "/tmp/i31_inscription.png"
+  ],
+  "action_items": [
+    "Aucune action bloquante. La migration des 5 constantes vers l'environnement (INTEGRATION_PROXY_URL, EMERGENT_AUTH_SESSION_URL, INTEGRATIONS_URL -> EMAIL_BASE_URL/STORAGE_URL/PUSH_BASE_URL, EXPO_PUBLIC_AUTH_PORTAL_URL) est saine et n'introduit aucune regression detectable.",
+    "Petit ecart de nomenclature entre le probleme statement (GET /api/taux) et l'implementation reelle (GET /api/config qui contient tauxFC/fraisLivraison). Le test a ete adapte pour tester le bon endpoint. Ne pas renommer -> pas de valeur ajoutee.",
+    "Recommandation optionnelle: ajouter un test d'integration bureau/mobile automatise du parcours complet client -> admin -> livreur en CI pour eviter les regressions manuelles (deja valide iter 27-29)."
+  ],
+  "critical_code_review_comments": [
+    "server.py L47-72 : migration propre. INTEGRATIONS_URL construit une seule fois depuis INTEGRATION_PROXY_URL, puis EMAIL_BASE_URL/STORAGE_URL/PUSH_BASE_URL en derivent. STORAGE_URL concatene explicitement '/objstore/api/v1/storage'. Le .strip().rstrip('/') protege contre les slashes de fin en env. EMERGENT_AUTH_URL est un simple os.environ.get avec fallback string vide.",
+    "server.py L74 _push_client = httpx.AsyncClient(base_url=PUSH_BASE_URL, ...) : le client est cree au niveau module -> si INTEGRATION_PROXY_URL est absent au boot, base_url='' -> les appels seront relatifs. En production PUSH_KEY=placeholder + INTEGRATION_PROXY_URL renseigne -> ok, mais les WARN 401 remontent dans les logs (deja documente iter30).",
+    "server.py L69 EMERGENT_AUTH_URL : si vide, l'appel http.get(EMERGENT_AUTH_URL) L639 crashera (URL invalide). Actuellement backend/.env fournit la valeur -> pas de probleme runtime. Suggestion mineure : ajouter un check startup 'if not EMERGENT_AUTH_URL: logger.warning(...)' pour rendre l'echec explicite.",
+    "frontend/src/auth.tsx L11 const AUTH_EMERGENT = process.env.EXPO_PUBLIC_AUTH_PORTAL_URL ?? '' : fallback vide propre. Si l'admin oublie EXPO_PUBLIC_AUTH_PORTAL_URL dans .env, le bouton Google ouvrira une URL vide -> l'admin le verra immediatement. Acceptable.",
+    "app/+html.tsx L7-45 SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? '' + script runtime L72-84 qui prefixe l'origin. Design propre : aucune URL codee en dur, canonical/og fallback en relatif puis complete au chargement. Verifie visuellement : aucun domaine hardcode hors preview.emergentagent.com."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration31.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests iter31)",
+    "frontend": "100% sur le scope demande (/connexion 2 panneaux + bouton Google, /inscription + 2 liens legaux, /legal/* public, /menu apres login client). Parcours complet client/admin/livreur non re-execute (deja valide iter 27-29)."
+  },
+  "seed_data_creation": "Un compte client de test cree lors du test inscription (nom=TEST_ITER31, tel dynamique base sur time.time()). Non nettoye car verifie=false et sera ecrase au prochain run. Aucun impact production.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "test_iteration31.py = suite de non-regression apres migration des URLs vers l'env. A conserver et relancer avant chaque deploiement. Points d'attention : (1) l'endpoint 'taux' du probleme statement est en fait /api/config (contient tauxFC + fraisLivraison), le test corrige cet ecart. (2) codeDemo n'est jamais dans la reponse d'inscription en prod (SEED_DEMO_ACCOUNTS=false) -> le test valide emailEnvoye:true qui est LA vraie preuve que INTEGRATIONS_URL fonctionne. (3) Upload photo est sur /api/admin/photos (pas /api/admin/produits/photo). (4) Push cle publique renvoie clePublique (pas cle).",
+  "rca_of_issue": "N/A - health check pre-deploiement, aucun bug detecte suite a la migration des constantes."
+}

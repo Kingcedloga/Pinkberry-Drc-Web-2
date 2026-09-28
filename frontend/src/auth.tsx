@@ -7,7 +7,8 @@ import { apiFetch, setAuthToken } from "@/src/api";
 import { storage } from "@/src/utils/storage";
 
 const TOKEN_KEY = "pb_token";
-const AUTH_EMERGENT = "https://auth.emergentagent.com/?redirect=";
+// Portail d'authentification Emergent : configurable au deploiement.
+const AUTH_EMERGENT = process.env.EXPO_PUBLIC_AUTH_PORTAL_URL ?? "";
 
 WebBrowser.maybeCompleteAuthSession();
 
