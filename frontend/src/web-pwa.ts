@@ -8,6 +8,8 @@ import { Platform } from "react-native";
 export function initialiserWeb(): void {
   if (Platform.OS !== "web" || typeof document === "undefined") return;
 
+  document.documentElement.setAttribute("translate", "no");
+
   const balise = (selecteur: string, creer: () => HTMLElement) => {
     if (!document.querySelector(selecteur)) document.head.appendChild(creer());
   };

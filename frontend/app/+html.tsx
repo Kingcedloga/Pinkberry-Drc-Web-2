@@ -11,7 +11,7 @@ const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "";
  */
 export default function Root({ children }: PropsWithChildren) {
   return (
-    <html lang="fr" style={{ height: "100%" }}>
+    <html lang="fr" translate="no" style={{ height: "100%" }}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
