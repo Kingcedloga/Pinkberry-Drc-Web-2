@@ -1,4 +1,5 @@
 import os
+import uuid
 
 import requests
 
@@ -21,29 +22,19 @@ def _h(token: str):
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
 
-def test_admin_bulk_produits_delete():
+def test_admin_bulk_produits_delete_is_non_destructive():
     admin = _login(ADMIN_TEL, ADMIN_PWD)
-    r = requests.get(f"{API}/produits", timeout=15)
+    ids = [f"missing-{uuid.uuid4()}" for _ in range(2)]
+
+    r = requests.delete(f"{API}/admin/produits/bulk/delete", headers=_h(admin), json={"ids": ids}, timeout=15)
     assert r.status_code == 200, r.text
-    produits = r.json()
-    assert produits, "Aucun produit de test disponible"
-    ids = [p["id"] for p in produits[:2]]
-
-    r = requests.delete(f"{API}/admin/produits/bulk", headers=_h(admin), json={"ids": ids}, timeout=15)
-    assert r.status_code == 200, r.text
-    payload = r.json()
-    assert payload["deleted_count"] == len(ids)
+    assert r.json()["deleted_count"] == 0
 
 
-def test_admin_bulk_zones_delete():
+def test_admin_bulk_zones_delete_is_non_destructive():
     admin = _login(ADMIN_TEL, ADMIN_PWD)
-    r = requests.get(f"{API}/zones", timeout=15)
-    assert r.status_code == 200, r.text
-    zones = r.json()
-    if len(zones) < 2:
-        raise AssertionError("Au moins 2 zones attendues pour le test bulk")
-    ids = [z["id"] for z in zones[:2]]
+    ids = [f"missing-{uuid.uuid4()}" for _ in range(2)]
 
-    r = requests.delete(f"{API}/admin/zones/bulk", headers=_h(admin), json={"ids": ids}, timeout=15)
+    r = requests.delete(f"{API}/admin/zones/bulk/delete", headers=_h(admin), json={"ids": ids}, timeout=15)
     assert r.status_code == 200, r.text
-    assert r.json()["deleted_count"] == len(ids)
+    assert r.json()["deleted_count"] == 0

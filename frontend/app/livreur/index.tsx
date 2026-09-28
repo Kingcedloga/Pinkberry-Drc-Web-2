@@ -1,8 +1,9 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { apiFetch } from "@/src/api";
@@ -31,6 +32,7 @@ export default function Courses() {
     queryFn: () => apiFetch<any[]>("/livreur/courses"),
     refetchInterval: 5000,
   });
+  const [confirmerArchivageMultiple, setConfirmerArchivageMultiple] = useState(false);
 
   const archiver = async (id: string) => {
     try {
@@ -46,6 +48,21 @@ export default function Courses() {
   const actives = (q.data ?? []).filter((c) => !["livree", "annulee"].includes(c.statut));
   const terminees = (q.data ?? []).filter((c) => ["livree", "annulee"].includes(c.statut));
   const toutes = [...actives, ...terminees];
+  const selection = useListeSelection(terminees.map((c) => c.id));
+
+  const archiverSelection = async () => {
+    try {
+      const count = selection.selectedIds.length;
+      await apiFetch("/livreur/courses/bulk/archive", { method: "POST", body: { ids: selection.selectedIds } });
+      selection.clear();
+      setConfirmerArchivageMultiple(false);
+      await qc.invalidateQueries({ queryKey: ["livreur-courses"] });
+      await qc.invalidateQueries({ queryKey: ["livreur-archives"] });
+      toast.show(`${count} course(s) archivée(s)`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
   const reste = cols > 1 ? toutes.length % cols : 0;
   const donnees =
     reste === 0
@@ -87,6 +104,9 @@ export default function Courses() {
                 </View>
               </View>
               <CarteNotifications texte={t("livreur.notifications")} />
+              {terminees.length > 0 ? (
+                <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={terminees.length} />
+              ) : null}
             </View>
           }
           ListEmptyComponent={
@@ -109,6 +129,13 @@ export default function Courses() {
                 pressed && { backgroundColor: colors.brandTertiary },
               ]}
             >
+              {terminees.some((c) => c.id === item.id) ? (
+                <ToggleSelection
+                  checked={selection.selectedIds.includes(item.id)}
+                  onToggle={() => selection.toggle(item.id)}
+                  testID={`selection-course-${item.numero}`}
+                />
+              ) : null}
               <View style={styles.carteHaut}>
                 <Text style={styles.numero}>{item.numero}</Text>
                 <View
@@ -160,6 +187,21 @@ export default function Courses() {
           }
         />
       )}
+      <SelectionBar
+        selectedCount={selection.selectedIds.length}
+        onClear={selection.clear}
+        deleteLabel={t("commun.archiver")}
+        onDelete={() => setConfirmerArchivageMultiple(true)}
+      />
+      <BulkDeleteDialog
+        visible={confirmerArchivageMultiple}
+        count={selection.selectedIds.length}
+        title={`Archiver ${selection.selectedIds.length} course${selection.selectedIds.length > 1 ? "s" : ""} ?`}
+        confirmLabel="Archiver les courses"
+        description="Seules les courses terminées peuvent être archivées. Elles resteront dans les rapports de la boutique."
+        onCancel={() => setConfirmerArchivageMultiple(false)}
+        onConfirm={archiverSelection}
+      />
     </View>
   );
 }

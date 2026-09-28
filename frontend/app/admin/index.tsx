@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -71,6 +72,7 @@ export default function Dashboard() {
   const [ouverte, setOuverte] = useState<any>(null);
   const [filtreStatut, setFiltreStatut] = useState("tous");
   const [recherche, setRecherche] = useState("");
+  const [confirmerArchivageMultiple, setConfirmerArchivageMultiple] = useState(false);
 
   const commandesQ = useQuery({
     queryKey: ["admin-commandes"],
@@ -155,6 +157,22 @@ export default function Dashboard() {
       return okStatut && okTexte;
     });
   }, [commandesQ.data, filtreStatut, recherche]);
+  const archivables = commandes.filter((c: any) => ["livree", "annulee"].includes(c.statut));
+  const selection = useListeSelection(archivables.map((c: any) => c.id));
+
+  const archiverSelection = async () => {
+    try {
+      const count = selection.selectedIds.length;
+      await apiFetch("/admin/commandes/bulk/archive", { method: "POST", body: { ids: selection.selectedIds } });
+      selection.clear();
+      setConfirmerArchivageMultiple(false);
+      rafraichir();
+      qc.invalidateQueries({ queryKey: ["admin-archives"] });
+      toast.show(`${count} commande(s) archivée(s)`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
 
   return (
     <View testID="ecran-admin-dashboard" style={styles.ecran}>
@@ -280,6 +298,9 @@ export default function Dashboard() {
                 <Text style={styles.compteur}>
                   {t(commandes.length === 1 ? "admin.uneCommande" : "admin.plusieursCommandes", { n: commandes.length })}
                 </Text>
+                {archivables.length > 0 ? (
+                  <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={archivables.length} />
+                ) : null}
               </View>
 
               {bureau ? (
@@ -307,6 +328,13 @@ export default function Dashboard() {
                 onPress={() => setOuverte(item)}
                 style={({ pressed }) => [styles.ligneTable, pressed && { backgroundColor: colors.brandTertiary }]}
               >
+                {archivables.some((c: any) => c.id === item.id) ? (
+                  <ToggleSelection
+                    checked={selection.selectedIds.includes(item.id)}
+                    onToggle={() => selection.toggle(item.id)}
+                    testID={`selection-commande-${item.numero}`}
+                  />
+                ) : null}
                 <Text style={[styles.cellule, styles.colNumero, styles.celluleForte]}>{item.numero}</Text>
                 <View style={styles.colClient}>
                   <Text style={styles.celluleForte} numberOfLines={1}>
@@ -371,6 +399,13 @@ export default function Dashboard() {
               onPress={() => setOuverte(item)}
               style={({ pressed }) => [styles.carte, pressed && { backgroundColor: colors.brandTertiary }]}
             >
+              {archivables.some((c: any) => c.id === item.id) ? (
+                <ToggleSelection
+                  checked={selection.selectedIds.includes(item.id)}
+                  onToggle={() => selection.toggle(item.id)}
+                  testID={`selection-commande-${item.numero}`}
+                />
+              ) : null}
               <View style={styles.carteHaut}>
                 <Text style={styles.numero}>{item.numero}</Text>
                 <View
@@ -513,6 +548,22 @@ export default function Dashboard() {
           </View>
         </View>
       </Modal>
+      <SelectionBar
+        selectedCount={selection.selectedIds.length}
+        onClear={selection.clear}
+        deleteLabel="Archiver"
+        onDelete={() => setConfirmerArchivageMultiple(true)}
+        bottomOffset={insets.bottom + spacing.lg}
+      />
+      <BulkDeleteDialog
+        visible={confirmerArchivageMultiple}
+        count={selection.selectedIds.length}
+        title={`Archiver ${selection.selectedIds.length} commande${selection.selectedIds.length > 1 ? "s" : ""} ?`}
+        confirmLabel="Archiver les commandes"
+        description="Seules les commandes terminées sont archivées et restent consultables dans les rapports."
+        onCancel={() => setConfirmerArchivageMultiple(false)}
+        onConfirm={archiverSelection}
+      />
     </View>
   );
 }

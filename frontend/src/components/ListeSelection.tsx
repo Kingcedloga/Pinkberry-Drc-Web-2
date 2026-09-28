@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
@@ -9,37 +9,47 @@ export function SelectionBar({
   onClear,
   onDelete,
   deleteLabel,
-  allSelected,
-  onToggleAll,
-  totalCount,
+  bottomOffset,
 }: {
   selectedCount: number;
   onClear: () => void;
   onDelete: () => void;
   deleteLabel?: string;
-  allSelected?: boolean;
-  onToggleAll?: () => void;
-  totalCount?: number;
+  bottomOffset?: number;
 }) {
   if (selectedCount === 0) return null;
 
   return (
-    <View style={styles.barre}>
+    <View style={[styles.barre, { bottom: bottomOffset ?? spacing.lg }]}>
       <Pressable onPress={onClear} style={styles.clearButton}>
         <Text style={styles.clearText}>Annuler</Text>
       </Pressable>
 
-      <Pressable onPress={onToggleAll} style={styles.selectAll}>
-        <Text style={styles.selectAllText}>{allSelected ? "Tout désélectionner" : "Tout sélectionner"}</Text>
-      </Pressable>
-
       <View style={styles.compteurWrap}>
         <Text style={styles.compteur}>{selectedCount} sélectionné{selectedCount > 1 ? "s" : ""}</Text>
-        {typeof totalCount === "number" ? <Text style={styles.total}>{totalCount} au total</Text> : null}
       </View>
 
       <Pressable onPress={onDelete} style={styles.deleteButton}>
         <Text style={styles.deleteText}>{deleteLabel ?? "Supprimer"}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+export function SelectionHeader({
+  checked,
+  onToggle,
+  count,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  count: number;
+}) {
+  return (
+    <View style={styles.selectionHeader}>
+      <ToggleSelection checked={checked} onToggle={onToggle} />
+      <Pressable onPress={onToggle} accessibilityRole="button">
+        <Text style={styles.selectAllText}>Tout sélectionner ({count})</Text>
       </Pressable>
     </View>
   );
@@ -52,6 +62,7 @@ export function BulkDeleteDialog({
   onConfirm,
   title,
   confirmLabel,
+  description,
 }: {
   visible: boolean;
   count: number;
@@ -59,6 +70,7 @@ export function BulkDeleteDialog({
   onConfirm: () => void;
   title?: string;
   confirmLabel?: string;
+  description?: string;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -66,7 +78,7 @@ export function BulkDeleteDialog({
         <View style={styles.boite}>
           <Icone name="alert-circle" size={30} color={colors.error} />
           <Text style={styles.boiteTitre}>{title ?? `Supprimer ${count} élément${count > 1 ? "s" : ""} ?`}</Text>
-          <Text style={styles.boiteTexte}>Action définitive. Cette opération respecte les règles métier déjà appliquées.</Text>
+          <Text style={styles.boiteTexte}>{description ?? "Action définitive. Cette opération respecte les règles métier déjà appliquées."}</Text>
           <Pressable onPress={onConfirm} style={styles.confirmButton}>
             <Text style={styles.confirmText}>{confirmLabel ?? `Supprimer ${count} élément${count > 1 ? "s" : ""}`}</Text>
           </Pressable>
@@ -91,13 +103,45 @@ export function ToggleSelection({
   return (
     <Pressable
       testID={testID}
-      onPress={onToggle}
+      onPress={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
       style={[styles.checkBox, checked && styles.checkBoxSelected]}
       hitSlop={8}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      accessibilityLabel={checked ? "Désélectionner" : "Sélectionner"}
     >
       {checked ? <Icone name="check" size={14} color={colors.onBrandPrimary} /> : null}
     </Pressable>
   );
+}
+
+export function useListeSelection(ids: string[]) {
+  const [selection, setSelection] = useState<Set<string>>(() => new Set());
+  const selectedIds = ids.filter((id) => selection.has(id));
+  const allSelected = ids.length > 0 && selectedIds.length === ids.length;
+
+  const toggle = (id: string) => {
+    setSelection((courante) => {
+      const suivante = new Set(courante);
+      if (suivante.has(id)) suivante.delete(id);
+      else suivante.add(id);
+      return suivante;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelection((courante) => {
+      if (ids.length > 0 && ids.every((id) => courante.has(id))) return new Set();
+      return new Set(ids);
+    });
+  };
+
+  const clear = () => setSelection(new Set());
+
+  return { selectedIds, allSelected, toggle, toggleAll, clear };
 }
 
 const styles = stylesDynamiques(() => StyleSheet.create({
@@ -118,7 +162,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   clearButton: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   clearText: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, fontWeight: "700" },
-  selectAll: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  selectionHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, minHeight: 40, alignSelf: "flex-start" },
   selectAllText: { fontFamily: fonts.text, fontSize: 12, color: colors.brandPrimary, fontWeight: "700" },
   compteurWrap: { flex: 1 },
   compteur: { fontFamily: fonts.display, fontSize: 15, color: colors.onSurface, fontWeight: "700" },

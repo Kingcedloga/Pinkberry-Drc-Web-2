@@ -12,6 +12,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Garde } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
+import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { TitrePage } from "@/src/components/TitrePage";
 import { useLangue } from "@/src/i18n";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
@@ -47,6 +48,8 @@ export default function Personnel() {
     queryFn: () => apiFetch<Compte[]>("/superadmin/comptes"),
     enabled: estSuper,
   });
+  const selection = useListeSelection((q.data ?? []).map((compte) => compte.id));
+  const [confirmerSuppressionMultiple, setConfirmerSuppressionMultiple] = useState(false);
 
   const [ouvert, setOuvert] = useState(false);
   const [type, setType] = useState<"admin" | "livreur">("admin");
@@ -121,6 +124,20 @@ export default function Personnel() {
     }
   };
 
+  const supprimerSelection = async () => {
+    try {
+      const count = selection.selectedIds.length;
+      await apiFetch("/superadmin/comptes/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
+      selection.clear();
+      setConfirmerSuppressionMultiple(false);
+      await qc.invalidateQueries({ queryKey: ["superadmin-comptes"] });
+      await qc.invalidateQueries({ queryKey: ["admin-livreurs"] });
+      toast.show(`${count} compte(s) supprimé(s)`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
   return (
     <Garde roles={["superadmin"]}>
     <View testID="ecran-personnel" style={styles.ecran}>
@@ -158,11 +175,17 @@ export default function Personnel() {
               <Text style={styles.refus}>{t("admin.aucunComptePersonnel")}</Text>
             </View>
           }
+          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={(q.data ?? []).length} />}
           renderItem={({ item }: any) =>
             item.vide ? (
               <View style={styles.carteGrille} />
             ) : (
             <View testID={`compte-${item.nom}`} style={[styles.carte, cols > 1 && styles.carteGrille]}>
+              <ToggleSelection
+                checked={selection.selectedIds.includes(item.id)}
+                onToggle={() => selection.toggle(item.id)}
+                testID={`selection-compte-${item.nom}`}
+              />
               <View style={styles.hautCarte}>
                 <View style={[styles.badge, item.role === "admin" ? styles.badgeAdmin : styles.badgeLivreur]}>
                   <Icone
@@ -273,6 +296,13 @@ export default function Personnel() {
           </View>
         </View>
       </Modal>
+      <SelectionBar selectedCount={selection.selectedIds.length} onClear={selection.clear} onDelete={() => setConfirmerSuppressionMultiple(true)} />
+      <BulkDeleteDialog
+        visible={confirmerSuppressionMultiple}
+        count={selection.selectedIds.length}
+        onCancel={() => setConfirmerSuppressionMultiple(false)}
+        onConfirm={supprimerSelection}
+      />
     </View>
     </Garde>
   );

@@ -9,6 +9,7 @@ import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
+import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useLangue } from "@/src/i18n";
 import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
@@ -25,6 +26,8 @@ export default function Zones() {
   const { t } = useLangue();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["zones"], queryFn: () => apiFetch<any[]>("/zones") });
+  const selection = useListeSelection((q.data ?? []).map((zone) => zone.id));
+  const [confirmerSuppressionMultiple, setConfirmerSuppressionMultiple] = useState(false);
 
   const [ouvert, setOuvert] = useState(false);
   const [commune, setCommune] = useState("");
@@ -74,6 +77,19 @@ export default function Zones() {
     }
   };
 
+  const supprimerSelection = async () => {
+    try {
+      await apiFetch("/admin/zones/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
+      const count = selection.selectedIds.length;
+      selection.clear();
+      setConfirmerSuppressionMultiple(false);
+      await rafraichir();
+      toast.show(`${count} zone(s) supprimée(s)`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
   return (
     <View testID="ecran-admin-zones" style={styles.ecran}>
       <View style={styles.enteteWeb}>
@@ -109,11 +125,19 @@ export default function Zones() {
               <Text style={styles.sous}>{t("admin.aucuneZone")}</Text>
             </View>
           }
+          ListHeaderComponent={
+            <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={(q.data ?? []).length} />
+          }
           renderItem={({ item }: any) =>
             item.vide ? (
               <View style={styles.carteGrille} />
             ) : (
             <View testID={`zone-${item.commune}`} style={[styles.carte, cols > 1 && styles.carteGrille]}>
+              <ToggleSelection
+                checked={selection.selectedIds.includes(item.id)}
+                onToggle={() => selection.toggle(item.id)}
+                testID={`selection-zone-${item.commune}`}
+              />
               <View style={styles.texte}>
                 <Text style={styles.nom}>{item.commune}</Text>
                 <Text style={[styles.etat, { color: item.active ? colors.success : colors.muted }]}>
@@ -195,6 +219,13 @@ export default function Zones() {
           </View>
         </View>
       </Modal>
+      <SelectionBar selectedCount={selection.selectedIds.length} onClear={selection.clear} onDelete={() => setConfirmerSuppressionMultiple(true)} />
+      <BulkDeleteDialog
+        visible={confirmerSuppressionMultiple}
+        count={selection.selectedIds.length}
+        onCancel={() => setConfirmerSuppressionMultiple(false)}
+        onConfirm={supprimerSelection}
+      />
     </View>
   );
 }

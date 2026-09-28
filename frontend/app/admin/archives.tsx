@@ -8,6 +8,7 @@ import { apiFetch } from "@/src/api";
 import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
+import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useLangue } from "@/src/i18n";
 import { usd } from "@/src/money";
 import { LARGEUR_LARGE } from "@/src/reactif";
@@ -23,11 +24,13 @@ export default function Archives() {
   const { langue, t } = useLangue();
   const qc = useQueryClient();
   const [aSupprimer, setASupprimer] = useState<any>(null);
+  const [confirmerSuppressionMultiple, setConfirmerSuppressionMultiple] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin-archives"],
     queryFn: () => apiFetch<any[]>("/admin/commandes/archives"),
   });
+  const selection = useListeSelection((q.data ?? []).map((cmd) => cmd.id));
 
   const rafraichir = () => {
     qc.invalidateQueries({ queryKey: ["admin-archives"] });
@@ -50,6 +53,19 @@ export default function Archives() {
       setASupprimer(null);
       rafraichir();
       toast.show(t("archives.supprimee"), "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
+  const supprimerSelection = async () => {
+    try {
+      const count = selection.selectedIds.length;
+      await apiFetch("/admin/commandes/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
+      selection.clear();
+      setConfirmerSuppressionMultiple(false);
+      rafraichir();
+      toast.show(`${count} commande(s) supprimée(s)`, "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -79,6 +95,7 @@ export default function Archives() {
           contentContainerStyle={[styles.liste, { paddingBottom: insets.bottom + spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
+          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={(q.data ?? []).length} />}
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="package" size={40} color={colors.brandTertiary} />
@@ -87,6 +104,11 @@ export default function Archives() {
           }
           renderItem={({ item }) => (
             <View testID={`archive-${item.numero}`} style={styles.carte}>
+              <ToggleSelection
+                checked={selection.selectedIds.includes(item.id)}
+                onToggle={() => selection.toggle(item.id)}
+                testID={`selection-archive-${item.numero}`}
+              />
               <View style={styles.carteHaut}>
                 <Text style={styles.numero}>{item.numero}</Text>
                 <View
@@ -148,6 +170,13 @@ export default function Archives() {
           </View>
         </View>
       </Modal>
+      <SelectionBar selectedCount={selection.selectedIds.length} onClear={selection.clear} onDelete={() => setConfirmerSuppressionMultiple(true)} bottomOffset={insets.bottom + spacing.lg} />
+      <BulkDeleteDialog
+        visible={confirmerSuppressionMultiple}
+        count={selection.selectedIds.length}
+        onCancel={() => setConfirmerSuppressionMultiple(false)}
+        onConfirm={supprimerSelection}
+      />
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
@@ -32,6 +33,8 @@ export default function Livreurs() {
     queryFn: () => apiFetch<any[]>("/admin/livreurs"),
     refetchInterval: 10000,
   });
+  const selection = useListeSelection((q.data ?? []).map((livreur) => livreur.id));
+  const [confirmerSuppressionMultiple, setConfirmerSuppressionMultiple] = useState(false);
 
   const [ouvert, setOuvert] = useState(false);
   const [nom, setNom] = useState("");
@@ -73,6 +76,20 @@ export default function Livreurs() {
     }
   };
 
+  const supprimerSelection = async () => {
+    try {
+      const count = selection.selectedIds.length;
+      await apiFetch("/admin/livreurs/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
+      selection.clear();
+      setConfirmerSuppressionMultiple(false);
+      await qc.invalidateQueries({ queryKey: ["admin-livreurs"] });
+      await qc.invalidateQueries({ queryKey: ["superadmin-comptes"] });
+      toast.show(`${count} livreur(s) supprimé(s)`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
   return (
     <View testID="ecran-admin-livreurs" style={styles.ecran}>
       <View style={styles.enteteWeb}>
@@ -105,11 +122,19 @@ export default function Livreurs() {
           columnWrapperStyle={cols > 1 ? styles.rangeeGrille : undefined}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
+          ListHeaderComponent={estSuper ? <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={(q.data ?? []).length} /> : null}
           renderItem={({ item }: any) =>
             item.vide ? (
               <View style={styles.carteGrille} />
             ) : (
             <View testID={`livreur-${item.nom}`} style={[styles.carte, cols > 1 && styles.carteGrille]}>
+              {estSuper ? (
+                <ToggleSelection
+                  checked={selection.selectedIds.includes(item.id)}
+                  onToggle={() => selection.toggle(item.id)}
+                  testID={`selection-livreur-${item.nom}`}
+                />
+              ) : null}
               <View style={styles.avatar}>
                 <Text style={styles.initiale}>{item.nom.charAt(0)}</Text>
               </View>
@@ -156,6 +181,17 @@ export default function Livreurs() {
           </View>
         </View>
       </Modal>
+      {estSuper ? (
+        <>
+          <SelectionBar selectedCount={selection.selectedIds.length} onClear={selection.clear} onDelete={() => setConfirmerSuppressionMultiple(true)} />
+          <BulkDeleteDialog
+            visible={confirmerSuppressionMultiple}
+            count={selection.selectedIds.length}
+            onCancel={() => setConfirmerSuppressionMultiple(false)}
+            onConfirm={supprimerSelection}
+          />
+        </>
+      ) : null}
     </View>
   );
 }

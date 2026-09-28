@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { ListeOptions, type Option } from "@/src/components/ListeOptions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
@@ -79,6 +80,8 @@ export default function Catalogue() {
         !texte || p.nom.toLowerCase().includes(texte) || String(p.categorie ?? "").toLowerCase().includes(texte),
     );
   }, [q.data, recherche]);
+  const selection = useListeSelection(produits.map((p: any) => p.id));
+  const [confirmerSuppressionMultiple, setConfirmerSuppressionMultiple] = useState(false);
   const [nouvelleCat, setNouvelleCat] = useState("");
   const [catASupprimer, setCatASupprimer] = useState<{ id: string; nom: string; nbProduits: number } | null>(null);
 
@@ -284,6 +287,18 @@ export default function Catalogue() {
     }
   };
 
+  const supprimerSelection = async () => {
+    try {
+      await apiFetch("/admin/produits/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
+      selection.clear();
+      setConfirmerSuppressionMultiple(false);
+      await qc.invalidateQueries({ queryKey: ["produits"] });
+      toast.show(`${selection.selectedIds.length} produit(s) supprimé(s)`, "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
   return (
     <View testID="ecran-admin-catalogue" style={styles.ecran}>
       <View style={styles.enteteWeb}>
@@ -337,6 +352,11 @@ export default function Catalogue() {
           onRefresh={() => q.refetch()}
           ListHeaderComponent={
             <View style={styles.outils}>
+              <SelectionHeader
+                checked={selection.allSelected}
+                onToggle={selection.toggleAll}
+                count={produits.length}
+              />
               <View style={styles.rechercheWrap}>
                 <Icone name="search" size={16} color={colors.muted} />
                 <TextInput
@@ -365,6 +385,11 @@ export default function Catalogue() {
           renderItem={({ item }) =>
             bureau ? (
               <View testID={`admin-produit-${item.nom}`} style={styles.ligneTable}>
+                <ToggleSelection
+                  checked={selection.selectedIds.includes(item.id)}
+                  onToggle={() => selection.toggle(item.id)}
+                  testID={`selection-produit-${item.nom}`}
+                />
                 <View style={[styles.colProduit, styles.cellProduit]}>
                   <PhotoProduit image={item.image} taille={44} rayon={radius.md} />
                   <Text style={styles.nom} numberOfLines={1}>
@@ -392,6 +417,11 @@ export default function Catalogue() {
               </View>
             ) : (
               <View testID={`admin-produit-${item.nom}`} style={styles.carte}>
+                <ToggleSelection
+                  checked={selection.selectedIds.includes(item.id)}
+                  onToggle={() => selection.toggle(item.id)}
+                  testID={`selection-produit-${item.nom}`}
+                />
                 <PhotoProduit image={item.image} taille={56} rayon={radius.md} />
                 <View style={styles.texte}>
                   <Text style={styles.nom}>{item.nom}</Text>
@@ -613,6 +643,17 @@ export default function Catalogue() {
           </View>
         </View>
       </Modal>
+      <SelectionBar
+        selectedCount={selection.selectedIds.length}
+        onClear={selection.clear}
+        onDelete={() => setConfirmerSuppressionMultiple(true)}
+      />
+      <BulkDeleteDialog
+        visible={confirmerSuppressionMultiple}
+        count={selection.selectedIds.length}
+        onCancel={() => setConfirmerSuppressionMultiple(false)}
+        onConfirm={supprimerSelection}
+      />
     </View>
   );
 }

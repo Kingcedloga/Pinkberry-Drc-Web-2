@@ -8,6 +8,7 @@ import { apiFetch } from "@/src/api";
 import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
+import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { usd } from "@/src/money";
 import { useLangue, type CleTexte } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
@@ -23,11 +24,13 @@ export default function ArchivesLivreur() {
   const { t } = useLangue();
   const qc = useQueryClient();
   const [aSupprimer, setASupprimer] = useState<any | null>(null);
+  const [confirmerSuppressionMultiple, setConfirmerSuppressionMultiple] = useState(false);
 
   const q = useQuery({
     queryKey: ["livreur-archives"],
     queryFn: () => apiFetch<any[]>("/livreur/courses/archives"),
   });
+  const selection = useListeSelection((q.data ?? []).map((course) => course.id));
 
   const rafraichir = () => {
     qc.invalidateQueries({ queryKey: ["livreur-archives"] });
@@ -51,6 +54,19 @@ export default function ArchivesLivreur() {
       setASupprimer(null);
       rafraichir();
       toast.show(t("livreur.courseSupprimee"), "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
+  const supprimerSelection = async () => {
+    try {
+      const count = selection.selectedIds.length;
+      await apiFetch("/livreur/courses/bulk/hide", { method: "DELETE", body: { ids: selection.selectedIds } });
+      selection.clear();
+      setConfirmerSuppressionMultiple(false);
+      rafraichir();
+      toast.show(`${count} course(s) retirée(s) des archives`, "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -80,6 +96,7 @@ export default function ArchivesLivreur() {
           contentContainerStyle={[styles.liste, { paddingBottom: insets.bottom + spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
+          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={(q.data ?? []).length} />}
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="archive" size={42} color={colors.brandTertiary} />
@@ -88,6 +105,11 @@ export default function ArchivesLivreur() {
           }
           renderItem={({ item }) => (
             <View testID={`archive-course-${item.numero}`} style={styles.carte}>
+              <ToggleSelection
+                checked={selection.selectedIds.includes(item.id)}
+                onToggle={() => selection.toggle(item.id)}
+                testID={`selection-archive-course-${item.numero}`}
+              />
               <View style={styles.carteHaut}>
                 <Text style={styles.numero}>{item.numero}</Text>
                 <Text style={styles.montant}>{usd(item.total)}</Text>
@@ -143,6 +165,14 @@ export default function ArchivesLivreur() {
           </View>
         </View>
       </Modal>
+      <SelectionBar selectedCount={selection.selectedIds.length} onClear={selection.clear} onDelete={() => setConfirmerSuppressionMultiple(true)} bottomOffset={insets.bottom + spacing.lg} />
+      <BulkDeleteDialog
+        visible={confirmerSuppressionMultiple}
+        count={selection.selectedIds.length}
+        description="Les courses seront masquées uniquement de votre historique. Elles resteront conservées côté boutique pour les rapports."
+        onCancel={() => setConfirmerSuppressionMultiple(false)}
+        onConfirm={supprimerSelection}
+      />
     </View>
   );
 }
