@@ -10,6 +10,7 @@ import { Champ } from "@/src/components/Champ";
 import { Garde, TOUS_ROLES } from "@/src/components/Garde";
 import { Icone } from "@/src/components/Icone";
 import { Logo } from "@/src/components/Logo";
+import { useLangue } from "@/src/i18n";
 import { CLE_TEL_REPORTE } from "@/src/prefs";
 import { LARGEUR_ETROITE } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
@@ -23,20 +24,21 @@ export default function DemandeTelephone() {
   const router = useRouter();
   const toast = useToast();
   const { user, enregistrerTelephone } = useAuth();
+  const { t } = useLangue();
 
   const [telephone, setTelephone] = useState("");
   const [loading, setLoading] = useState(false);
 
   const valider = async () => {
     if (telephone.trim().length < 9) {
-      toast.show("Entrez un numéro valide (9 chiffres minimum)", "erreur");
+      toast.show(t("auth.telephoneRequis"), "erreur");
       return;
     }
     setLoading(true);
     try {
       await enregistrerTelephone(telephone);
       await storage.removeItem(CLE_TEL_REPORTE);
-      toast.show("Numéro enregistré", "succes");
+      toast.show(t("auth.numeroEnregistre"), "succes");
       router.replace("/menu");
     } catch (e: any) {
       toast.show(e.message, "erreur");
@@ -61,19 +63,16 @@ export default function DemandeTelephone() {
         ]}
       >
         <Logo taille={26} />
-        <Text style={styles.titre}>Bienvenue {user?.nom?.split(" ")[0]} !</Text>
-        <Text style={styles.sous}>
-          Un numéro de téléphone est nécessaire pour que le livreur puisse vous joindre. On ne vous le
-          demandera qu&apos;une seule fois.
-        </Text>
+        <Text style={styles.titre}>{t("auth.bonjour", { nom: user?.nom?.split(" ")[0] ?? "" })}</Text>
+        <Text style={styles.sous}>{t("auth.paragrapheTelephone")}</Text>
 
         <View style={styles.info}>
           <Icone name="phone" size={16} color={colors.brandPrimary} />
-          <Text style={styles.infoTexte}>Utilisé uniquement pour vos livraisons</Text>
+          <Text style={styles.infoTexte}>{t("auth.telephoneInfo")}</Text>
         </View>
 
         <Champ
-          label="Téléphone"
+          label={t("auth.telephone")}
           testID="input-telephone-compte"
           value={telephone}
           onChangeText={setTelephone}
@@ -81,10 +80,10 @@ export default function DemandeTelephone() {
           keyboardType="phone-pad"
         />
 
-        <Bouton testID="btn-valider-telephone" label="Enregistrer" loading={loading} onPress={valider} />
+        <Bouton testID="btn-valider-telephone" label={t("commun.enregistrer")} loading={loading} onPress={valider} />
 
         <Pressable testID="btn-telephone-plus-tard" onPress={plusTard} style={styles.lien}>
-          <Text style={styles.lienTexte}>Plus tard</Text>
+          <Text style={styles.lienTexte}>{t("auth.plusTard")}</Text>
         </Pressable>
       </KeyboardAwareScrollView>
     </View>

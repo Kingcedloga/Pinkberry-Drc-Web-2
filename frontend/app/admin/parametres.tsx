@@ -80,7 +80,7 @@ export default function Parametres() {
         method: "PUT",
         body: { nom, email: email.trim() || undefined, telephone },
       });
-      toast.show("Profil mis à jour", "succes");
+      toast.show(t("params.profilOk"), "succes");
       setVue("menu");
     } catch (e: any) {
       toast.show(e.message, "erreur");
@@ -89,16 +89,16 @@ export default function Parametres() {
 
   const enregistrerMotDePasse = async () => {
     if (nouveau.length < 6) {
-      toast.show("Mot de passe : 6 caractères minimum", "erreur");
+      toast.show(t("params.mdpCourt"), "erreur");
       return;
     }
     if (nouveau !== confirme) {
-      toast.show("Les deux mots de passe ne correspondent pas", "erreur");
+      toast.show(t("params.mdpDifferent"), "erreur");
       return;
     }
     try {
       await apiFetch("/auth/motdepasse", { method: "PUT", body: { actuel, nouveau } });
-      toast.show("Mot de passe modifié", "succes");
+      toast.show(t("params.mdpOk"), "succes");
       setActuel("");
       setNouveau("");
       setConfirme("");
@@ -134,9 +134,9 @@ export default function Parametres() {
         {vue === "profil" ? (
           <View style={styles.carte}>
             <View style={styles.formulaire}>
-              <Champ label="Nom" testID="input-profil-nom" value={nom} onChangeText={setNom} />
+              <Champ label={t("params.nom")} testID="input-profil-nom" value={nom} onChangeText={setNom} />
               <Champ
-                label="Email"
+                label={t("params.email")}
                 testID="input-profil-email"
                 value={email}
                 onChangeText={setEmail}
@@ -144,20 +144,20 @@ export default function Parametres() {
                 autoCapitalize="none"
               />
               <Champ
-                label="Téléphone"
+                label={t("params.telephone")}
                 testID="input-profil-telephone"
                 value={telephone}
                 onChangeText={setTelephone}
                 keyboardType="phone-pad"
               />
-              <Bouton testID="btn-enregistrer-profil" label="Enregistrer" onPress={enregistrerProfil} />
+              <Bouton testID="btn-enregistrer-profil" label={t("commun.enregistrer")} onPress={enregistrerProfil} />
             </View>
           </View>
         ) : vue === "motdepasse" ? (
           <View style={styles.carte}>
             <View style={styles.formulaire}>
               <Champ
-                label="Mot de passe actuel"
+                label={t("params.mdpActuel")}
                 testID="input-mdp-actuel"
                 value={actuel}
                 onChangeText={setActuel}
@@ -165,7 +165,7 @@ export default function Parametres() {
                 autoCapitalize="none"
               />
               <Champ
-                label="Nouveau mot de passe"
+                label={t("params.mdpNouveau")}
                 testID="input-mdp-nouveau"
                 value={nouveau}
                 onChangeText={setNouveau}
@@ -173,14 +173,14 @@ export default function Parametres() {
                 autoCapitalize="none"
               />
               <Champ
-                label="Confirmer le nouveau mot de passe"
+                label={t("params.mdpConfirme")}
                 testID="input-mdp-confirme"
                 value={confirme}
                 onChangeText={setConfirme}
                 secureTextEntry
                 autoCapitalize="none"
               />
-              <Bouton testID="btn-enregistrer-mdp" label="Modifier le mot de passe" onPress={enregistrerMotDePasse} />
+              <Bouton testID="btn-enregistrer-mdp" label={t("params.mdpValider")} onPress={enregistrerMotDePasse} />
             </View>
           </View>
         ) : (

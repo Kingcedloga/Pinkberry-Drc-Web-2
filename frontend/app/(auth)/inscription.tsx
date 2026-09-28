@@ -30,13 +30,13 @@ export default function Inscription() {
 
   const valider = async () => {
     if (!nom.trim() || telephone.trim().length < 9 || !email.trim() || motDePasse.length < 6) {
-      toast.show("Nom, téléphone, email et mot de passe (6 caractères) requis", "erreur");
+      toast.show(t("auth.infosRequises"), "erreur");
       return;
     }
     setLoading(true);
     try {
       const r = await inscription({ nom, telephone, email: email || undefined, motDePasse });
-      toast.show(r.emailEnvoye ? "Code envoyé par email" : "Code généré", r.emailEnvoye ? "succes" : "info");
+      toast.show(r.emailEnvoye ? t("auth.codeEnvoye") : t("auth.codeGenere"), r.emailEnvoye ? "succes" : "info");
       router.push({ pathname: "/otp", params: { telephone, email, codeDemo: r.codeDemo, emailEnvoye: r.emailEnvoye ? "1" : "0" } });
     } catch (e: any) {
       toast.show(e.message, "erreur");
@@ -51,13 +51,13 @@ export default function Inscription() {
         <EnteteMarque taille={30} />
 
         <View style={styles.titres}>
-          <Text style={styles.titre}>Créer mon compte</Text>
-          <Text style={styles.sous}>Votre code de vérification sera envoyé par email.</Text>
+          <Text style={styles.titre}>{t("auth.inscriptionTitre")}</Text>
+          <Text style={styles.sous}>{t("auth.inscriptionSousTitre")}</Text>
         </View>
 
         <View style={styles.form}>
           <Champ
-            label="Nom complet"
+            label={t("auth.nomComplet")}
             testID="input-nom"
             value={nom}
             onChangeText={setNom}
@@ -65,7 +65,7 @@ export default function Inscription() {
             autoCapitalize="words"
           />
           <Champ
-            label="Téléphone"
+            label={t("auth.telephone")}
             testID="input-telephone"
             value={telephone}
             onChangeText={setTelephone}
@@ -73,7 +73,7 @@ export default function Inscription() {
             keyboardType="phone-pad"
           />
           <Champ
-            label="Email"
+            label={t("params.email")}
             testID="input-email"
             value={email}
             onChangeText={setEmail}
@@ -82,16 +82,16 @@ export default function Inscription() {
             autoCapitalize="none"
           />
           <Champ
-            label="Mot de passe"
+            label={t("auth.motDePasse")}
             testID="input-motdepasse"
             value={motDePasse}
             onChangeText={setMotDePasse}
-            placeholder="6 caractères minimum"
+            placeholder={t("params.mdpCourt")}
             secureTextEntry
           />
         </View>
 
-        <Bouton testID="btn-valider-inscription" label="Créer mon compte" loading={loading} onPress={valider} />
+        <Bouton testID="btn-valider-inscription" label={t("auth.inscriptionTitre")} loading={loading} onPress={valider} />
 
         <View style={styles.acceptation}>
           <Text style={styles.acceptationTexte}>{t("inscription.acceptation")} </Text>
@@ -107,25 +107,25 @@ export default function Inscription() {
 
         <View style={styles.separateurRow}>
           <View style={styles.trait} />
-          <Text style={styles.ou}>ou</Text>
+          <Text style={styles.ou}>{t("auth.ou")}</Text>
           <View style={styles.trait} />
         </View>
 
         <BoutonGoogle
           testID="btn-google-inscription"
-          label="S'inscrire avec Google"
+          label={t("auth.googleInscription")}
           onPress={async () => {
             try {
               await connexionGoogle();
               router.replace("/");
             } catch (e: any) {
-              toast.show(e.message ?? "Connexion Google impossible", "erreur");
+              toast.show(e.message ?? t("auth.googleImpossible"), "erreur");
             }
           }}
         />
 
         <Pressable testID="lien-connexion" onPress={() => router.replace("/connexion")} style={styles.lien}>
-          <Text style={styles.lienTexte}>J&apos;ai déjà un compte</Text>
+          <Text style={styles.lienTexte}>{t("auth.compteExistant")}</Text>
         </Pressable>
       </KeyboardAwareScrollView>
 

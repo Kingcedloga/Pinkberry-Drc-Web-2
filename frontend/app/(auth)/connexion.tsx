@@ -11,6 +11,7 @@ import { Champ } from "@/src/components/Champ";
 import { CarteAuth, EnteteMarque } from "@/src/components/DecorAuth";
 import { LARGEUR_ETROITE } from "@/src/reactif";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
+import { useLangue } from "@/src/i18n";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
@@ -18,6 +19,7 @@ export default function Connexion() {
   useTheme();
   const router = useRouter();
   const { connexion, connexionGoogle } = useAuth();
+  const { t } = useLangue();
   const toast = useToast();
 
   const [telephone, setTelephone] = useState("");
@@ -28,7 +30,7 @@ export default function Connexion() {
     setLoading(true);
     try {
       const u = await connexion(telephone, motDePasse);
-      toast.show(`Bonjour ${u.nom} !`, "succes");
+      toast.show(t("auth.bonjour", { nom: u.nom }), "succes");
       router.replace(
         u.role === "admin" || u.role === "superadmin"
           ? "/admin"
@@ -49,13 +51,13 @@ export default function Connexion() {
         <EnteteMarque taille={30} />
 
         <View style={styles.titres}>
-          <Text style={styles.titre}>Connexion</Text>
-          <Text style={styles.sous}>Téléphone et mot de passe</Text>
+          <Text style={styles.titre}>{t("auth.titreConnexion")}</Text>
+          <Text style={styles.sous}>{t("auth.sousTitreConnexion")}</Text>
         </View>
 
         <View style={styles.form}>
           <Champ
-            label="Téléphone"
+            label={t("auth.telephone")}
             testID="input-connexion-telephone"
             value={telephone}
             onChangeText={setTelephone}
@@ -63,7 +65,7 @@ export default function Connexion() {
             keyboardType="phone-pad"
           />
           <Champ
-            label="Mot de passe"
+            label={t("auth.motDePasse")}
             testID="input-connexion-motdepasse"
             value={motDePasse}
             onChangeText={setMotDePasse}
@@ -72,11 +74,11 @@ export default function Connexion() {
           />
         </View>
 
-        <Bouton testID="btn-valider-connexion" label="Se connecter" loading={loading} onPress={valider} />
+        <Bouton testID="btn-valider-connexion" label={t("auth.seConnecter")} loading={loading} onPress={valider} />
 
         <View style={styles.separateurRow}>
           <View style={styles.trait} />
-          <Text style={styles.ou}>ou</Text>
+          <Text style={styles.ou}>{t("auth.ou")}</Text>
           <View style={styles.trait} />
         </View>
 
@@ -87,13 +89,14 @@ export default function Connexion() {
               await connexionGoogle();
               router.replace("/");
             } catch (e: any) {
-              toast.show(e.message ?? "Connexion Google impossible", "erreur");
+              toast.show(e.message ?? t("auth.googleImpossible"), "erreur");
             }
           }}
+          label={t("auth.googleConnexion")}
         />
 
         <Pressable testID="lien-inscription" onPress={() => router.replace("/inscription")} style={styles.lien}>
-          <Text style={styles.lienTexte}>Créer un compte</Text>
+          <Text style={styles.lienTexte}>{t("auth.creerCompte")}</Text>
         </Pressable>
       </KeyboardAwareScrollView>
 
