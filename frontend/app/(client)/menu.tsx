@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { apiFetch } from "@/src/api";
-import { useAuth } from "@/src/auth";
 import { BanniereRecommandes } from "@/src/components/BanniereRecommandes";
 import { Chargement } from "@/src/components/Chargement";
 import { Chips } from "@/src/components/Chips";
@@ -26,7 +25,6 @@ const LARGEUR_PAGE = 1360;
 export default function Menu() {
   useTheme();
   const router = useRouter();
-  const { user } = useAuth();
   const toast = useToast();
   const t = useT();
   const { usd, fc } = useMontant();
@@ -41,15 +39,9 @@ export default function Menu() {
 
   const produitsQ = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<Produit[]>("/produits") });
   const categoriesQ = useQuery({ queryKey: ["categories"], queryFn: () => apiFetch<string[]>("/categories") });
-  const commandesQ = useQuery({
-    queryKey: ["mes-commandes"],
-    queryFn: () => apiFetch<any[]>("/commandes/mes"),
-    enabled: !!user,
-  });
 
   const produits = useMemo(() => produitsQ.data ?? [], [produitsQ.data]);
   const categories = categoriesQ.data ?? CATEGORIES_DEFAUT;
-  const aRecommander = (commandesQ.data ?? []).filter((c) => c.statut === "livree").slice(0, 5);
   const enAvant = produits.filter((p) => p.enAvant);
   const rechercheActive = recherche.trim().length > 0;
 
@@ -70,22 +62,6 @@ export default function Menu() {
     const bouchons = Array.from({ length: colonnes - reste }, (_, i) => ({ id: `vide-${i}`, vide: true }));
     return [...filtres, ...(bouchons as any[])];
   }, [filtres, colonnes]);
-
-  const recommander = (commande: any) => {
-    commande.items.forEach((i: any) =>
-      ajouter({
-        produitId: i.produitId,
-        nom: i.nom,
-        taille: i.taille,
-        garnitures: i.garnitures ?? [],
-        quantite: i.quantite,
-        prixUnitaire: i.prixUnitaire,
-        emoji: i.emoji,
-        image: i.image,
-      }),
-    );
-    toast.show(t("accueil.panierRempli"), "succes");
-  };
 
   const enTete = (
     <View style={styles.enTete}>
@@ -111,31 +87,6 @@ export default function Menu() {
 
       {!rechercheActive ? (
         <BanniereRecommandes produits={enAvant} onChoisir={(p) => setProduitOuvert(p)} />
-      ) : null}
-
-      {aRecommander.length > 0 ? (
-        <View testID="section-recommander" style={styles.recoSection}>
-          <Text style={styles.sectionTitre}>{t("accueil.aNouveau")}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recoRow}>
-            {aRecommander.map((c) => (
-              <View key={c.id} testID={`carte-reco-${c.numero}`} style={styles.recoCarte}>
-                <Text style={styles.recoNumero}>{c.numero}</Text>
-                <Text style={styles.recoItems} numberOfLines={2}>
-                  {c.items.map((i: any) => `${i.quantite}× ${i.nom}`).join(", ")}
-                </Text>
-                <Text style={styles.recoTotal}>{usd(c.total)}</Text>
-                <Pressable
-                  testID={`btn-recommander-${c.numero}`}
-                  onPress={() => recommander(c)}
-                  style={styles.recoBtn}
-                >
-                  <Icone name="refresh-cw" size={13} color={colors.onBrandPrimary} />
-                  <Text style={styles.recoBtnTexte}>{t("accueil.recommander")}</Text>
-                </Pressable>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
       ) : null}
 
       <View style={styles.titreListe}>
