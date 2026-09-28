@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
@@ -8,7 +9,13 @@ export type ModePaiement = "cash" | "mobile";
 export type Operateur = "mpesa" | "airtel" | "orange";
 export type Devise = "USD" | "CDF";
 
-/** Choix du mode de paiement au checkout. Mobile Money reste prêt côté code, mais masqué avant la prod. */
+const OPERATEURS: { cle: Operateur; nom: string; logo: number }[] = [
+  { cle: "mpesa", nom: "M-Pesa (Vodacom)", logo: require("@/assets/images/mpesa.png") },
+  { cle: "airtel", nom: "Airtel Money", logo: require("@/assets/images/airtel.png") },
+  { cle: "orange", nom: "Orange Money", logo: require("@/assets/images/orange.png") },
+];
+
+/** Choix du mode de paiement au checkout. */
 export function ChoixPaiement({
   mode,
   setMode,
@@ -46,10 +53,17 @@ export function ChoixPaiement({
           <Icone name="dollar-sign" size={18} color={mode === "cash" ? colors.onBrandPrimary : colors.onSurface} />
           <Text style={[styles.modeTexte, mode === "cash" && styles.modeTexteActif]}>À la livraison</Text>
         </Pressable>
-        {/* Mobile Money sera réactivé lors du passage en production. */}
+        <Pressable
+          testID="mode-paiement-mobile"
+          onPress={() => setMode("mobile")}
+          style={[styles.mode, mode === "mobile" && styles.modeActif]}
+        >
+          <Icone name="smartphone" size={18} color={mode === "mobile" ? colors.onBrandPrimary : colors.onSurface} />
+          <Text style={[styles.modeTexte, mode === "mobile" && styles.modeTexteActif]}>Mobile Money</Text>
+        </Pressable>
       </View>
 
-      {/* {mode === "mobile" ? (
+      {mode === "mobile" ? (
         <View style={styles.bloc}>
           <Text style={styles.label}>Opérateur</Text>
           <View style={styles.puces}>
@@ -97,9 +111,9 @@ export function ChoixPaiement({
           </View>
           <Text style={styles.equivalent}>{equivalent}</Text>
         </View>
-      ) : ( */}
+      ) : (
         <Text style={styles.equivalent}>Vous réglerez en espèces au livreur à la remise de la commande.</Text>
-      {/* )} */}
+      )}
     </View>
   );
 }

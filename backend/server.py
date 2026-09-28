@@ -455,6 +455,10 @@ class PaiementIn(BaseModel):
     note: Optional[int] = None
 
 
+class BulkIdsIn(BaseModel):
+    ids: List[str]
+
+
 # ------------------------------------------------------------------------- auth
 @api_router.post("/auth/inscription")
 async def inscription(body: InscriptionIn):
@@ -1693,6 +1697,15 @@ async def supprimer_produit(produit_id: str, _=Depends(require_admin)):
     return {"ok": True}
 
 
+@api_router.delete("/admin/produits/bulk")
+async def supprimer_produits_bulk(body: BulkIdsIn, _=Depends(require_admin)):
+    ids = [i for i in body.ids if i]
+    if not ids:
+        return {"ok": True, "deleted_count": 0}
+    res = await db.produits.delete_many({"id": {"$in": ids}})
+    return {"ok": True, "deleted_count": res.deleted_count}
+
+
 # ------------------------------------------------------------------------ zones
 @api_router.get("/zones")
 async def liste_zones():
@@ -1718,6 +1731,15 @@ async def supprimer_zone(zone_id: str, _=Depends(require_admin)):
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Zone introuvable")
     return {"ok": True}
+
+
+@api_router.delete("/admin/zones/bulk")
+async def supprimer_zones_bulk(body: BulkIdsIn, _=Depends(require_admin)):
+    ids = [i for i in body.ids if i]
+    if not ids:
+        return {"ok": True, "deleted_count": 0}
+    res = await db.zones.delete_many({"id": {"$in": ids}})
+    return {"ok": True, "deleted_count": res.deleted_count}
 
 
 @api_router.put("/admin/zones/{zone_id}")
@@ -1784,6 +1806,20 @@ async def supprimer_livreur(livreur_id: str, _=Depends(require_superadmin)):
     await db.livreurs.delete_one({"id": livreur_id})
     await db.users.delete_one({"livreurId": livreur_id, "role": "livreur"})
     return {"ok": True}
+
+
+@api_router.delete("/admin/livreurs/bulk")
+async def supprimer_livreurs_bulk(body: BulkIdsIn, _=Depends(require_superadmin)):
+    ids = [i for i in body.ids if i]
+    if not ids:
+        return {"ok": True, "deleted_count": 0}
+    en_cours = await db.commandes.find({"livreurId": {"$in": ids}, "statut": {"$nin": ["livree", "annulee"]}}, {"_id": 0}).to_list(200)
+    if en_cours:
+        raise HTTPException(status_code=400, detail="Un ou plusieurs livreurs ont une course en cours")
+    res = await db.livreurs.delete_many({"id": {"$in": ids}})
+    await db.users.delete_many({"livreurId": {"$in": ids}, "role": "livreur"})
+    await db.positions_livreurs.delete_many({"livreurId": {"$in": ids}})
+    return {"ok": True, "deleted_count": res.deleted_count}
 
 
 # ------------------------------------------------------ super admin : personnel
@@ -1869,6 +1905,25 @@ async def supprimer_compte(user_id: str, moi_meme=Depends(require_superadmin)):
         await db.livreurs.delete_one({"id": cible["livreurId"]})
         await db.positions_livreurs.delete_one({"livreurId": cible["livreurId"]})
     return {"ok": True}
+
+
+@api_router.delete("/superadmin/comptes/bulk")
+async def supprimer_comptes_bulk(body: BulkIdsIn, moi_meme=Depends(require_superadmin)):
+    ids = [i for i in body.ids if i]
+    if not ids:
+        return {"ok": True, "deleted_count": 0}
+    if moi_meme["id"] in ids:
+        raise HTTPException(status_code=400, detail="Impossible de supprimer votre propre compte")
+    cibles = await db.users.find({"id": {"$in": ids}, "role": {"$in": ["admin", "livreur"]}}, {"_id": 0}).to_list(200)
+    if not cibles:
+        return {"ok": True, "deleted_count": 0}
+    ids_ok = [c["id"] for c in cibles]
+    await db.users.delete_many({"id": {"$in": ids_ok}})
+    livreur_ids = [c["livreurId"] for c in cibles if c.get("livreurId")]
+    if livreur_ids:
+        await db.livreurs.delete_many({"id": {"$in": livreur_ids}})
+        await db.positions_livreurs.delete_many({"livreurId": {"$in": livreur_ids}})
+    return {"ok": True, "deleted_count": len(ids_ok)}
 
 
 # --------------------------------------------------------------------- commandes
@@ -2156,6 +2211,32 @@ async def supprimer_commande(cmd_id: str, _=Depends(require_admin)):
         raise HTTPException(status_code=400, detail="Archivez la commande avant de la supprimer")
     await db.commandes.delete_one({"id": cmd_id})
     return {"ok": True}
+
+
+@api_router.post("/admin/commandes/bulk/archiver")
+async def archiver_commandes_bulk(body: BulkIdsIn, _=Depends(require_admin)):
+    ids = [i for i in body.ids if i]
+    if not ids:
+        return {"ok": True, "updated_count": 0}
+    cmds = await db.commandes.find({"id": {"$in": ids}}, {"_id": 0}).to_list(200)
+    valid_ids = [c["id"] for c in cmds if c.get("statut") in ("livree", "annulee")]
+    if not valid_ids:
+        raise HTTPException(status_code=400, detail="Aucune commande terminée à archiver")
+    res = await db.commandes.update_many({"id": {"$in": valid_ids}}, {"$set": {"archivee": True, "archiveeAt": iso(now_utc())}})
+    return {"ok": True, "updated_count": res.modified_count}
+
+
+@api_router.delete("/admin/commandes/bulk")
+async def supprimer_commandes_bulk(body: BulkIdsIn, _=Depends(require_admin)):
+    ids = [i for i in body.ids if i]
+    if not ids:
+        return {"ok": True, "deleted_count": 0}
+    cmds = await db.commandes.find({"id": {"$in": ids}}, {"_id": 0}).to_list(200)
+    non_archives = [c["id"] for c in cmds if not c.get("archivee")]
+    if non_archives:
+        raise HTTPException(status_code=400, detail="Archivez les commandes sélectionnées avant de les supprimer")
+    res = await db.commandes.delete_many({"id": {"$in": ids}})
+    return {"ok": True, "deleted_count": res.deleted_count}
 
 
 @api_router.get("/admin/rapport")
@@ -2536,6 +2617,32 @@ async def livreur_masquer(cmd_id: str, user=Depends(require_livreur)):
         {"id": cmd_id}, {"$set": {"livreurMasquee": True, "livreurMasqueeAt": iso(now_utc())}}
     )
     return {"ok": True}
+
+
+@api_router.post("/livreur/courses/bulk/archiver")
+async def livreur_archiver_bulk(body: BulkIdsIn, user=Depends(require_livreur)):
+    ids = [i for i in body.ids if i]
+    if not ids:
+        return {"ok": True, "updated_count": 0}
+    cmds = await db.commandes.find({"id": {"$in": ids}, "livreurId": user.get("livreurId")}, {"_id": 0}).to_list(200)
+    valid_ids = [c["id"] for c in cmds if c.get("statut") in ("livree", "annulee")]
+    if not valid_ids:
+        raise HTTPException(status_code=400, detail="Aucune course terminée à archiver")
+    res = await db.commandes.update_many({"id": {"$in": valid_ids}}, {"$set": {"livreurArchivee": True, "livreurArchiveeAt": iso(now_utc())}})
+    return {"ok": True, "updated_count": res.modified_count}
+
+
+@api_router.delete("/livreur/courses/bulk")
+async def livreur_masquer_bulk(body: BulkIdsIn, user=Depends(require_livreur)):
+    ids = [i for i in body.ids if i]
+    if not ids:
+        return {"ok": True, "deleted_count": 0}
+    cmds = await db.commandes.find({"id": {"$in": ids}, "livreurId": user.get("livreurId")}, {"_id": 0}).to_list(200)
+    non_archives = [c["id"] for c in cmds if not c.get("livreurArchivee")]
+    if non_archives:
+        raise HTTPException(status_code=400, detail="Archivez les courses sélectionnées avant de les supprimer")
+    res = await db.commandes.update_many({"id": {"$in": ids}}, {"$set": {"livreurMasquee": True, "livreurMasqueeAt": iso(now_utc())}})
+    return {"ok": True, "deleted_count": res.modified_count}
 
 
 @api_router.get("/livreur/rapport")
