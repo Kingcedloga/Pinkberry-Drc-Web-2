@@ -360,7 +360,7 @@ export default function Catalogue() {
               <SelectionHeader
                 checked={selection.allSelected}
                 onToggle={selection.toggleAll}
-                selectedCount={selection.selectedIds.length}
+                totalCount={selection.totalCount}
               />
               <View style={styles.rechercheWrap}>
                 <Icone name="search" size={16} color={colors.muted} />

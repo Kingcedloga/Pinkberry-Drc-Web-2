@@ -45,18 +45,18 @@ export function SelectionBar({
 export function SelectionHeader({
   checked,
   onToggle,
-  selectedCount,
+  totalCount,
 }: {
   checked: boolean;
   onToggle: () => void;
-  selectedCount: number;
+  totalCount: number;
 }) {
   const t = useT();
   return (
     <View style={styles.selectionHeader}>
       <ToggleSelection checked={checked} onToggle={onToggle} />
       <Pressable onPress={onToggle} accessibilityRole="button">
-        <Text style={styles.selectAllText}>{t("selection.toutSelectionner", { count: selectedCount })}</Text>
+        <Text style={styles.selectAllText}>{t("selection.toutSelectionner", { count: totalCount })}</Text>
       </Pressable>
     </View>
   );
@@ -156,7 +156,7 @@ export function useListeSelection(ids: string[]) {
 
   const clear = () => setSelection(new Set());
 
-  return { selectedIds, allSelected, toggle, toggleAll, clear };
+  return { selectedIds, allSelected, totalCount: ids.length, toggle, toggleAll, clear };
 }
 
 const styles = stylesDynamiques(() =>

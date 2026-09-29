@@ -96,7 +96,7 @@ export default function ArchivesLivreur() {
           contentContainerStyle={[styles.liste, { paddingBottom: insets.bottom + spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
-          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} selectedCount={selection.selectedIds.length} />}
+          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} totalCount={selection.totalCount} />}
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="archive" size={42} color={colors.brandTertiary} />
