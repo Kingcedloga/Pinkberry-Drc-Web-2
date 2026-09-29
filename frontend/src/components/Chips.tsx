@@ -7,11 +7,13 @@ export function Chips({
   options,
   valeur,
   onChange,
+  labelOption = (option) => option,
   testID = "chips-categories",
 }: {
   options: string[];
   valeur: string;
   onChange: (v: string) => void;
+  labelOption?: (option: string) => string;
   testID?: string;
 }) {
   return (
@@ -31,7 +33,9 @@ export function Chips({
             onPress={() => onChange(item)}
             style={[styles.chip, actif ? styles.chipActif : styles.chipInactif]}
           >
-            <Text style={[styles.texte, { color: actif ? colors.onBrandPrimary : colors.onSurface }]}>{item}</Text>
+            <Text style={[styles.texte, { color: actif ? colors.onBrandPrimary : colors.onSurface }]}>
+              {labelOption(item)}
+            </Text>
           </Pressable>
         );
       }}

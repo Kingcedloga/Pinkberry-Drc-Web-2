@@ -10,6 +10,7 @@ import { Chips } from "@/src/components/Chips";
 import { FeuilleProduit, Produit } from "@/src/components/FeuilleProduit";
 import { Icone } from "@/src/components/Icone";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { useEcran } from "@/src/reactif";
@@ -27,7 +28,7 @@ export default function Menu() {
   const router = useRouter();
   const toast = useToast();
   const t = useT();
-  const { usd, fc } = useMontant();
+  const { usd, fc, prix } = useMontant();
   const { ajouter, nbArticles, sousTotal } = usePanier();
   const { bureau, large, tablette } = useEcran();
 
@@ -81,14 +82,23 @@ export default function Menu() {
         </View>
       </View>
 
-      {!bureau ? <Chips options={categories} valeur={categorie} onChange={setCategorie} /> : null}
+      {!bureau ? (
+        <Chips
+          options={categories}
+          valeur={categorie}
+          onChange={setCategorie}
+          labelOption={(option) => traduireContenuCatalogue(option, t)}
+        />
+      ) : null}
 
       {!rechercheActive ? (
         <BanniereRecommandes produits={enAvant} onChoisir={(p) => setProduitOuvert(p)} />
       ) : null}
 
       <View style={styles.titreListe}>
-        <Text style={styles.sectionTitre}>{categorie === "Tous" ? t("accueil.notreCarte") : categorie}</Text>
+        <Text style={styles.sectionTitre}>
+          {categorie === "Tous" ? t("accueil.notreCarte") : traduireContenuCatalogue(categorie, t)}
+        </Text>
         <Text style={styles.compteur}>
           {t(filtres.length === 1 ? "accueil.unProduit" : "accueil.plusieursProduits", { n: filtres.length })}
         </Text>
@@ -132,11 +142,11 @@ export default function Menu() {
             <PhotoProduit image={item.image} taille={colonnes > 1 ? 150 : 76} />
             <View style={[styles.carteTexte, colonnes > 1 && styles.carteTexteGrille]}>
               <Text style={styles.produitNom} numberOfLines={1}>
-                {item.nom}
+                {traduireContenuCatalogue(item.nom, t)}
               </Text>
-              <Text style={styles.produitCat}>{item.categorie}</Text>
+              <Text style={styles.produitCat}>{traduireContenuCatalogue(item.categorie, t)}</Text>
               <Text style={styles.produitPrix}>
-                {usd(item.prix)} <Text style={styles.produitFc}>≈ {fc(item.prix)}</Text>
+                {fc(item.prix)} <Text style={styles.produitFc}>≈ {usd(item.prix)}</Text>
               </Text>
               {!item.disponible ? <Text style={styles.rupture}>{t("accueil.rupture")}</Text> : null}
             </View>
@@ -180,7 +190,9 @@ export default function Menu() {
                     !actif && pressed && { backgroundColor: colors.brandTertiary },
                   ]}
                 >
-                  <Text style={[styles.filtreTexte, actif && { color: colors.onBrandPrimary }]}>{c}</Text>
+                  <Text style={[styles.filtreTexte, actif && { color: colors.onBrandPrimary }]}>
+                    {traduireContenuCatalogue(c, t)}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -204,7 +216,7 @@ export default function Menu() {
             <Text style={styles.badgeTexte}>{nbArticles}</Text>
           </View>
           <Text style={styles.barreTexte}>{t("accueil.voirPanier")}</Text>
-          <Text style={styles.barreTotal}>{usd(sousTotal)}</Text>
+          <Text style={styles.barreTotal}>{prix(sousTotal)}</Text>
         </Pressable>
       ) : null}
 

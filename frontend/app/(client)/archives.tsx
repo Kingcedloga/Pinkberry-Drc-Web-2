@@ -8,8 +8,9 @@ import { apiFetch } from "@/src/api";
 import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { useT, type CleTexte } from "@/src/i18n";
-import { usd } from "@/src/money";
+import { prix } from "@/src/money";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -87,11 +88,13 @@ export default function ArchivesClient() {
             <View testID={`archive-${item.numero}`} style={styles.carte}>
               <View style={styles.carteHaut}>
                 <Text style={styles.numero}>{item.numero}</Text>
-                <Text style={styles.total}>{usd(item.total)}</Text>
+                <Text style={styles.total}>{prix(item.total)}</Text>
               </View>
               <Text style={styles.statut}>{t(`statut.${item.statut}` as CleTexte)}</Text>
               <Text style={styles.items} numberOfLines={2}>
-                {item.items.map((i: any) => `${i.quantite}× ${i.nom}`).join(", ")}
+                {item.items
+                  .map((i: any) => `${i.quantite}× ${traduireContenuCatalogue(i.nom, t)}`)
+                  .join(", ")}
               </Text>
               <View style={styles.actions}>
                 <Pressable

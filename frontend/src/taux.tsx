@@ -48,6 +48,6 @@ export function useMontant() {
   return useMemo(() => {
     const usd = (n: number) => `$${(n ?? 0).toFixed(2)}`;
     const fc = (n: number) => `${groupe(Math.round((n ?? 0) * taux))} FC`;
-    return { usd, fc, prix: (n: number) => `${usd(n)} ≈ ${fc(n)}`, taux };
+    return { usd, fc, prix: (n: number) => `${fc(n)} ≈ ${usd(n)}`, taux };
   }, [taux]);
 }

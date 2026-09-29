@@ -50,7 +50,7 @@ export function ChoixPaiement({
           onPress={() => setMode("cash")}
           style={[styles.mode, mode === "cash" && styles.modeActif]}
         >
-          <Icone name="dollar-sign" size={18} color={mode === "cash" ? colors.onBrandPrimary : colors.onSurface} />
+          <Icone name="receipt" size={18} color={mode === "cash" ? colors.onBrandPrimary : colors.onSurface} />
           <Text style={[styles.modeTexte, mode === "cash" && styles.modeTexteActif]}>À la livraison</Text>
         </Pressable>
         <Pressable
@@ -98,7 +98,7 @@ export function ChoixPaiement({
 
           <Text style={styles.label}>Devise à débiter</Text>
           <View style={styles.puces}>
-            {(["USD", "CDF"] as Devise[]).map((d) => (
+            {(["CDF", "USD"] as Devise[]).map((d) => (
               <Pressable
                 key={d}
                 testID={`devise-${d}`}

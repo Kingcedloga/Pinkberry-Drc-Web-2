@@ -23,7 +23,7 @@ export function fc(n: number): string {
   return `${groupe(Math.round((n ?? 0) * tauxCourant))} FC`;
 }
 
-/** « $6.00 ≈ 16 800 FC » */
+/** « 16 800 FC ≈ $6.00 » */
 export function prix(n: number): string {
-  return `${usd(n)} ≈ ${fc(n)}`;
+  return `${fc(n)} ≈ ${usd(n)}`;
 }

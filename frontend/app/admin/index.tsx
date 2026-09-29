@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -66,7 +67,7 @@ export default function Dashboard() {
   const router = useRouter();
   const toast = useToast();
   const qc = useQueryClient();
-  const { usd, fc } = useMontant();
+  const { usd, fc, prix } = useMontant();
   const { t } = useLangue();
   const { bureau } = useEcran();
   const [ouverte, setOuverte] = useState<any>(null);
@@ -216,7 +217,7 @@ export default function Dashboard() {
                 </View>
 
                 <Text testID="ventes-chiffre" style={styles.ventesChiffre}>
-                  {usd(ventes?.chiffre ?? 0)}
+                  {prix(ventes?.chiffre ?? 0)}
                 </Text>
                 <Text style={styles.ventesChiffreFc}>≈ {fc(ventes?.chiffre ?? 0)}</Text>
 
@@ -228,7 +229,7 @@ export default function Dashboard() {
                     <Text style={styles.ventesMiniLabel}>{t("admin.commandes")}</Text>
                   </View>
                   <View style={styles.ventesMini}>
-                    <Text style={styles.ventesMiniValeur}>{usd(ventes?.panierMoyen ?? 0)}</Text>
+                    <Text style={styles.ventesMiniValeur}>{prix(ventes?.panierMoyen ?? 0)}</Text>
                     <Text style={styles.ventesMiniLabel}>{t("admin.panierMoyen")}</Text>
                   </View>
                 </View>
@@ -243,10 +244,10 @@ export default function Dashboard() {
                         <Text style={styles.rangTexte}>{i + 1}</Text>
                       </View>
                       <Text style={styles.topNom} numberOfLines={1}>
-                        {p.nom}
+                        {traduireContenuCatalogue(p.nom, t)}
                       </Text>
                       <Text style={styles.topQte}>×{p.quantite}</Text>
-                      <Text style={styles.topMontant}>{usd(p.montant)}</Text>
+                      <Text style={styles.topMontant}>{prix(p.montant)}</Text>
                     </View>
                   ))
                 )}
@@ -256,7 +257,7 @@ export default function Dashboard() {
                 {[
                   { l: t("admin.enCours"), v: stats?.enCours ?? 0, c: colors.brandPrimary },
                   { l: t("admin.livrees"), v: stats?.livrees ?? 0, c: colors.success },
-                  { l: t("admin.revenus"), v: usd(stats?.revenus ?? 0), c: colors.onSurface },
+                  { l: t("admin.revenus"), v: prix(stats?.revenus ?? 0), c: colors.onSurface },
                 ].map((s) => (
                   <View key={s.l} testID={`stat-${s.l}`} style={[styles.statCarte, bureau && styles.statCarteBureau]}>
                     <Text style={[styles.statValeur, { color: s.c }]}>{s.v}</Text>
@@ -391,7 +392,7 @@ export default function Dashboard() {
                     </Pressable>
                   ) : null}
                 </View>
-                <Text style={[styles.total, styles.colTotal]}>{usd(item.total)}</Text>
+                <Text style={[styles.total, styles.colTotal]}>{prix(item.total)}</Text>
               </Pressable>
             ) : (
             <Pressable
@@ -434,7 +435,7 @@ export default function Dashboard() {
                     {item.livreur ? item.livreur.nom : t("admin.aucunLivreur")}
                   </Text>
                 </View>
-                <Text style={styles.total}>{usd(item.total)}</Text>
+                <Text style={styles.total}>{prix(item.total)}</Text>
               </View>
               <View testID={`paiement-${item.numero}`} style={styles.paiementRow}>
                 <Icone
@@ -497,10 +498,11 @@ export default function Dashboard() {
                 <Text style={styles.blocTitre}>{t("admin.articles")}</Text>
                 {ouverte?.items?.map((i: any, idx: number) => (
                   <Text key={idx} style={styles.blocTexte}>
-                    {i.quantite}× {i.nom} {i.taille ? `(${i.taille})` : ""} — {usd(i.prixUnitaire * i.quantite)}
+                    {i.quantite}× {traduireContenuCatalogue(i.nom, t)}{" "}
+                    {i.taille ? `(${traduireContenuCatalogue(i.taille, t)})` : ""} — {prix(i.prixUnitaire * i.quantite)}
                   </Text>
                 ))}
-                <Text style={styles.blocTotal}>{t("admin.totalCash", { montant: usd(ouverte?.total ?? 0) })}</Text>
+                <Text style={styles.blocTotal}>{t("admin.totalCash", { montant: prix(ouverte?.total ?? 0) })}</Text>
               </View>
 
               <View style={styles.blocInfo}>

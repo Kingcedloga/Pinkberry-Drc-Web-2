@@ -10,7 +10,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useLangue } from "@/src/i18n";
-import { usd } from "@/src/money";
+import { prix } from "@/src/money";
 import { LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -121,7 +121,7 @@ export default function Archives() {
                 </View>
               </View>
               <Text style={styles.client}>
-                {item.clientNom} · {usd(item.total)}
+                {item.clientNom} · {prix(item.total)}
               </Text>
               <Text style={styles.detail} numberOfLines={1}>
                 {item.adresse?.commune} — {new Date(item.createdAt).toLocaleDateString(langue === "fr" ? "fr-FR" : "en-US")}

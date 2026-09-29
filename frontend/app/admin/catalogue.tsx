@@ -24,7 +24,9 @@ import { apiFetch, apiUpload } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
-import { usd } from "@/src/money";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useT } from "@/src/i18n";
+import { prix } from "@/src/money";
 import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -36,17 +38,17 @@ const TAILLE_MAX = 5 * 1024 * 1024;
 const FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const CATEGORIES_VIDES: { id: string; nom: string; nbProduits: number }[] = [];
-const TAILLES = [
-  { nom: "Petit", ecart: 0 },
-  { nom: "Moyen", ecart: 1.5 },
-  { nom: "Grand", ecart: 3.0 },
+const TAILLES = (t: (cle: string, vars?: Record<string, string | number>) => string) => [
+  { nom: t("catalogue.petit"), ecart: 0 },
+  { nom: t("catalogue.moyen"), ecart: 1.5 },
+  { nom: t("catalogue.grand"), ecart: 3.0 },
 ];
-const GARNITURES = [
-  { nom: "Fruits frais", prix: 1.0 },
-  { nom: "Granola", prix: 0.75 },
-  { nom: "Coulis fraise", prix: 0.5 },
-  { nom: "Pépites de chocolat", prix: 0.75 },
-  { nom: "Mochi", prix: 1.25 },
+const GARNITURES = (t: (cle: string, vars?: Record<string, string | number>) => string) => [
+  { nom: t("catalogue.fruitsFrais"), prix: 1.0 },
+  { nom: t("catalogue.granola"), prix: 0.75 },
+  { nom: t("catalogue.coulisFraise"), prix: 0.5 },
+  { nom: t("catalogue.pepitesChocolat"), prix: 0.75 },
+  { nom: t("catalogue.mochi"), prix: 1.25 },
 ];
 
 const nombre = (v: string) => {
@@ -56,6 +58,7 @@ const nombre = (v: string) => {
 
 export default function Catalogue() {
   useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
@@ -65,7 +68,7 @@ export default function Catalogue() {
     queryFn: () => apiFetch<{ id: string; nom: string; nbProduits: number }[]>("/admin/categories"),
   });
   const categories = categoriesQ.data ?? CATEGORIES_VIDES;
-  const { taux, fc } = useMontant();
+  const { taux, fc, usd } = useMontant();
 
   const [tauxOuvert, setTauxOuvert] = useState(false);
   const [tauxTexte, setTauxTexte] = useState("");
@@ -102,7 +105,7 @@ export default function Catalogue() {
     setEdition(p ?? { nouveau: true });
     setNom(p?.nom ?? "");
     setCategorie(p?.categorie ?? categories[0]?.nom ?? "");
-    setPrixTexte(p ? String(p.prix) : "");
+    setPrixTexte(p ? String(p.prix * taux) : "");
     setImage(p?.image ?? null);
     setApercuLocal(null);
     setDescription(p?.description ?? "");
@@ -110,13 +113,13 @@ export default function Catalogue() {
     setEnAvant(p?.enAvant ?? false);
     setTailles(
       p
-        ? (p.tailles ?? []).map((t: any) => ({ nom: t.nom, valeur: String(t.ecart ?? 0) }))
-        : TAILLES.map((t) => ({ nom: t.nom, valeur: String(t.ecart) })),
+        ? (p.tailles ?? []).map((t: any) => ({ nom: t.nom, valeur: String((t.ecart ?? 0) * taux) }))
+        : TAILLES(t).map((taille) => ({ nom: taille.nom, valeur: String(taille.ecart * taux) })),
     );
     setGarnitures(
       p
-        ? (p.garnitures ?? []).map((g: any) => ({ nom: g.nom, valeur: String(g.prix ?? 0) }))
-        : GARNITURES.map((g) => ({ nom: g.nom, valeur: String(g.prix) })),
+        ? (p.garnitures ?? []).map((g: any) => ({ nom: g.nom, valeur: String((g.prix ?? 0) * taux) }))
+        : GARNITURES(t).map((garniture) => ({ nom: garniture.nom, valeur: String(garniture.prix * taux) })),
     );
   };
 
@@ -128,18 +131,18 @@ export default function Catalogue() {
         const demande = await ImagePicker.requestMediaLibraryPermissionsAsync();
         statut = demande.status;
         if (demande.status !== "granted" && !demande.canAskAgain) {
-          toast.show("Accès aux photos bloqué, ouvrez les réglages", "erreur");
+          toast.show(t("catalogue.accesPhotosBloque"), "erreur");
           if (Platform.OS !== "web") Linking.openSettings();
           return;
         }
       } else {
-        toast.show("Accès aux photos bloqué, ouvrez les réglages", "erreur");
+        toast.show(t("catalogue.accesPhotosBloque"), "erreur");
         if (Platform.OS !== "web") Linking.openSettings();
         return;
       }
     }
     if (statut !== "granted") {
-      toast.show("Autorisation refusée", "erreur");
+      toast.show(t("catalogue.autorisationRefusee"), "erreur");
       return;
     }
 
@@ -153,11 +156,11 @@ export default function Catalogue() {
     const asset = res.assets[0];
     const type = (asset.mimeType ?? "image/jpeg").toLowerCase();
     if (!FORMATS.includes(type)) {
-      toast.show("Formats acceptés : JPG, PNG ou WebP", "erreur");
+      toast.show(t("catalogue.formatsAcceptes"), "erreur");
       return;
     }
     if ((asset.fileSize ?? 0) > TAILLE_MAX) {
-      toast.show("Image trop lourde (5 Mo maximum)", "erreur");
+      toast.show(t("catalogue.photoTropLourde"), "erreur");
       return;
     }
 
@@ -175,7 +178,7 @@ export default function Catalogue() {
       const r = await apiUpload<{ url: string }>("/admin/photos", form);
       setImage(r.url);
       setApercuLocal(null);
-      toast.show("Photo envoyée", "succes");
+      toast.show(t("catalogue.photoEnvoyee"), "succes");
     } catch (e: any) {
       setApercuLocal(null);
       toast.show(e.message, "erreur");
@@ -185,15 +188,16 @@ export default function Catalogue() {
   };
 
   const enregistrer = async () => {
-    const prix = parseFloat(prixTexte.replace(",", "."));
-    if (!nom.trim() || isNaN(prix)) {
-      toast.show("Nom et prix valides requis", "erreur");
+    const prixFC = parseFloat(prixTexte.replace(",", "."));
+    if (!nom.trim() || isNaN(prixFC) || prixFC < 0) {
+      toast.show(t("catalogue.nomPrixRequis"), "erreur");
       return;
     }
+    const prixUSD = Math.round((prixFC / taux) * 100) / 100;
     const body = {
       nom,
       categorie,
-      prix,
+      prix: prixUSD,
       emoji: null,
       image,
       description,
@@ -201,17 +205,17 @@ export default function Catalogue() {
       enAvant,
       tailles: tailles
         .filter((t) => t.nom.trim())
-        .map((t) => ({ nom: t.nom.trim(), ecart: nombre(t.valeur) })),
+        .map((t) => ({ nom: t.nom.trim(), ecart: Math.round((nombre(t.valeur) / taux) * 100) / 100 })),
       garnitures: garnitures
         .filter((g) => g.nom.trim())
-        .map((g) => ({ nom: g.nom.trim(), prix: nombre(g.valeur) })),
+        .map((g) => ({ nom: g.nom.trim(), prix: Math.round((nombre(g.valeur) / taux) * 100) / 100 })),
     };
     try {
       if (edition?.nouveau) await apiFetch("/admin/produits", { method: "POST", body });
       else await apiFetch(`/admin/produits/${edition.id}`, { method: "PUT", body });
       qc.invalidateQueries({ queryKey: ["produits"] });
       setEdition(null);
-      toast.show("Produit enregistré", "succes");
+      toast.show(t("catalogue.produitEnregistre"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -220,7 +224,7 @@ export default function Catalogue() {
   const enregistrerTaux = async () => {
     const valeur = parseFloat(tauxTexte.replace(/\s/g, "").replace(",", "."));
     if (isNaN(valeur) || valeur <= 0) {
-      toast.show("Entrez un taux valide (ex. 2800)", "erreur");
+      toast.show(t("catalogue.tauxInvalide"), "erreur");
       return;
     }
     try {
@@ -233,7 +237,7 @@ export default function Catalogue() {
       qc.setQueryData(["config"], enregistre);
       await qc.refetchQueries({ queryKey: ["config"] });
       setTauxOuvert(false);
-      toast.show(`Taux mis à jour : 1 USD = ${enregistre.tauxFC} FC`, "succes");
+      toast.show(t("catalogue.tauxMisAJour", { taux: enregistre.tauxFC }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -242,7 +246,7 @@ export default function Catalogue() {
   const ajouterCategorie = async () => {
     const nomCat = nouvelleCat.trim();
     if (nomCat.length < 2) {
-      toast.show("Nom de catégorie trop court", "erreur");
+      toast.show(t("catalogue.categorieNomCourt"), "erreur");
       return;
     }
     try {
@@ -250,7 +254,7 @@ export default function Catalogue() {
       qc.invalidateQueries({ queryKey: ["admin-categories"] });
       qc.invalidateQueries({ queryKey: ["categories"] });
       setNouvelleCat("");
-      toast.show(`Catégorie « ${nomCat} » ajoutée`, "succes");
+      toast.show(t("catalogue.categorieAjoutee", { nom: nomCat }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -267,8 +271,8 @@ export default function Catalogue() {
       qc.invalidateQueries({ queryKey: ["produits"] });
       toast.show(
         r.produitsSupprimes > 0
-          ? `Catégorie et ${r.produitsSupprimes} produit(s) supprimés`
-          : "Catégorie supprimée",
+          ? t("catalogue.produitsSupprimes", { n: r.produitsSupprimes })
+          : t("catalogue.categorieSupprimee"),
         "succes",
       );
       setCatASupprimer(null);
@@ -281,19 +285,20 @@ export default function Catalogue() {
     try {
       await apiFetch(`/admin/produits/${id}`, { method: "DELETE" });
       qc.invalidateQueries({ queryKey: ["produits"] });
-      toast.show("Produit supprimé", "succes");
+      toast.show(t("catalogue.produitSupprime"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
   };
 
   const supprimerSelection = async () => {
+    const count = selection.selectedIds.length;
     try {
       await apiFetch("/admin/produits/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
       selection.clear();
       setConfirmerSuppressionMultiple(false);
       await qc.invalidateQueries({ queryKey: ["produits"] });
-      toast.show(`${selection.selectedIds.length} produit(s) supprimé(s)`, "succes");
+      toast.show(count > 1 ? t("catalogue.plusieursProduits", { n: count }) : t("catalogue.unProduit", { n: count }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -303,17 +308,17 @@ export default function Catalogue() {
     <View testID="ecran-admin-catalogue" style={styles.ecran}>
       <View style={styles.enteteWeb}>
         <TitrePage
-          titre="Catalogue"
-          sousTitre="Produits, catégories et taux de change"
+          titre={t("catalogue.titre")}
+          sousTitre={t("catalogue.sousTitre")}
           actions={
             <>
               <Pressable testID="btn-gerer-categories" onPress={() => setCatsOuvert(true)} style={styles.btnSecondaire}>
                 <Icone name="grid" size={16} color={colors.brandPrimary} />
-                <Text style={styles.btnSecondaireTexte}>Catégories</Text>
+                <Text style={styles.btnSecondaireTexte}>{t("catalogue.gererCategories")}</Text>
               </Pressable>
               <Pressable testID="btn-ajouter-produit" onPress={() => ouvrir(null)} style={styles.btnPrimaire}>
                 <Icone name="plus" size={16} color={colors.onBrandPrimary} />
-                <Text style={styles.btnPrimaireTexte}>Nouveau produit</Text>
+                <Text style={styles.btnPrimaireTexte}>{t("catalogue.nouveauProduit")}</Text>
               </Pressable>
             </>
           }
@@ -330,12 +335,12 @@ export default function Catalogue() {
       >
         <Icone name="repeat" size={18} color={colors.brandPrimary} />
         <View style={styles.banniereTexte}>
-          <Text style={styles.banniereTitre}>Taux de change USD → FC</Text>
+          <Text style={styles.banniereTitre}>{t("catalogue.tauxTitre")}</Text>
           <Text testID="taux-actuel" style={styles.banniereValeur}>
             1 USD = {fc(1)}
           </Text>
         </View>
-        <Text style={styles.banniereLien}>Modifier</Text>
+        <Text style={styles.banniereLien}>{t("catalogue.modifier")}</Text>
       </Pressable>
 
       {q.isLoading ? (
@@ -363,21 +368,21 @@ export default function Catalogue() {
                   testID="input-recherche-produits"
                   value={recherche}
                   onChangeText={setRecherche}
-                  placeholder="Rechercher un produit ou une catégorie"
+                  placeholder={t("catalogue.rechercher")}
                   placeholderTextColor={colors.muted}
                   style={styles.rechercheChamp}
                 />
               </View>
               <Text style={styles.compteur}>
-                {produits.length} produit{produits.length > 1 ? "s" : ""}
+                {produits.length > 1 ? t("catalogue.plusieursProduits", { n: produits.length }) : t("catalogue.unProduit", { n: produits.length })}
               </Text>
               {bureau ? (
                 <View testID="entete-tableau-produits" style={styles.ligneEnteteTable}>
-                  <Text style={[styles.celluleEntete, styles.colProduit]}>Produit</Text>
-                  <Text style={[styles.celluleEntete, styles.colCategorie]}>Catégorie</Text>
-                  <Text style={[styles.celluleEntete, styles.colPrix]}>Prix</Text>
-                  <Text style={[styles.celluleEntete, styles.colEtat]}>État</Text>
-                  <Text style={[styles.celluleEntete, styles.colActions]}>Actions</Text>
+                  <Text style={[styles.celluleEntete, styles.colProduit]}>{t("catalogue.produit")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colCategorie]}>{t("catalogue.categorie")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colPrix]}>{t("catalogue.prix")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colEtat]}>{t("catalogue.etat")}</Text>
+                  <Text style={[styles.celluleEntete, styles.colActions]}>{t("catalogue.actions")}</Text>
                 </View>
               ) : null}
             </View>
@@ -393,18 +398,20 @@ export default function Catalogue() {
                 <View style={[styles.colProduit, styles.cellProduit]}>
                   <PhotoProduit image={item.image} taille={44} rayon={radius.md} />
                   <Text style={styles.nom} numberOfLines={1}>
-                    {item.nom}
+                    {traduireContenuCatalogue(item.nom, t)}
                   </Text>
                 </View>
-                <Text style={[styles.cat, styles.colCategorie]}>{item.categorie}</Text>
-                <Text style={[styles.prix, styles.colPrix]}>{usd(item.prix)}</Text>
+                <Text style={[styles.cat, styles.colCategorie]}>
+                  {traduireContenuCatalogue(item.categorie, t)}
+                </Text>
+                <Text style={[styles.prix, styles.colPrix]}>{prix(item.prix)}</Text>
                 <View style={[styles.colEtat, styles.cellEtat]}>
                   {item.disponible ? (
-                    <Text style={styles.badgeVert}>Disponible</Text>
+                    <Text style={styles.badgeVert}>{t("catalogue.disponible")}</Text>
                   ) : (
-                    <Text style={styles.rupture}>En rupture</Text>
+                    <Text style={styles.rupture}>{t("catalogue.rupture")}</Text>
                   )}
-                  {item.enAvant ? <Text style={styles.enAvant}>⭐ Recommandé</Text> : null}
+                  {item.enAvant ? <Text style={styles.enAvant}>⭐ {t("catalogue.recommande")}</Text> : null}
                 </View>
                 <View style={[styles.colActions, styles.cellActions]}>
                   <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
@@ -424,11 +431,11 @@ export default function Catalogue() {
                 />
                 <PhotoProduit image={item.image} taille={56} rayon={radius.md} />
                 <View style={styles.texte}>
-                  <Text style={styles.nom}>{item.nom}</Text>
-                  <Text style={styles.cat}>{item.categorie}</Text>
-                  <Text style={styles.prix}>{usd(item.prix)}</Text>
-                  {!item.disponible ? <Text style={styles.rupture}>En rupture</Text> : null}
-                  {item.enAvant ? <Text style={styles.enAvant}>⭐ Recommandé</Text> : null}
+                  <Text style={styles.nom}>{traduireContenuCatalogue(item.nom, t)}</Text>
+                  <Text style={styles.cat}>{traduireContenuCatalogue(item.categorie, t)}</Text>
+                  <Text style={styles.prix}>{prix(item.prix)}</Text>
+                  {!item.disponible ? <Text style={styles.rupture}>{t("catalogue.rupture")}</Text> : null}
+                  {item.enAvant ? <Text style={styles.enAvant}>⭐ {t("catalogue.recommande")}</Text> : null}
                 </View>
                 <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
                   <Icone name="edit-2" size={17} color={colors.brandPrimary} />
@@ -447,9 +454,11 @@ export default function Catalogue() {
           <Pressable style={{ flex: 1 }} onPress={() => setEdition(null)} />
           <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
             <KeyboardAwareScrollView bottomOffset={60} contentContainerStyle={styles.feuilleContenu}>
-              <Text style={styles.feuilleTitre}>{edition?.nouveau ? "Nouveau produit" : "Modifier le produit"}</Text>
+              <Text style={styles.feuilleTitre}>
+                {edition?.nouveau ? t("catalogue.nouveauProduitTitre") : t("catalogue.modifierProduit")}
+              </Text>
 
-              <Text style={styles.label}>Photo du produit</Text>
+              <Text style={styles.label}>{t("catalogue.photoProduit")}</Text>
               <View style={styles.photoBloc}>
                 {apercuLocal ? (
                   <PhotoProduit image={apercuLocal} taille={88} rayon={radius.lg} testID="apercu-photo-locale" />
@@ -459,7 +468,7 @@ export default function Catalogue() {
                 <View style={styles.photoActions}>
                   <Bouton
                     testID="btn-choisir-photo"
-                    label={image || apercuLocal ? "Remplacer la photo" : "Choisir une photo"}
+                    label={image || apercuLocal ? t("catalogue.remplacerPhoto") : t("catalogue.choisirPhoto")}
                     icone="image-plus"
                     variant="secondaire"
                     petit
@@ -469,22 +478,22 @@ export default function Catalogue() {
                   {image ? (
                     <Bouton
                       testID="btn-retirer-photo"
-                      label="Retirer"
+                      label={t("catalogue.retirer")}
                       icone="trash-2"
                       variant="danger"
                       petit
                       onPress={() => setImage(null)}
                     />
                   ) : null}
-                  <Text style={styles.photoAide}>JPG, PNG ou WebP · 5 Mo maximum</Text>
+                  <Text style={styles.photoAide}>{t("catalogue.photoAide")}</Text>
                 </View>
               </View>
 
-              <Champ label="Nom" testID="input-produit-nom" value={nom} onChangeText={setNom} />
-              <Champ label="Prix (USD)" testID="input-produit-prix" value={prixTexte} onChangeText={setPrixTexte} keyboardType="decimal-pad" />
-              <Champ label="Description" testID="input-produit-description" value={description} onChangeText={setDescription} multiline />
+              <Champ label={t("params.nom")} testID="input-produit-nom" value={nom} onChangeText={setNom} />
+              <Champ label={t("catalogue.prix")} testID="input-produit-prix" value={prixTexte} onChangeText={setPrixTexte} keyboardType="decimal-pad" />
+              <Champ label={t("catalogue.description")} testID="input-produit-description" value={description} onChangeText={setDescription} multiline />
 
-              <Text style={styles.label}>Catégorie</Text>
+              <Text style={styles.label}>{t("catalogue.categorie")}</Text>
               <View style={styles.chipsRow}>
                 {categories.map((c) => (
                   <Pressable
@@ -494,14 +503,14 @@ export default function Catalogue() {
                     style={[styles.chip, categorie === c.nom && styles.chipActif]}
                   >
                     <Text style={[styles.chipTexte, categorie === c.nom && { color: colors.onBrandPrimary }]}>
-                      {c.nom}
+                      {traduireContenuCatalogue(c.nom, t)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
 
               <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>Disponible</Text>
+                <Text style={styles.switchLabel}>{t("catalogue.disponible")}</Text>
                 <Switch
                   testID="switch-disponible"
                   value={disponible}
@@ -511,8 +520,8 @@ export default function Catalogue() {
               </View>
               <View style={styles.switchRow}>
                 <View style={styles.switchTexte}>
-                  <Text style={styles.switchLabel}>Mettre en avant / Recommander</Text>
-                  <Text style={styles.switchAide}>Affiché en haut de l&apos;accueil client</Text>
+                  <Text style={styles.switchLabel}>{t("catalogue.mettreEnAvant")}</Text>
+                  <Text style={styles.switchAide}>{t("catalogue.mettreEnAvantAide")}</Text>
                 </View>
                 <Switch
                   testID="switch-en-avant"
@@ -522,25 +531,25 @@ export default function Catalogue() {
                 />
               </View>
               <ListeOptions
-                titre="Tailles"
-                aide="Supplément ajouté au prix de base (0 pour la taille standard)"
+                titre={t("catalogue.tailles")}
+                aide={t("catalogue.taillesAide")}
                 cle="taille"
                 options={tailles}
                 onChange={setTailles}
-                placeholderNom="Ex. Grand"
+                placeholderNom={t("catalogue.tailleExemple")}
               />
 
               <ListeOptions
-                titre="Garnitures"
-                aide="Prix de la garniture ajoutée par le client"
+                titre={t("catalogue.garnitures")}
+                aide={t("catalogue.garnituresAide")}
                 cle="garniture"
                 options={garnitures}
                 onChange={setGarnitures}
-                placeholderNom="Ex. Granola"
+                placeholderNom={t("catalogue.garnitureExemple")}
               />
 
-              <Bouton testID="btn-enregistrer-produit" label="Enregistrer" onPress={enregistrer} />
-              <Bouton testID="btn-annuler-produit" label="Annuler" variant="contour" onPress={() => setEdition(null)} />
+              <Bouton testID="btn-enregistrer-produit" label={t("commun.enregistrer")} onPress={enregistrer} />
+              <Bouton testID="btn-annuler-produit" label={t("commun.annuler")} variant="contour" onPress={() => setEdition(null)} />
             </KeyboardAwareScrollView>
           </View>
         </View>
@@ -548,13 +557,10 @@ export default function Catalogue() {
       <Modal visible={tauxOuvert} animationType="fade" transparent onRequestClose={() => setTauxOuvert(false)}>
         <View style={styles.voileCentre}>
           <View testID="modal-taux" style={styles.dialogue}>
-            <Text style={styles.feuilleTitre}>Taux de change</Text>
-            <Text style={styles.dialogueTexte}>
-              Combien de francs congolais vaut 1 dollar américain ? Le nouveau taux s&apos;applique
-              immédiatement à tous les prix affichés côté client.
-            </Text>
+            <Text style={styles.feuilleTitre}>{t("catalogue.tauxTitreModal")}</Text>
+            <Text style={styles.dialogueTexte}>{t("catalogue.tauxDescription")}</Text>
             <Champ
-              label="1 USD = ... FC"
+              label={t("catalogue.tauxSaisie")}
               testID="input-taux"
               value={tauxTexte}
               onChangeText={setTauxTexte}
@@ -562,15 +568,15 @@ export default function Catalogue() {
               placeholder="2800"
             />
             <Text style={styles.apercu}>
-              Aperçu : $6.00 ≈{" "}
+              {t("catalogue.apercu")} {" "}
               {String(Math.round(6 * (parseFloat(tauxTexte.replace(/\s/g, "").replace(",", ".")) || 0))).replace(
                 /\B(?=(\d{3})+(?!\d))/g,
                 " ",
               )}{" "}
-              FC
+              FC ≈ {usd(6)}
             </Text>
-            <Bouton testID="btn-enregistrer-taux" label="Enregistrer le taux" onPress={enregistrerTaux} />
-            <Bouton testID="btn-annuler-taux" label="Annuler" variant="contour" onPress={() => setTauxOuvert(false)} />
+            <Bouton testID="btn-enregistrer-taux" label={t("catalogue.enregistrerTaux")} onPress={enregistrerTaux} />
+            <Bouton testID="btn-annuler-taux" label={t("commun.annuler")} variant="contour" onPress={() => setTauxOuvert(false)} />
           </View>
         </View>
       </Modal>
@@ -580,25 +586,27 @@ export default function Catalogue() {
           <Pressable style={{ flex: 1 }} onPress={() => setCatsOuvert(false)} />
           <View style={[styles.feuille, { paddingBottom: insets.bottom + spacing.lg }]}>
             <KeyboardAwareScrollView bottomOffset={60} contentContainerStyle={styles.feuilleContenu}>
-              <Text style={styles.feuilleTitre}>Catégories</Text>
+              <Text style={styles.feuilleTitre}>{t("catalogue.categories")}</Text>
 
               {catASupprimer ? (
                 <View style={styles.alerte}>
                   <Text style={styles.alerteTexte}>
-                    Supprimer « {catASupprimer.nom} » ?{" "}
+                    {t("catalogue.supprimerCategorieQuestion", {
+                      nom: traduireContenuCatalogue(catASupprimer.nom, t),
+                    })}{" "}
                     {catASupprimer.nbProduits > 0
-                      ? `Les ${catASupprimer.nbProduits} produit(s) de cette catégorie seront aussi supprimés.`
-                      : "Cette catégorie est vide."}
+                      ? t("catalogue.produitsCategorieSupprimes", { n: catASupprimer.nbProduits })
+                      : t("catalogue.categorieVide")}
                   </Text>
                   <Bouton
                     testID="btn-confirmer-suppression-categorie"
-                    label="Supprimer définitivement"
+                    label={t("commun.supprimer")}
                     variant="danger"
                     onPress={supprimerCategorie}
                   />
                   <Bouton
                     testID="btn-annuler-suppression-categorie"
-                    label="Annuler"
+                    label={t("commun.annuler")}
                     variant="contour"
                     onPress={() => setCatASupprimer(null)}
                   />
@@ -608,8 +616,10 @@ export default function Catalogue() {
               <View testID="liste-categories">
                 {categories.map((c) => (
                   <View key={c.id} testID={`categorie-${c.nom}`} style={styles.ligneCat}>
-                    <Text style={styles.ligneCatNom}>{c.nom}</Text>
-                    <Text style={styles.ligneCatNb}>{c.nbProduits} produit(s)</Text>
+                    <Text style={styles.ligneCatNom}>{traduireContenuCatalogue(c.nom, t)}</Text>
+                    <Text style={styles.ligneCatNb}>
+                      {c.nbProduits > 1 ? t("catalogue.plusieursProduits", { n: c.nbProduits }) : t("catalogue.unProduit", { n: c.nbProduits })}
+                    </Text>
                     <Pressable
                       testID={`btn-supprimer-categorie-${c.nom}`}
                       hitSlop={8}
@@ -623,16 +633,16 @@ export default function Catalogue() {
               </View>
 
               <Champ
-                label="Nouvelle catégorie"
+                label={t("catalogue.nouvelleCategorie")}
                 testID="input-nouvelle-categorie"
                 value={nouvelleCat}
                 onChangeText={setNouvelleCat}
-                placeholder="Ex. Gaufres"
+                placeholder={t("catalogue.categorieExemple")}
               />
-              <Bouton testID="btn-ajouter-categorie" label="Ajouter la catégorie" onPress={ajouterCategorie} />
+              <Bouton testID="btn-ajouter-categorie" label={t("catalogue.ajouterCategorie")} onPress={ajouterCategorie} />
               <Bouton
                 testID="btn-fermer-categories"
-                label="Fermer"
+                label={t("admin.fermer")}
                 variant="contour"
                 onPress={() => {
                   setCatASupprimer(null);

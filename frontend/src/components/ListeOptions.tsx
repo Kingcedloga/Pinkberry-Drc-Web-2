@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
+import { useT } from "@/src/i18n";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 
 export type Option = { nom: string; valeur: string };
@@ -25,6 +26,7 @@ export function ListeOptions({
   onChange: (o: Option[]) => void;
   placeholderNom: string;
 }) {
+  const t = useT();
   const modifier = (index: number, champ: keyof Option, valeur: string) =>
     onChange(options.map((o, i) => (i === index ? { ...o, [champ]: valeur } : o)));
 
@@ -39,7 +41,7 @@ export function ListeOptions({
       <Text style={styles.aide}>{aide}</Text>
 
       {options.length === 0 ? (
-        <Text style={styles.vide}>Aucune option — le client commandera le produit tel quel.</Text>
+        <Text style={styles.vide}>{t("catalogue.aucuneOption")}</Text>
       ) : (
         options.map((o, i) => (
           <View key={`${cle}-${i}`} style={styles.ligne}>

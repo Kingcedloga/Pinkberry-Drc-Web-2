@@ -11,6 +11,7 @@ import { AttentePaiement } from "@/src/components/AttentePaiement";
 import { Bouton } from "@/src/components/Bouton";
 import { ChoixPaiement, type Devise, type ModePaiement, type Operateur } from "@/src/components/ChoixPaiement";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { TitrePage } from "@/src/components/TitrePage";
@@ -28,7 +29,7 @@ export default function Confirmation() {
   const toast = useToast();
   const qc = useQueryClient();
   const t = useT();
-  const { usd, fc } = useMontant();
+  const { usd, fc, prix } = useMontant();
   const { fraisLivraison: FRAIS } = useConfigApp();
   const { articles, adresse, sousTotal, vider } = usePanier();
   const { user } = useAuth();
@@ -36,7 +37,7 @@ export default function Confirmation() {
   const [mode, setMode] = useState<ModePaiement>("cash");
   const [operateur, setOperateur] = useState<Operateur>("mpesa");
   const [telephone, setTelephone] = useState(user?.telephone ?? "");
-  const [devise, setDevise] = useState<Devise>("USD");
+  const [devise, setDevise] = useState<Devise>("CDF");
   const [paiement, setPaiement] = useState<{
     depositId: string;
     commandeId: string;
@@ -131,9 +132,9 @@ export default function Confirmation() {
             <View key={a.cle} style={styles.articleRow}>
               <PhotoProduit image={a.image} taille={36} rayon={12} />
               <Text style={styles.articleNom}>
-                {a.quantite}× {a.nom}
+                {a.quantite}× {traduireContenuCatalogue(a.nom, t)}
               </Text>
-              <Text style={styles.articlePrix}>{usd(a.prixUnitaire * a.quantite)}</Text>
+              <Text style={styles.articlePrix}>{prix(a.prixUnitaire * a.quantite)}</Text>
             </View>
           ))}
         </View>
@@ -155,20 +156,20 @@ export default function Confirmation() {
         <View style={styles.carte}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t("confirmation.sousTotal")}</Text>
-            <Text style={styles.totalValeur}>{usd(sousTotal)}</Text>
+            <Text style={styles.totalValeur}>{prix(sousTotal)}</Text>
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t("confirmation.frais")}</Text>
-            <Text style={styles.totalValeur}>{usd(FRAIS)}</Text>
+            <Text style={styles.totalValeur}>{prix(FRAIS)}</Text>
           </View>
           <View style={styles.separateur} />
           <View style={styles.totalRow}>
             <Text style={styles.grandTotalLabel}>{t("confirmation.total")}</Text>
             <View>
               <Text testID="confirmation-total" style={styles.grandTotalValeur}>
-                {usd(total)}
+                {fc(total)}
               </Text>
-              <Text style={styles.grandTotalFc}>≈ {fc(total)}</Text>
+              <Text style={styles.grandTotalFc}>≈ {usd(total)}</Text>
             </View>
           </View>
           {bureau ? <View style={styles.ctaBureau}>{cta}</View> : null}

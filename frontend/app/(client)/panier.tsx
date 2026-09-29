@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { TitrePage } from "@/src/components/TitrePage";
 import { usePanier } from "@/src/panier";
@@ -20,7 +21,7 @@ export default function Panier() {
   const router = useRouter();
   const { bureau } = useEcran();
   const t = useT();
-  const { usd, fc } = useMontant();
+  const { usd, fc, prix } = useMontant();
   const { articles, changerQuantite, retirer, sousTotal, nbArticles } = usePanier();
 
   return (
@@ -50,13 +51,16 @@ export default function Panier() {
                 )}
                 <View style={styles.texte}>
                   <Text style={styles.nom} numberOfLines={1}>
-                    {a.nom}
+                    {traduireContenuCatalogue(a.nom, t)}
                   </Text>
                   <Text style={styles.options} numberOfLines={2}>
-                    {[a.taille, ...a.garnitures.map((g) => g.nom)].filter(Boolean).join(" · ") || t("panier.sansOption")}
+                    {[a.taille, ...a.garnitures.map((g) => g.nom)]
+                      .filter(Boolean)
+                      .map((option) => traduireContenuCatalogue(option, t))
+                      .join(" · ") || t("panier.sansOption")}
                   </Text>
                   <Text style={styles.prix}>
-                    {usd(a.prixUnitaire * a.quantite)} <Text style={styles.prixFc}>≈ {fc(a.prixUnitaire * a.quantite)}</Text>
+                    {fc(a.prixUnitaire * a.quantite)} <Text style={styles.prixFc}>≈ {usd(a.prixUnitaire * a.quantite)}</Text>
                   </Text>
                 </View>
                 <View style={styles.actions}>
@@ -96,7 +100,7 @@ export default function Panier() {
               <Text style={styles.sousTotalLabel}>{t("panier.sousTotal", { n: nbArticles })}</Text>
               <View>
                 <Text testID="panier-sous-total" style={styles.sousTotalValeur}>
-                  {usd(sousTotal)}
+                  {prix(sousTotal)}
                 </Text>
                 <Text style={styles.sousTotalFc}>≈ {fc(sousTotal)}</Text>
               </View>

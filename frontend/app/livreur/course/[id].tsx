@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useLocalSearchParams } from "expo-router";
@@ -26,7 +27,7 @@ export default function DetailCourse() {
   const toast = useToast();
   const { t } = useLangue();
   const qc = useQueryClient();
-  const { usd, fc } = useMontant();
+  const { usd, fc, prix } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [partageGps, setPartageGps] = useState(false);
@@ -196,12 +197,13 @@ export default function DetailCourse() {
         <View style={styles.carte}>
           <Text style={styles.carteTitre}>{t("livreur.cashAEncaisser")}</Text>
           <Text testID="montant-a-encaisser" style={styles.montant}>
-            {usd(cmd.total)}
+            {prix(cmd.total)}
           </Text>
           <Text style={styles.montantFc}>≈ {fc(cmd.total)}</Text>
           {cmd.items.map((i: any, idx: number) => (
             <Text key={idx} style={styles.ligne}>
-              {i.quantite}× {i.nom} {i.taille ? `(${i.taille})` : ""}
+              {i.quantite}× {traduireContenuCatalogue(i.nom, t)}{" "}
+              {i.taille ? `(${traduireContenuCatalogue(i.taille, t)})` : ""}
             </Text>
           ))}
         </View>

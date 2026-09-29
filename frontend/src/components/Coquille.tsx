@@ -18,7 +18,7 @@ import { useTheme } from "@/src/theme-contexte";
 function BoutonPanier() {
   const router = useRouter();
   const { nbArticles, sousTotal } = usePanier();
-  const { usd } = useMontant();
+  const { prix } = useMontant();
   const { t } = useLangue();
 
   return (
@@ -28,7 +28,7 @@ function BoutonPanier() {
       style={({ pressed }) => [styles.panierBtn, pressed && { opacity: 0.85 }]}
     >
       <Icone name="shopping-cart" size={18} color={colors.onBrandPrimary} />
-      <Text style={styles.panierTexte}>{nbArticles > 0 ? usd(sousTotal) : t("nav.panier")}</Text>
+      <Text style={styles.panierTexte}>{nbArticles > 0 ? prix(sousTotal) : t("nav.panier")}</Text>
       {nbArticles > 0 ? (
         <View style={styles.panierBadge}>
           <Text style={styles.panierBadgeTexte}>{nbArticles}</Text>

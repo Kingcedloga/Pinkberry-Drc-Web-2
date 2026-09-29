@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -29,7 +30,7 @@ export default function SuiviCommande() {
   const toast = useToast();
   const t = useT();
   const qc = useQueryClient();
-  const { usd, fc } = useMontant();
+  const { usd, fc, prix } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [confirmAnnuler, setConfirmAnnuler] = useState(false);
@@ -97,7 +98,7 @@ export default function SuiviCommande() {
       >
         <TitrePage
           titre={`Suivi ${cmd.numero}`}
-          sousTitre={`${usd(cmd.total)} ≈ ${fc(cmd.total)}`}
+          sousTitre={`${fc(cmd.total)} ≈ ${usd(cmd.total)}`}
           retour="/commandes"
         />
 
@@ -128,7 +129,7 @@ export default function SuiviCommande() {
             <Text style={styles.livraisonTitre}>{t("suivi.arrive")}</Text>
             <Text style={styles.livraisonLabel}>{t("suivi.montantEspeces")}</Text>
             <Text testID="montant-cash" style={styles.montant}>
-              {usd(cmd.total)}
+              {prix(cmd.total)}
             </Text>
             <Text testID="montant-cash-fc" style={styles.montantFc}>
               ≈ {fc(cmd.total)}
@@ -197,20 +198,20 @@ export default function SuiviCommande() {
           {cmd.items.map((i: any, idx: number) => (
             <View key={idx} style={styles.itemRow}>
               <Text style={styles.itemNom}>
-                {i.quantite}× {i.nom}
-                {i.taille ? ` (${i.taille})` : ""}
+                {i.quantite}× {traduireContenuCatalogue(i.nom, t)}
+                {i.taille ? ` (${traduireContenuCatalogue(i.taille, t)})` : ""}
               </Text>
-              <Text style={styles.itemPrix}>{usd(i.prixUnitaire * i.quantite)}</Text>
+              <Text style={styles.itemPrix}>{prix(i.prixUnitaire * i.quantite)}</Text>
             </View>
           ))}
           <View style={styles.separateur} />
           <View style={styles.itemRow}>
             <Text style={styles.itemNom}>{t("suivi.frais")}</Text>
-            <Text style={styles.itemPrix}>{usd(cmd.fraisLivraison)}</Text>
+              <Text style={styles.itemPrix}>{prix(cmd.fraisLivraison)}</Text>
           </View>
           <View style={styles.itemRow}>
             <Text style={styles.totalLabel}>{t("suivi.total")}</Text>
-            <Text style={styles.totalValeur}>{usd(cmd.total)}</Text>
+            <Text style={styles.totalValeur}>{prix(cmd.total)}</Text>
           </View>
           <Text style={styles.adresseTexte}>
             {cmd.adresse?.avenue} n° {cmd.adresse?.numero}, {cmd.adresse?.commune} — {cmd.adresse?.repere}

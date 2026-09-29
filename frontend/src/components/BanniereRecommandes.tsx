@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { type Produit } from "@/src/components/FeuilleProduit";
 import { Icone } from "@/src/components/Icone";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useMontant } from "@/src/taux";
@@ -42,13 +43,13 @@ export function BanniereRecommandes({
       <PhotoProduit image={p.image} taille={seul ? 92 : 76} rayon={radius.lg} />
       <View style={styles.carteTexte}>
         <Text style={styles.nom} numberOfLines={1}>
-          {p.nom}
+          {traduireContenuCatalogue(p.nom, t)}
         </Text>
         <Text style={styles.cat} numberOfLines={1}>
-          {p.categorie}
+          {traduireContenuCatalogue(p.categorie, t)}
         </Text>
         <Text style={styles.prix} numberOfLines={1}>
-          {usd(p.prix)} <Text style={styles.fc}>≈ {fc(p.prix)}</Text>
+          {fc(p.prix)} <Text style={styles.fc}>≈ {usd(p.prix)}</Text>
         </Text>
         {!p.disponible ? <Text style={styles.rupture}>{t("accueil.rupture")}</Text> : null}
       </View>

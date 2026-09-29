@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -9,7 +10,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
-import { usd } from "@/src/money";
+import { prix } from "@/src/money";
 import { TitrePage } from "@/src/components/TitrePage";
 import { useLangue } from "@/src/i18n";
 import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
@@ -99,7 +100,7 @@ export default function Courses() {
                   <Text style={styles.kpiLabel}>{t("livreur.coursTerminees")}</Text>
                 </View>
                 <View testID="kpi-encaisse" style={styles.kpi}>
-                  <Text style={styles.kpiValeur}>{usd(actives.reduce((t, c) => t + (c.total ?? 0), 0))}</Text>
+                  <Text style={styles.kpiValeur}>{prix(actives.reduce((t, c) => t + (c.total ?? 0), 0))}</Text>
                   <Text style={styles.kpiLabel}>{t("livreur.aEncaisser")}</Text>
                 </View>
               </View>
@@ -168,9 +169,11 @@ export default function Courses() {
               </View>
               <View style={styles.carteBas}>
                 <Text style={styles.items} numberOfLines={1}>
-                  {item.items.map((i: any) => `${i.quantite}× ${i.nom}`).join(", ")}
+                  {item.items
+                    .map((i: any) => `${i.quantite}× ${traduireContenuCatalogue(i.nom, t)}`)
+                    .join(", ")}
                 </Text>
-                <Text style={styles.montant}>{usd(item.total)}</Text>
+                <Text style={styles.montant}>{prix(item.total)}</Text>
               </View>
               {["livree", "annulee"].includes(item.statut) ? (
                 <Pressable

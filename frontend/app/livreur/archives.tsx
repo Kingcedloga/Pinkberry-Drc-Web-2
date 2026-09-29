@@ -9,7 +9,7 @@ import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
-import { usd } from "@/src/money";
+import { prix } from "@/src/money";
 import { useLangue, type CleTexte } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -112,7 +112,7 @@ export default function ArchivesLivreur() {
               />
               <View style={styles.carteHaut}>
                 <Text style={styles.numero}>{item.numero}</Text>
-                <Text style={styles.montant}>{usd(item.total)}</Text>
+                <Text style={styles.montant}>{prix(item.total)}</Text>
               </View>
               <Text style={styles.statut}>
                 {t(`statut.${item.statut}` as CleTexte)}

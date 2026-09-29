@@ -1,11 +1,23 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import i18n from "i18next";
+import { initReactI18next, useTranslation } from "react-i18next";
 
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { CLE_LANGUE, CLE_THEME } from "@/src/prefs";
 import { storage } from "@/src/utils/storage";
+import fr from "@/src/locales/fr.json";
+import en from "@/src/locales/en.json";
 
 export type Langue = "fr" | "en";
+
+i18n.use(initReactI18next).init({
+  resources: { fr: { translation: fr }, en: { translation: en } },
+  lng: "fr",
+  fallbackLng: "fr",
+  interpolation: { escapeValue: false },
+  react: { useSuspense: false },
+});
 
 /**
  * Traductions de l'espace client. Pour traduire un nouvel écran : ajouter les
@@ -271,7 +283,7 @@ const FR = {
   "catalogue.plusieursProduits": "{n} produits",
   "catalogue.produit": "Produit",
   "catalogue.categorie": "Catégorie",
-  "catalogue.prix": "Prix (USD)",
+  "catalogue.prix": "Prix (FC)",
   "catalogue.etat": "État",
   "catalogue.actions": "Actions",
   "catalogue.disponible": "Disponible",
@@ -296,7 +308,7 @@ const FR = {
   "catalogue.tauxTitreModal": "Taux de change",
   "catalogue.tauxDescription": "Combien de francs congolais vaut 1 dollar américain ? Le nouveau taux s'applique immédiatement à tous les prix affichés côté client.",
   "catalogue.tauxSaisie": "1 USD = ... FC",
-  "catalogue.apercu": "Aperçu : $6.00 ≈",
+  "catalogue.apercu": "Aperçu : FC ≈ USD",
   "catalogue.enregistrerTaux": "Enregistrer le taux",
   "catalogue.categories": "Catégories",
   "catalogue.supprimerCategorieQuestion": "Supprimer « {nom} » ?",
@@ -757,7 +769,7 @@ const EN: Record<keyof typeof FR, string> = {
   "catalogue.plusieursProduits": "{n} products",
   "catalogue.produit": "Product",
   "catalogue.categorie": "Category",
-  "catalogue.prix": "Price (USD)",
+  "catalogue.prix": "Price (CDF)",
   "catalogue.etat": "Availability",
   "catalogue.actions": "Actions",
   "catalogue.disponible": "Available",
@@ -782,7 +794,7 @@ const EN: Record<keyof typeof FR, string> = {
   "catalogue.tauxTitreModal": "Exchange rate",
   "catalogue.tauxDescription": "How many Congolese francs is one US dollar worth? The new rate applies immediately to all prices shown to customers.",
   "catalogue.tauxSaisie": "1 USD = ... FC",
-  "catalogue.apercu": "Preview: $6.00 ≈",
+  "catalogue.apercu": "Preview: CDF ≈ USD",
   "catalogue.enregistrerTaux": "Save exchange rate",
   "catalogue.categories": "Categories",
   "catalogue.supprimerCategorieQuestion": "Delete “{nom}”?",
@@ -982,9 +994,7 @@ const EN: Record<keyof typeof FR, string> = {
   "admin.personnelDetail": "Super admin only",
 };
 
-export type CleTexte = keyof typeof FR;
-
-const DICTIONNAIRES: Record<Langue, Record<CleTexte, string>> = { fr: FR, en: EN };
+export type CleTexte = string;
 
 export type ThemeChoisi = "clair" | "sombre" | "systeme";
 
@@ -1022,9 +1032,11 @@ export function LangueProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const locale = await storage.getItem<string>(CLE_LANGUE, "");
       const theme = await storage.getItem<string>(CLE_THEME, "");
+      const langue = locale === "fr" || locale === "en" ? locale : "fr";
+      await i18n.changeLanguage(langue);
       setPrefs((p) => ({
         ...p,
-        langue: locale === "fr" || locale === "en" ? locale : p.langue,
+        langue,
         theme:
           theme === "clair" || theme === "sombre" || theme === "systeme" ? (theme as ThemeChoisi) : p.theme,
       }));
@@ -1035,7 +1047,9 @@ export function LangueProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const distantes = (user as any)?.preferences as Preferences | undefined;
     if (distantes) {
-      setPrefs({ ...PREFS_DEFAUT, ...distantes });
+      const suivantes = { ...PREFS_DEFAUT, ...distantes };
+      void i18n.changeLanguage(suivantes.langue);
+      setPrefs(suivantes);
       storage.setItem(CLE_LANGUE, distantes.langue ?? "fr");
       storage.setItem(CLE_THEME, distantes.theme ?? "systeme");
     }
@@ -1044,6 +1058,7 @@ export function LangueProvider({ children }: { children: React.ReactNode }) {
   const enregistrerPrefs = useCallback(
     async (maj: Partial<Preferences>) => {
       const suivantes = { ...prefs, ...maj };
+      await i18n.changeLanguage(suivantes.langue);
       setPrefs(suivantes);
       await storage.setItem(CLE_LANGUE, suivantes.langue);
       await storage.setItem(CLE_THEME, suivantes.theme);
@@ -1056,11 +1071,7 @@ export function LangueProvider({ children }: { children: React.ReactNode }) {
     () => ({
       prefs,
       langue: prefs.langue,
-      t: (cle: CleTexte, vars?: Record<string, string | number>) => {
-        const brut = DICTIONNAIRES[prefs.langue][cle] ?? DICTIONNAIRES.fr[cle] ?? cle;
-        if (!vars) return brut;
-        return Object.keys(vars).reduce((texte, k) => texte.split(`{${k}}`).join(String(vars[k])), brut);
-      },
+      t: (cle: CleTexte, vars?: Record<string, string | number>) => String(i18n.t(cle, vars)),
       enregistrerPrefs,
     }),
     [prefs, enregistrerPrefs],
@@ -1077,5 +1088,6 @@ export function useLangue(): LangueValue {
 
 /** Raccourci : `const t = useT();` puis `t("params.titre")`. */
 export function useT() {
-  return useLangue().t;
+  const { t } = useTranslation();
+  return (cle: CleTexte, vars?: Record<string, string | number>) => String(t(cle, vars));
 }

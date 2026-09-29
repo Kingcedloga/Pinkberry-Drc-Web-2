@@ -6,9 +6,10 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { apiFetch } from "@/src/api";
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
 import { useT, type CleTexte } from "@/src/i18n";
 import { TitrePage } from "@/src/components/TitrePage";
-import { usd } from "@/src/money";
+import { prix } from "@/src/money";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -99,14 +100,16 @@ export default function Commandes() {
                   </View>
                 </View>
                 <Text style={styles.items} numberOfLines={2}>
-                  {item.items.map((i: any) => `${i.quantite}× ${i.nom}`).join(", ")}
+                  {item.items
+                    .map((i: any) => `${i.quantite}× ${traduireContenuCatalogue(i.nom, t)}`)
+                    .join(", ")}
                 </Text>
                 <View style={styles.carteBas}>
                   <Text style={styles.adresse} numberOfLines={1}>
                     <Icone name="map-pin" size={12} color={colors.muted} /> {item.adresse?.commune} ·{" "}
                     {item.adresse?.avenue}
                   </Text>
-                  <Text style={styles.total}>{usd(item.total)}</Text>
+                  <Text style={styles.total}>{prix(item.total)}</Text>
                 </View>
                 {terminee ? (
                   <Pressable

@@ -1225,7 +1225,7 @@ class PaiementMobileIn(BaseModel):
     commandeId: str
     operateur: str
     telephone: str
-    devise: str = "USD"
+    devise: str = "CDF"
 
 
 @api_router.get("/paiements/operateurs")
@@ -1233,7 +1233,7 @@ async def paiement_operateurs():
     """Operateurs mobile money disponibles pour la RDC."""
     return {
         "operateurs": [{"cle": c, "nom": v["nom"]} for c, v in OPERATEURS.items()],
-        "devises": ["USD", "CDF"],
+        "devises": ["CDF", "USD"],
         "actif": bool(PAWAPAY_TOKEN),
     }
 

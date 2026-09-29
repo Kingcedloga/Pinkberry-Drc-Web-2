@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useT } from "@/src/i18n";
 import { ArticlePanier, Garniture } from "@/src/panier";
 import { LARGEUR_FEUILLE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -37,7 +39,8 @@ export function FeuilleProduit({
 }) {
   const insets = useSafeAreaInsets();
   const { bureau } = useEcran();
-  const { usd, fc } = useMontant();
+  const tr = useT();
+  const { usd, fc, prix } = useMontant();
   const [tailleIndex, setTailleIndex] = useState(0);
   const [garnituresChoisies, setGarnitures] = useState<string[]>([]);
   const [quantite, setQuantite] = useState(1);
@@ -102,31 +105,35 @@ export function FeuilleProduit({
               <PhotoProduit image={produit.image} taille={96} rayon={radius.lg} />
               <View style={styles.enteteTexte}>
                 <Text testID="feuille-nom-produit" style={styles.nom}>
-                  {produit.nom}
+                  {traduireContenuCatalogue(produit.nom, tr)}
                 </Text>
-                <Text style={styles.desc}>{produit.description ?? produit.categorie}</Text>
+                <Text style={styles.desc}>
+                  {produit.description
+                    ? traduireContenuCatalogue(produit.description, tr)
+                    : traduireContenuCatalogue(produit.categorie, tr)}
+                </Text>
                 <Text style={styles.prixBase}>
-                  {usd(produit.prix)} ≈ {fc(produit.prix)}
+                  {fc(produit.prix)} ≈ {usd(produit.prix)}
                 </Text>
               </View>
             </View>
 
             {produit.tailles.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitre}>Choisir la taille</Text>
-                {produit.tailles.map((t, i) => (
+                <Text style={styles.sectionTitre}>{tr("feuilleProduit.choisirTaille")}</Text>
+                {produit.tailles.map((taille, i) => (
                   <Pressable
-                    key={t.nom}
-                    testID={`taille-${t.nom}`}
+                    key={taille.nom}
+                    testID={`taille-${taille.nom}`}
                     onPress={() => setTailleIndex(i)}
                     style={[styles.option, i === tailleIndex && styles.optionActive]}
                   >
                     <View style={[styles.radio, i === tailleIndex && styles.radioActif]}>
                       {i === tailleIndex ? <View style={styles.radioPoint} /> : null}
                     </View>
-                    <Text style={styles.optionNom}>{t.nom}</Text>
+                    <Text style={styles.optionNom}>{traduireContenuCatalogue(taille.nom, tr)}</Text>
                     <Text style={styles.optionPrix}>
-                      {t.ecart > 0 ? `+ ${usd(t.ecart)}` : "Inclus"}
+                      {taille.ecart > 0 ? `+ ${prix(taille.ecart)}` : tr("feuilleProduit.inclus")}
                     </Text>
                   </Pressable>
                 ))}
@@ -135,7 +142,7 @@ export function FeuilleProduit({
 
             {produit.garnitures.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitre}>Garnitures</Text>
+                <Text style={styles.sectionTitre}>{tr("feuilleProduit.garnitures")}</Text>
                 {produit.garnitures.map((g) => {
                   const coche = garnituresChoisies.includes(g.nom);
                   return (
@@ -150,8 +157,8 @@ export function FeuilleProduit({
                       <View style={[styles.checkbox, coche && styles.checkboxActif]}>
                         {coche ? <Icone name="check" size={14} color={colors.onBrandPrimary} /> : null}
                       </View>
-                      <Text style={styles.optionNom}>{g.nom}</Text>
-                      <Text style={styles.optionPrix}>+ {usd(g.prix)}</Text>
+                      <Text style={styles.optionNom}>{traduireContenuCatalogue(g.nom, tr)}</Text>
+                      <Text style={styles.optionPrix}>{tr("feuilleProduit.plus", { prix: prix(g.prix) })}</Text>
                     </Pressable>
                   );
                 })}
@@ -159,7 +166,7 @@ export function FeuilleProduit({
             ) : null}
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitre}>Quantité</Text>
+              <Text style={styles.sectionTitre}>{tr("feuilleProduit.quantite")}</Text>
               <View style={styles.quantiteRow}>
                 <Pressable
                   testID="btn-quantite-moins"
@@ -181,7 +188,7 @@ export function FeuilleProduit({
           <View style={styles.cta}>
             <Bouton
               testID="btn-ajouter-panier"
-              label={`Ajouter au panier · ${usd(prixUnitaire * quantite)}`}
+              label={tr("feuilleProduit.ajouterPanier", { total: prix(prixUnitaire * quantite) })}
               icone="shopping-bag"
               onPress={ajouter}
             />

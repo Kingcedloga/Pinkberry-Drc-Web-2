@@ -120,7 +120,7 @@ const CONDITIONS_FR: DocLegal = {
     {
       titre: "3. Règles de commande",
       paragraphes: [
-        "Les produits sont proposés dans la limite des stocks disponibles ; un produit indisponible est signalé dans le catalogue. Les prix sont affichés en dollars américains, avec l'équivalent indicatif en francs congolais calculé au taux paramétré par la boutique.",
+        "Les produits sont proposés dans la limite des stocks disponibles ; un produit indisponible est signalé dans le catalogue. Les prix sont affichés en francs congolais, avec l'équivalent indicatif en dollars américains calculé au taux paramétré par la boutique.",
         "Des frais de livraison s'ajoutent au sous-total et sont affichés avant la validation. Une adresse complète avec point de repère est obligatoire : une adresse imprécise peut entraîner un retard ou l'annulation de la livraison.",
         "Les délais de livraison annoncés (25 à 45 minutes en moyenne) sont indicatifs et dépendent du trafic et des conditions météorologiques.",
       ],
@@ -278,7 +278,7 @@ const CONDITIONS_EN: DocLegal = {
     {
       titre: "3. Ordering rules",
       paragraphes: [
-        "Products are offered while stocks last; unavailable products are flagged in the catalogue. Prices are shown in US dollars with an indicative Congolese franc equivalent based on the rate set by the shop.",
+        "Products are offered while stocks last; unavailable products are flagged in the catalogue. Prices are shown in Congolese francs with an indicative US dollar equivalent based on the rate set by the shop.",
         "Delivery fees are added to the subtotal and displayed before you confirm. A complete address with a landmark is mandatory: an imprecise address may cause a delay or a cancelled delivery.",
         "Announced delivery times (25 to 45 minutes on average) are indicative and depend on traffic and weather.",
       ],
