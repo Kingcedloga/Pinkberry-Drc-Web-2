@@ -1,6 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
-import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -69,6 +69,7 @@ export default function Dashboard() {
   const qc = useQueryClient();
   const { usd, fc, prix } = useMontant();
   const { t } = useLangue();
+  const libelle = useLibelle();
   const { bureau } = useEcran();
   const [ouverte, setOuverte] = useState<any>(null);
   const [filtreStatut, setFiltreStatut] = useState("tous");
@@ -244,7 +245,7 @@ export default function Dashboard() {
                         <Text style={styles.rangTexte}>{i + 1}</Text>
                       </View>
                       <Text style={styles.topNom} numberOfLines={1}>
-                        {traduireContenuCatalogue(p.nom, t)}
+                        {libelle(p.nom, p.nomEn)}
                       </Text>
                       <Text style={styles.topQte}>×{p.quantite}</Text>
                       <Text style={styles.topMontant}>{prix(p.montant)}</Text>
@@ -498,8 +499,8 @@ export default function Dashboard() {
                 <Text style={styles.blocTitre}>{t("admin.articles")}</Text>
                 {ouverte?.items?.map((i: any, idx: number) => (
                   <Text key={idx} style={styles.blocTexte}>
-                    {i.quantite}× {traduireContenuCatalogue(i.nom, t)}{" "}
-                    {i.taille ? `(${traduireContenuCatalogue(i.taille, t)})` : ""} — {prix(i.prixUnitaire * i.quantite)}
+                    {i.quantite}× {libelle(i.nom, i.nomEn)}{" "}
+                    {i.taille ? `(${libelle(i.taille, i.tailleEn)})` : ""} — {prix(i.prixUnitaire * i.quantite)}
                   </Text>
                 ))}
                 <Text style={styles.blocTotal}>{t("admin.totalCash", { montant: prix(ouverte?.total ?? 0) })}</Text>

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
-import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { ArticlePanier, Garniture } from "@/src/panier";
 import { LARGEUR_FEUILLE, useEcran } from "@/src/reactif";
@@ -15,14 +15,17 @@ import { useMontant } from "@/src/taux";
 export type Produit = {
   id: string;
   nom: string;
+  nomEn?: string | null;
   categorie: string;
+  categorieEn?: string | null;
   prix: number;
   image?: string | null;
   emoji?: string | null;
   description?: string | null;
+  descriptionEn?: string | null;
   disponible: boolean;
   enAvant?: boolean;
-  tailles: { nom: string; ecart: number }[];
+  tailles: { nom: string; ecart: number; nomEn?: string | null }[];
   garnitures: Garniture[];
 };
 
@@ -40,6 +43,7 @@ export function FeuilleProduit({
   const insets = useSafeAreaInsets();
   const { bureau } = useEcran();
   const tr = useT();
+  const libelle = useLibelle();
   const { usd, fc, prix } = useMontant();
   const [tailleIndex, setTailleIndex] = useState(0);
   const [garnituresChoisies, setGarnitures] = useState<string[]>([]);
@@ -66,7 +70,9 @@ export function FeuilleProduit({
     onAjouter({
       produitId: produit.id,
       nom: produit.nom,
+      nomEn: produit.nomEn,
       taille: produit.tailles[tailleIndex]?.nom ?? null,
+      tailleEn: produit.tailles[tailleIndex]?.nomEn ?? null,
       garnitures: produit.garnitures.filter((g) => garnituresChoisies.includes(g.nom)),
       quantite,
       prixUnitaire,
@@ -105,12 +111,12 @@ export function FeuilleProduit({
               <PhotoProduit image={produit.image} taille={96} rayon={radius.lg} />
               <View style={styles.enteteTexte}>
                 <Text testID="feuille-nom-produit" style={styles.nom}>
-                  {traduireContenuCatalogue(produit.nom, tr)}
+                  {libelle(produit.nom, produit.nomEn)}
                 </Text>
                 <Text style={styles.desc}>
                   {produit.description
-                    ? traduireContenuCatalogue(produit.description, tr)
-                    : traduireContenuCatalogue(produit.categorie, tr)}
+                    ? libelle(produit.description, produit.descriptionEn)
+                    : libelle(produit.categorie, produit.categorieEn)}
                 </Text>
                 <Text style={styles.prixBase}>
                   {fc(produit.prix)} ≈ {usd(produit.prix)}
@@ -131,7 +137,7 @@ export function FeuilleProduit({
                     <View style={[styles.radio, i === tailleIndex && styles.radioActif]}>
                       {i === tailleIndex ? <View style={styles.radioPoint} /> : null}
                     </View>
-                    <Text style={styles.optionNom}>{traduireContenuCatalogue(taille.nom, tr)}</Text>
+                    <Text style={styles.optionNom}>{libelle(taille.nom, taille.nomEn)}</Text>
                     <Text style={styles.optionPrix}>
                       {taille.ecart > 0 ? `+ ${prix(taille.ecart)}` : tr("feuilleProduit.inclus")}
                     </Text>
@@ -157,7 +163,7 @@ export function FeuilleProduit({
                       <View style={[styles.checkbox, coche && styles.checkboxActif]}>
                         {coche ? <Icone name="check" size={14} color={colors.onBrandPrimary} /> : null}
                       </View>
-                      <Text style={styles.optionNom}>{traduireContenuCatalogue(g.nom, tr)}</Text>
+                      <Text style={styles.optionNom}>{libelle(g.nom, g.nomEn)}</Text>
                       <Text style={styles.optionPrix}>{tr("feuilleProduit.plus", { prix: prix(g.prix) })}</Text>
                     </Pressable>
                   );

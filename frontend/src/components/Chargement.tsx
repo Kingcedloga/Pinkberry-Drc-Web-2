@@ -37,7 +37,7 @@ export function Chargement({
   return (
     <View testID={testID} style={styles.bloc}>
       <Animated.View style={{ transform: [{ rotate: tourne }] }}>
-        <Swirl taille={taille} couleur={colors.brandPrimary} />
+        <Swirl taille={taille} />
       </Animated.View>
       {libelle ? <Text style={styles.libelle}>{libelle}</Text> : null}
     </View>

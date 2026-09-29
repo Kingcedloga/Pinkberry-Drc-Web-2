@@ -1,6 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
-import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -24,6 +24,7 @@ export default function Courses() {
   const { user } = useAuth();
   const toast = useToast();
   const { t } = useLangue();
+  const libelle = useLibelle();
   const qc = useQueryClient();
   const { colonnes } = useEcran();
   const cols = Math.min(colonnes, 3);
@@ -170,7 +171,7 @@ export default function Courses() {
               <View style={styles.carteBas}>
                 <Text style={styles.items} numberOfLines={1}>
                   {item.items
-                    .map((i: any) => `${i.quantite}× ${traduireContenuCatalogue(i.nom, t)}`)
+                    .map((i: any) => `${i.quantite}× ${libelle(i.nom, i.nomEn)}`)
                     .join(", ")}
                 </Text>
                 <Text style={styles.montant}>{prix(item.total)}</Text>

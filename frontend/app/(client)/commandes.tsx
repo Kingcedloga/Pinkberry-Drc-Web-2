@@ -6,7 +6,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { apiFetch } from "@/src/api";
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
-import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { useT, type CleTexte } from "@/src/i18n";
 import { TitrePage } from "@/src/components/TitrePage";
 import { prix } from "@/src/money";
@@ -27,6 +27,7 @@ export default function Commandes() {
   const router = useRouter();
   const toast = useToast();
   const t = useT();
+  const libelle = useLibelle();
   const qc = useQueryClient();
 
   const q = useQuery({
@@ -101,7 +102,7 @@ export default function Commandes() {
                 </View>
                 <Text style={styles.items} numberOfLines={2}>
                   {item.items
-                    .map((i: any) => `${i.quantite}× ${traduireContenuCatalogue(i.nom, t)}`)
+                    .map((i: any) => `${i.quantite}× ${libelle(i.nom, i.nomEn)}`)
                     .join(", ")}
                 </Text>
                 <View style={styles.carteBas}>

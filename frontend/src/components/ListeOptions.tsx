@@ -5,11 +5,11 @@ import { Icone } from "@/src/components/Icone";
 import { useT } from "@/src/i18n";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 
-export type Option = { nom: string; valeur: string };
+export type Option = { nom: string; valeur: string; nomEn?: string };
 
 /**
  * Liste éditable d'options de produit (tailles ou garnitures) : ajout, modification
- * du nom et du montant, suppression ligne par ligne.
+ * du nom (français et anglais) et du montant, suppression ligne par ligne.
  */
 export function ListeOptions({
   titre,
@@ -44,32 +44,42 @@ export function ListeOptions({
         <Text style={styles.vide}>{t("catalogue.aucuneOption")}</Text>
       ) : (
         options.map((o, i) => (
-          <View key={`${cle}-${i}`} style={styles.ligne}>
+          <View key={`${cle}-${i}`} style={styles.option}>
+            <View style={styles.ligne}>
+              <TextInput
+                testID={`input-${cle}-nom-${i}`}
+                value={o.nom}
+                onChangeText={(v) => modifier(i, "nom", v)}
+                placeholder={placeholderNom}
+                placeholderTextColor={colors.muted}
+                style={[styles.saisie, styles.saisieNom]}
+              />
+              <TextInput
+                testID={`input-${cle}-valeur-${i}`}
+                value={o.valeur}
+                onChangeText={(v) => modifier(i, "valeur", v)}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={colors.muted}
+                style={[styles.saisie, styles.saisieMontant]}
+              />
+              <Pressable
+                testID={`btn-supprimer-${cle}-${i}`}
+                onPress={() => onChange(options.filter((_, j) => j !== i))}
+                style={styles.supprimer}
+                hitSlop={8}
+              >
+                <Icone name="trash-2" size={17} color={colors.error} />
+              </Pressable>
+            </View>
             <TextInput
-              testID={`input-${cle}-nom-${i}`}
-              value={o.nom}
-              onChangeText={(v) => modifier(i, "nom", v)}
-              placeholder={placeholderNom}
+              testID={`input-${cle}-nom-en-${i}`}
+              value={o.nomEn ?? ""}
+              onChangeText={(v) => modifier(i, "nomEn", v)}
+              placeholder={t("catalogue.enAnglais")}
               placeholderTextColor={colors.muted}
-              style={[styles.saisie, styles.saisieNom]}
+              style={[styles.saisie, styles.saisieAnglais]}
             />
-            <TextInput
-              testID={`input-${cle}-valeur-${i}`}
-              value={o.valeur}
-              onChangeText={(v) => modifier(i, "valeur", v)}
-              keyboardType="decimal-pad"
-              placeholder="0"
-              placeholderTextColor={colors.muted}
-              style={[styles.saisie, styles.saisieMontant]}
-            />
-            <Pressable
-              testID={`btn-supprimer-${cle}-${i}`}
-              onPress={() => onChange(options.filter((_, j) => j !== i))}
-              style={styles.supprimer}
-              hitSlop={8}
-            >
-              <Icone name="trash-2" size={17} color={colors.error} />
-            </Pressable>
           </View>
         ))
       )}
@@ -96,6 +106,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   aide: { fontFamily: fonts.text, fontSize: 11, color: colors.muted, marginBottom: spacing.xs },
   vide: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+  option: { gap: spacing.xs },
   ligne: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   saisie: {
     backgroundColor: colors.surface,
@@ -110,5 +121,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   saisieNom: { flex: 1 },
   saisieMontant: { width: 86, textAlign: "right" },
+  // Sous le nom français, aligné sur lui (montant + corbeille à droite).
+  saisieAnglais: { minHeight: 38, fontSize: 13, marginRight: 86 + 40 + spacing.sm * 2 },
   supprimer: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
 }));

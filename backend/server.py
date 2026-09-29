@@ -9,6 +9,7 @@ import math
 import os
 import random
 import re
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from html import escape
@@ -29,6 +30,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image
 from pydantic import BaseModel, Field
+from pymongo import ReturnDocument
 from pywebpush import WebPushException, webpush
 from starlette.middleware.cors import CORSMiddleware
 import io
@@ -47,6 +49,8 @@ JWT_DAYS = 30
 EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY")
 EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Pinkberry Drc")
+# Domaine public de la web app : sert les images des emails (logo).
+SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/")
 
 TAUX_FC = float(os.environ.get("TAUX_FC", "2800"))
 FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "2.5"))
@@ -180,11 +184,26 @@ async def send_email(*, to: str, subject: str, html: str) -> Optional[str]:
         return None
 
 
+def _entete_email() -> str:
+    """Logo + nom de marque. Sans SITE_URL (https), le nom seul s'affiche."""
+    logo = (
+        f'<img src="{SITE_URL}/icones/email-logo.png" width="48" height="48" alt="Pinkberry" '
+        'style="display:block;border:0;width:48px;height:48px">'
+        if SITE_URL.startswith("https://") else ""
+    )
+    return (
+        '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr>'
+        f'<td style="padding-right:10px;vertical-align:middle">{logo}</td>'
+        '<td style="vertical-align:middle;font-size:24px;font-weight:bold;color:#E6156F">pinkberry</td>'
+        '</tr></table>'
+    )
+
+
 def _otp_email_html(nom: str, code: str) -> str:
     return (
         '<table role="presentation" width="100%"><tr><td style="padding:24px;'
         'font-family:Arial,sans-serif;color:#2A1721">'
-        f'<h2 style="color:#E6156F;margin:0 0 12px">pinkberry</h2>'
+        f'{_entete_email()}'
         f'<p>Bonjour {escape(nom)},</p>'
         '<p>Voici votre code de verification pour activer votre compte :</p>'
         f'<p style="font-size:32px;letter-spacing:8px;font-weight:bold;color:#E6156F">{escape(code)}</p>'
@@ -316,14 +335,19 @@ class ConnexionIn(BaseModel):
     motDePasse: str
 
 
+# Les libelles saisis par l'admin sont en francais (`nom`, qui sert aussi
+# d'identifiant) ; `nomEn` / `descriptionEn` portent l'anglais, rempli
+# automatiquement a l'enregistrement quand l'admin le laisse vide.
 class Taille(BaseModel):
     nom: str
     ecart: float = 0
+    nomEn: Optional[str] = None
 
 
 class Garniture(BaseModel):
     nom: str
     prix: float = 0
+    nomEn: Optional[str] = None
 
 
 class ProduitIn(BaseModel):
@@ -333,6 +357,8 @@ class ProduitIn(BaseModel):
     image: Optional[str] = None
     emoji: Optional[str] = None
     description: Optional[str] = None
+    nomEn: Optional[str] = None
+    descriptionEn: Optional[str] = None
     disponible: bool = True
     enAvant: bool = False
     tailles: List[Taille] = Field(default_factory=list)
@@ -356,7 +382,7 @@ class ItemIn(BaseModel):
     taille: Optional[str] = None
     garnitures: List[Garniture] = Field(default_factory=list)
     quantite: int = 1
-    prixUnitaire: float
+    prixUnitaire: Optional[float] = None  # ignore : recalcule depuis le catalogue
     emoji: Optional[str] = None
     image: Optional[str] = None
 
@@ -410,6 +436,15 @@ class MotDePasseIn(BaseModel):
 
 class CategorieIn(BaseModel):
     nom: str
+    nomEn: Optional[str] = None
+
+
+class CategorieTraductionIn(BaseModel):
+    nomEn: Optional[str] = None
+
+
+class TraductionIn(BaseModel):
+    textes: List[str] = Field(default_factory=list, max_length=100)
 
 
 class ZoneCreationIn(BaseModel):
@@ -446,7 +481,7 @@ class TelephoneIn(BaseModel):
 
 
 class RegisterPushBody(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None  # ignore : l'utilisateur vient du token
     platform: str
     device_token: str
 
@@ -460,6 +495,33 @@ class BulkIdsIn(BaseModel):
 
 
 # ------------------------------------------------------------------------- auth
+OTP_CHIFFRES = 6
+OTP_MINUTES = 10
+OTP_ESSAIS_MAX = 5
+OTP_DELAI_RENVOI = 60  # secondes entre deux envois pour un meme numero
+
+
+async def emettre_otp(tel: str) -> str:
+    """Nouveau code (compteur d'essais remis a zero). Refuse un renvoi trop rapproche."""
+    precedent = await db.otps.find_one({"telephone": tel}, {"_id": 0, "envoyeAt": 1})
+    limite = iso(now_utc() - timedelta(seconds=OTP_DELAI_RENVOI))
+    if precedent and (precedent.get("envoyeAt") or "") > limite:
+        raise HTTPException(status_code=429, detail="Patientez une minute avant de demander un nouveau code")
+    code = f"{secrets.randbelow(10 ** OTP_CHIFFRES):0{OTP_CHIFFRES}d}"
+    await db.otps.replace_one(
+        {"telephone": tel},
+        {
+            "telephone": tel,
+            "code": code,
+            "essais": 0,
+            "envoyeAt": iso(now_utc()),
+            "expireAt": iso(now_utc() + timedelta(minutes=OTP_MINUTES)),
+        },
+        upsert=True,
+    )
+    return code
+
+
 @api_router.post("/auth/inscription")
 async def inscription(body: InscriptionIn):
     tel = norm_tel(body.telephone)
@@ -473,7 +535,7 @@ async def inscription(body: InscriptionIn):
     existing = await db.users.find_one({"telephone": tel})
     if existing and existing.get("verifie"):
         raise HTTPException(status_code=400, detail="Ce numero est deja utilise")
-    code = f"{random.randint(0, 9999):04d}"
+    code = await emettre_otp(tel)
     doc = {
         "id": existing["id"] if existing else str(uuid.uuid4()),
         "nom": body.nom.strip(),
@@ -485,11 +547,6 @@ async def inscription(body: InscriptionIn):
         "createdAt": iso(now_utc()),
     }
     await db.users.replace_one({"telephone": tel}, doc, upsert=True)
-    await db.otps.replace_one(
-        {"telephone": tel},
-        {"telephone": tel, "code": code, "expireAt": iso(now_utc() + timedelta(minutes=10))},
-        upsert=True,
-    )
     envoye = bool(
         await send_email(
             to=doc["email"],
@@ -497,7 +554,6 @@ async def inscription(body: InscriptionIn):
             html=_otp_email_html(doc["nom"], code),
         )
     )
-    logger.info(f"OTP pour {tel}: {code}")
     reponse = {"ok": True, "telephone": tel, "email": doc["email"], "emailEnvoye": envoye}
     # En production, ne jamais exposer le code OTP dans la reponse API.
     if SEED_DEMO:
@@ -505,18 +561,21 @@ async def inscription(body: InscriptionIn):
     return reponse
 
 
+def compte_a_activer(user: Optional[Dict[str, Any]]) -> bool:
+    """Le code OTP sert uniquement a activer un compte client neuf : jamais de
+    session par OTP pour un compte deja verifie ni pour le personnel."""
+    return bool(user) and not user.get("verifie") and user.get("role", "client") == "client"
+
+
 @api_router.post("/auth/renvoyer-otp")
-async def renvoyer_otp(body: ConnexionIn):
+async def renvoyer_otp(body: TelephoneIn):
     tel = norm_tel(body.telephone)
     user = await db.users.find_one({"telephone": tel}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Compte introuvable")
-    code = f"{random.randint(0, 9999):04d}"
-    await db.otps.replace_one(
-        {"telephone": tel},
-        {"telephone": tel, "code": code, "expireAt": iso(now_utc() + timedelta(minutes=10))},
-        upsert=True,
-    )
+    if not compte_a_activer(user):
+        raise HTTPException(status_code=400, detail="Ce compte est deja verifie, connectez-vous")
+    code = await emettre_otp(tel)
     envoye = False
     if user.get("email"):
         envoye = bool(
@@ -535,14 +594,25 @@ async def renvoyer_otp(body: ConnexionIn):
 @api_router.post("/auth/verifier-otp")
 async def verifier_otp(body: OtpIn):
     tel = norm_tel(body.telephone)
-    otp = await db.otps.find_one({"telephone": tel}, {"_id": 0})
-    if not otp or otp.get("code") != body.code.strip():
+    user = await db.users.find_one({"telephone": tel}, {"_id": 0})
+    if not compte_a_activer(user):
+        raise HTTPException(status_code=400, detail="Code incorrect")
+    # Chaque tentative est comptee avant la comparaison (pas de force brute).
+    otp = await db.otps.find_one_and_update(
+        {"telephone": tel, "essais": {"$not": {"$gte": OTP_ESSAIS_MAX}}},
+        {"$inc": {"essais": 1}},
+        projection={"_id": 0},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not otp:
+        if await db.otps.find_one({"telephone": tel}):
+            await db.otps.delete_one({"telephone": tel})
+            raise HTTPException(status_code=429, detail="Trop de tentatives, demandez un nouveau code")
         raise HTTPException(status_code=400, detail="Code incorrect")
     if otp.get("expireAt") and otp["expireAt"] < iso(now_utc()):
         raise HTTPException(status_code=400, detail="Code expire, demandez un nouveau code")
-    user = await db.users.find_one({"telephone": tel}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="Compte introuvable")
+    if not hmac.compare_digest(str(otp.get("code", "")).encode(), body.code.strip().encode()):
+        raise HTTPException(status_code=400, detail="Code incorrect")
     if user.get("actif") is False:
         raise HTTPException(status_code=403, detail="Compte desactive, contactez le super admin")
     await db.users.update_one({"id": user["id"]}, {"$set": {"verifie": True}})
@@ -835,6 +905,10 @@ async def _mapbox_get(chemin: str, params: Dict[str, Any]) -> httpx.Response:
     return r
 
 
+MODES_CARTE = {"suivi", "choix"}
+COULEUR_HEX = re.compile(r"#[0-9A-Fa-f]{3,8}")
+
+
 @api_router.get("/carte/vue", response_class=HTMLResponse)
 async def carte_vue(
     clat: float,
@@ -854,6 +928,14 @@ async def carte_vue(
     """
     if not MAPBOX_TOKEN:
         raise HTTPException(status_code=503, detail="Cartographie non configuree")
+    # Tout parametre est insere dans le HTML/JS : liste fermee et formats stricts (anti-XSS).
+    if mode not in MODES_CARTE:
+        raise HTTPException(status_code=400, detail="Mode de carte invalide")
+    if not all(COULEUR_HEX.fullmatch(c) for c in (fond, accent, livreurCouleur)):
+        raise HTTPException(status_code=400, detail="Couleur invalide")
+    _verifier_point([clat, clng])
+    if dlat is not None and dlng is not None:
+        _verifier_point([dlat, dlng])
     style = "mapbox://styles/mapbox/dark-v11" if sombre else "mapbox://styles/mapbox/light-v11"
     driver = f"[{dlng},{dlat}]" if dlat is not None and dlng is not None else "null"
     page = f"""<!DOCTYPE html><html><head>
@@ -1380,8 +1462,9 @@ async def pawapay_callback(request: Request):
 
 # --------------------------------------------------- notifications push (relay)
 @api_router.post("/register-push", status_code=201)
-async def register_push(body: RegisterPushBody):
-    resp = await _push_client.post("/api/v1/push/users/register", json=body.model_dump())
+async def register_push(body: RegisterPushBody, user=Depends(get_current_user)):
+    charge = {"user_id": user["id"], "platform": body.platform, "device_token": body.device_token}
+    resp = await _push_client.post("/api/v1/push/users/register", json=charge)
     if resp.status_code == 401:
         raise HTTPException(status_code=500, detail="EMERGENT_PUSH_KEY manquante ou invalide")
     if resp.status_code >= 500:
@@ -1605,7 +1688,7 @@ async def envoyer_webpush(
             "title": titre,
             "body": message,
             "icon": "/icones/icon-192.png",
-            "badge": "/icones/icon-192.png",
+            "badge": "/icones/badge-96.png",
             "url": url,
             "tag": tag or "pinkberry",
         }
@@ -1623,18 +1706,204 @@ async def envoyer_webpush(
     return envoyes
 
 
+# ------------------------------------------------------- traduction du catalogue
+_tache_traductions: Optional[asyncio.Task] = None
+LLM_MODELE_TRADUCTION = os.environ.get("LLM_MODELE_TRADUCTION", "claude-haiku-4-5-20251001")
+
+# Traductions du catalogue de demonstration (reprises de l'ancien dictionnaire
+# du front) : elles amorcent le glossaire sans appel au LLM.
+TRADUCTIONS_DEMO = {
+    "Pots de crème": "Frozen yogurt cups",
+    "Smoothies": "Smoothies",
+    "Toppings": "Toppings",
+    "Boissons": "Drinks",
+    "Pot Original": "Original Cup",
+    "Pot Fraise": "Strawberry Cup",
+    "Pot Mangue": "Mango Cup",
+    "Pot Chocolat": "Chocolate Cup",
+    "Smoothie Fraise-Banane": "Strawberry-Banana Smoothie",
+    "Smoothie Tropical": "Tropical Smoothie",
+    "Granola croustillant": "Crunchy Granola",
+    "Fruits frais coupés": "Fresh-cut Fruit",
+    "Eau minérale 50cl": "Bottled Water 50cl",
+    "Jus d'ananas": "Pineapple Juice",
+    "Le classique pinkberry, yogourt glacé nature et acidulé.": "The classic Pinkberry: tangy, plain frozen yogurt.",
+    "Frozen yogurt à la fraise de saison.": "Seasonal strawberry frozen yogurt.",
+    "Mangue mûre et yogourt glacé onctueux.": "Ripe mango with smooth frozen yogurt.",
+    "Chocolat noir intense.": "Rich dark chocolate.",
+    "Fraise, banane et yogourt.": "Strawberry, banana and yogurt.",
+    "Ananas, mangue, passion.": "Pineapple, mango and passion fruit.",
+    "Portion supplémentaire de granola.": "An extra serving of granola.",
+    "Assortiment de fruits du jour.": "An assortment of today's fresh fruit.",
+    "Bien fraîche.": "Served ice cold.",
+    "Pressé du jour.": "Freshly pressed today.",
+    "Petit": "Small",
+    "Moyen": "Medium",
+    "Grand": "Large",
+    "Fruits frais": "Fresh fruit",
+    "Granola": "Granola",
+    "Coulis fraise": "Strawberry sauce",
+    "Pépites de chocolat": "Chocolate chips",
+    "Mochi": "Mochi",
+}
+
+
+def _texte(v: Any) -> str:
+    return v.strip() if isinstance(v, str) else ""
+
+
+def _champs_traduisibles(p: Dict[str, Any]) -> List[tuple]:
+    """(objet, champ FR, champ EN) de tout ce qui s'affiche d'un produit."""
+    return [
+        (p, "nom", "nomEn"),
+        (p, "description", "descriptionEn"),
+        *[(o, "nom", "nomEn") for o in (p.get("tailles") or []) + (p.get("garnitures") or [])],
+    ]
+
+
+async def glossaire() -> Dict[str, str]:
+    """FR -> EN deja connus : demo, puis catalogue (corrections de l'admin comprises)."""
+    connus = dict(TRADUCTIONS_DEMO)
+    for p in await db.produits.find({}, {"_id": 0}).to_list(500):
+        for o, fr, en in _champs_traduisibles(p):
+            if _texte(o.get(fr)) and _texte(o.get(en)):
+                connus[_texte(o[fr])] = _texte(o[en])
+    for c in await db.categories.find({}, {"_id": 0}).to_list(100):
+        if _texte(c.get("nomEn")):
+            connus[_texte(c["nom"])] = _texte(c["nomEn"])
+    return connus
+
+
+async def _traduire_llm(textes: List[str], exemples: Dict[str, str]) -> Dict[str, str]:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    style = "\n".join(f"- {fr} => {en}" for fr, en in list(exemples.items())[:30] if len(fr) <= 40)
+    chat = LlmChat(
+        api_key=EMERGENT_KEY,
+        session_id=f"traduction-{uuid.uuid4()}",
+        system_message=(
+            "Tu traduis du francais vers l'anglais les libelles du menu d'un bar a frozen yogurt "
+            "(produits, descriptions, categories, tailles, garnitures). Chaque entree est independante : "
+            "traduis-la fidelement, sans rien y ajouter ni reprendre d'une autre entree. Traduction courte "
+            "et naturelle pour une carte ; conserve les noms propres, marques et unites. Reste coherent "
+            f"avec les traductions deja en place :\n{style}\n"
+            'Reponds uniquement par un objet JSON {"<index>": "<traduction>"} reprenant chaque index '
+            "recu, sans autre texte."
+        ),
+    ).with_model("anthropic", LLM_MODELE_TRADUCTION)
+    entree = json.dumps({str(i): t for i, t in enumerate(textes)}, ensure_ascii=False)
+    reponse = await asyncio.wait_for(chat.send_message(UserMessage(text=entree)), timeout=20)
+    donnees = json.loads(reponse[reponse.find("{"): reponse.rfind("}") + 1])
+    return {
+        textes[int(k)]: _texte(v)
+        for k, v in donnees.items()
+        if k.isdigit() and int(k) < len(textes) and _texte(v)
+    }
+
+
+async def traduire_en(textes: List[str]) -> Dict[str, str]:
+    """Traductions anglaises de `textes` : glossaire d'abord, un seul appel LLM
+    pour le reste. Ne leve jamais : un texte non traduit est absent du resultat
+    et le front retombe sur le francais."""
+    uniques = list(dict.fromkeys(_texte(t) for t in textes if _texte(t)))
+    if not uniques:
+        return {}
+    connus = await glossaire()
+    res = {t: connus[t] for t in uniques if t in connus}
+    manquants = [t for t in uniques if t not in res]
+    if manquants and EMERGENT_KEY:
+        try:
+            res.update(await _traduire_llm(manquants, connus))
+        except Exception as e:
+            logger.warning(f"Traduction EN indisponible : {e!r}")
+    return res
+
+
+def _oublier_traductions_perimees(doc: Dict[str, Any], ancien: Dict[str, Any]) -> None:
+    """Un EN renvoye tel quel alors que le FR a change est perime : on le vide
+    pour qu'il soit retraduit. Un EN modifie par l'admin est conserve."""
+    for fr, en in (("nom", "nomEn"), ("description", "descriptionEn")):
+        if _texte(doc.get(fr)) != _texte(ancien.get(fr)) and _texte(doc.get(en)) == _texte(ancien.get(en)):
+            doc[en] = None
+    for cle in ("tailles", "garnitures"):
+        anciennes = ancien.get(cle) or []
+        paires = {(_texte(o.get("nom")), _texte(o.get("nomEn"))) for o in anciennes}
+        anciens_en = {_texte(o.get("nomEn")) for o in anciennes if _texte(o.get("nomEn"))}
+        for o in doc.get(cle) or []:
+            en = _texte(o.get("nomEn"))
+            if en and (_texte(o.get("nom")), en) not in paires and en in anciens_en:
+                o["nomEn"] = None
+
+
+async def completer_traductions_produit(doc: Dict[str, Any], ancien: Optional[Dict[str, Any]] = None) -> None:
+    if ancien:
+        _oublier_traductions_perimees(doc, ancien)
+    champs = _champs_traduisibles(doc)
+    trad = await traduire_en([o.get(fr) for o, fr, en in champs if not _texte(o.get(en))])
+    for o, fr, en in champs:
+        o[en] = _texte(o.get(en)) or trad.get(_texte(o.get(fr))) or None
+
+
+async def traductions_categories() -> Dict[str, Optional[str]]:
+    return {c["nom"]: c.get("nomEn") for c in await db.categories.find({}, {"_id": 0}).to_list(100)}
+
+
+async def traduire_catalogue_existant() -> None:
+    """Complete en tache de fond les traductions manquantes (catalogue saisi
+    avant l'ajout des champs EN)."""
+    try:
+        for p in await db.produits.find({}, {"_id": 0}).to_list(500):
+            if all(_texte(o.get(en)) or not _texte(o.get(fr)) for o, fr, en in _champs_traduisibles(p)):
+                continue
+            await completer_traductions_produit(p)
+            await db.produits.update_one({"id": p["id"]}, {"$set": p})
+        for c in await db.categories.find({"$or": [{"nomEn": None}, {"nomEn": ""}]}, {"_id": 0}).to_list(100):
+            en = (await traduire_en([c["nom"]])).get(_texte(c["nom"]))
+            if en:
+                await db.categories.update_one({"id": c["id"]}, {"$set": {"nomEn": en}})
+        await migrer_traductions_commandes()
+    except Exception as e:
+        logger.warning(f"Traduction du catalogue existant : {e!r}")
+
+
+async def migrer_traductions_commandes() -> None:
+    """Les commandes anterieures aux champs EN recoivent les traductions connues
+    (sans LLM). Idempotent : ne concerne que les lignes sans cle `nomEn`."""
+    connus = await glossaire()
+    async for cmd in db.commandes.find({"items": {"$elemMatch": {"nomEn": {"$exists": False}}}}, {"_id": 0, "id": 1, "items": 1}):
+        for i in cmd["items"]:
+            i["nomEn"] = connus.get(_texte(i.get("nom")))
+            i["tailleEn"] = connus.get(_texte(i.get("taille")))
+            for g in i.get("garnitures") or []:
+                g["nomEn"] = connus.get(_texte(g.get("nom")))
+        await db.commandes.update_one({"id": cmd["id"]}, {"$set": {"items": cmd["items"]}})
+
+
 # --------------------------------------------------------------------- catalogue
 @api_router.get("/produits")
 async def liste_produits():
     items = await db.produits.find({}, {"_id": 0}).to_list(500)
+    categories = await traductions_categories()
+    for p in items:
+        p["categorieEn"] = categories.get(p["categorie"])
     return sorted(items, key=lambda p: (p["categorie"], p["nom"]))
 
 
 @api_router.get("/categories")
-async def liste_categories():
+async def liste_categories(details: bool = False):
     cats = await db.categories.find({}, {"_id": 0}).to_list(100)
+    if details:
+        # Libelles des deux langues ; « Tous » reste un filtre traduit par le front.
+        return sorted(({"nom": c["nom"], "nomEn": c.get("nomEn")} for c in cats), key=lambda c: c["nom"])
     noms = sorted({c["nom"] for c in cats})
     return ["Tous", *noms]
+
+
+@api_router.post("/admin/traduire")
+async def traduire(body: TraductionIn, _=Depends(require_admin)):
+    """Pre-remplissage des champs EN du formulaire (l'admin relit avant d'enregistrer)."""
+    trad = await traduire_en(body.textes)
+    return {"traductions": [trad.get(_texte(t)) for t in body.textes]}
 
 
 @api_router.get("/admin/categories")
@@ -1658,10 +1927,22 @@ async def creer_categorie(body: CategorieIn, _=Depends(require_admin)):
         raise HTTPException(status_code=400, detail="« Tous » est un filtre reserve")
     if await db.categories.find_one({"nom": {"$regex": f"^{re.escape(nom)}$", "$options": "i"}}):
         raise HTTPException(status_code=400, detail="Cette categorie existe deja")
-    doc = {"id": str(uuid.uuid4()), "nom": nom}
+    nom_en = _texte(body.nomEn) or (await traduire_en([nom])).get(nom)
+    doc = {"id": str(uuid.uuid4()), "nom": nom, "nomEn": nom_en}
     await db.categories.insert_one(dict(doc))
     doc["nbProduits"] = 0
     return doc
+
+
+@api_router.put("/admin/categories/{categorie_id}")
+async def traduire_categorie(categorie_id: str, body: CategorieTraductionIn, _=Depends(require_admin)):
+    """Corrige le libelle anglais ; vide, il est retraduit automatiquement."""
+    cat = await db.categories.find_one({"id": categorie_id}, {"_id": 0})
+    if not cat:
+        raise HTTPException(status_code=404, detail="Categorie introuvable")
+    nom_en = _texte(body.nomEn) or (await traduire_en([cat["nom"]])).get(_texte(cat["nom"]))
+    await db.categories.update_one({"id": categorie_id}, {"$set": {"nomEn": nom_en}})
+    return {**cat, "nomEn": nom_en}
 
 
 @api_router.delete("/admin/categories/{categorie_id}")
@@ -1677,6 +1958,7 @@ async def supprimer_categorie(categorie_id: str, _=Depends(require_admin)):
 @api_router.post("/admin/produits")
 async def creer_produit(body: ProduitIn, _=Depends(require_admin)):
     doc = body.model_dump()
+    await completer_traductions_produit(doc)
     doc["id"] = str(uuid.uuid4())
     await db.produits.insert_one(dict(doc))
     return {k: v for k, v in doc.items() if k != "_id"}
@@ -1684,10 +1966,12 @@ async def creer_produit(body: ProduitIn, _=Depends(require_admin)):
 
 @api_router.put("/admin/produits/{produit_id}")
 async def modifier_produit(produit_id: str, body: ProduitIn, _=Depends(require_admin)):
-    doc = body.model_dump()
-    res = await db.produits.update_one({"id": produit_id}, {"$set": doc})
-    if res.matched_count == 0:
+    ancien = await db.produits.find_one({"id": produit_id}, {"_id": 0})
+    if not ancien:
         raise HTTPException(status_code=404, detail="Produit introuvable")
+    doc = body.model_dump()
+    await completer_traductions_produit(doc, ancien)
+    await db.produits.update_one({"id": produit_id}, {"$set": doc})
     return await db.produits.find_one({"id": produit_id}, {"_id": 0})
 
 
@@ -1982,10 +2266,65 @@ async def enrichir_lot(cmds: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [await enrichir(c, livreurs, positions) for c in cmds]
 
 
+QUANTITE_MAX = 50
+LIGNES_MAX = 50
+
+
+async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
+    """Articles reconstruits depuis le catalogue : prix, tailles et garnitures
+    envoyes par le client ne sont jamais crus."""
+    ids = list({i.produitId for i in items})
+    produits = {
+        p["id"]: p for p in await db.produits.find({"id": {"$in": ids}}, {"_id": 0}).to_list(len(ids))
+    }
+    lignes = []
+    for i in items:
+        p = produits.get(i.produitId)
+        if not p:
+            raise HTTPException(status_code=400, detail=f"Produit introuvable : {i.nom}")
+        if not p.get("disponible", True):
+            raise HTTPException(status_code=400, detail=f"{p['nom']} est en rupture de stock")
+        if not 1 <= i.quantite <= QUANTITE_MAX:
+            raise HTTPException(status_code=400, detail=f"Quantite invalide pour {p['nom']}")
+
+        tailles = p.get("tailles") or []
+        taille = None
+        if tailles:
+            taille = next((t for t in tailles if t["nom"] == i.taille), None) if i.taille else tailles[0]
+        if (i.taille or tailles) and taille is None:
+            raise HTTPException(status_code=400, detail=f"Taille invalide pour {p['nom']}")
+
+        offertes = {g["nom"]: g for g in p.get("garnitures") or []}
+        noms = list(dict.fromkeys(g.nom for g in i.garnitures))
+        if any(n not in offertes for n in noms):
+            raise HTTPException(status_code=400, detail=f"Garniture invalide pour {p['nom']}")
+        garnitures = [
+            {"nom": n, "prix": float(offertes[n].get("prix", 0)), "nomEn": offertes[n].get("nomEn")} for n in noms
+        ]
+
+        prix = float(p["prix"]) + float((taille or {}).get("ecart", 0)) + sum(g["prix"] for g in garnitures)
+        lignes.append({
+            "produitId": p["id"],
+            "nom": p["nom"],
+            "nomEn": p.get("nomEn"),
+            "taille": taille["nom"] if taille else None,
+            "tailleEn": taille.get("nomEn") if taille else None,
+            "garnitures": garnitures,
+            "quantite": i.quantite,
+            "prixUnitaire": round(prix, 2),
+            "emoji": p.get("emoji"),
+            "image": p.get("image"),
+        })
+    return lignes
+
+
 @api_router.post("/commandes")
 async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
     if not body.items:
         raise HTTPException(status_code=400, detail="Le panier est vide")
+    if len(body.items) > LIGNES_MAX:
+        raise HTTPException(status_code=400, detail="Trop d'articles dans le panier")
+    items = await lignes_du_catalogue(body.items)
     zone = await db.zones.find_one({"commune": body.adresse.commune}, {"_id": 0})
     if not zone or not zone.get("active"):
         raise HTTPException(status_code=400, detail=f"Nous ne livrons pas encore a {body.adresse.commune}")
@@ -2004,7 +2343,6 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
         adresse["lat"], adresse["lng"] = -4.325, 15.322
     await db.adresses.replace_one({"userId": user["id"], "label": adresse["label"]}, dict(adresse), upsert=True)
 
-    items = [i.model_dump() for i in body.items]
     sous_total = sum(i["prixUnitaire"] * i["quantite"] for i in items)
     numero = f"PB-{random.randint(1000, 9999)}"
     cmd = {
@@ -2103,12 +2441,25 @@ async def client_masquer(cmd_id: str, user=Depends(get_current_user)):
     return {"ok": True}
 
 
+def est_admin(user: Dict[str, Any]) -> bool:
+    return niveau(user.get("role")) >= NIVEAUX["admin"]
+
+
+def peut_voir_commande(cmd: Dict[str, Any], user: Dict[str, Any]) -> bool:
+    """Admin : tout. Livreur : ses courses assignees. Sinon : ses propres commandes."""
+    if est_admin(user):
+        return True
+    if user.get("role") == "livreur" and user.get("livreurId") and cmd.get("livreurId") == user["livreurId"]:
+        return True
+    return cmd.get("userId") == user["id"]
+
+
 @api_router.get("/commandes/{cmd_id}")
 async def detail_commande(cmd_id: str, user=Depends(get_current_user)):
     cmd = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
     if not cmd:
         raise HTTPException(status_code=404, detail="Commande introuvable")
-    if user.get("role") == "client" and cmd["userId"] != user["id"]:
+    if not peut_voir_commande(cmd, user):
         raise HTTPException(status_code=403, detail="Acces refuse")
     return await enrichir(cmd)
 
@@ -2116,7 +2467,8 @@ async def detail_commande(cmd_id: str, user=Depends(get_current_user)):
 @api_router.post("/commandes/{cmd_id}/annuler")
 async def annuler_commande(cmd_id: str, user=Depends(get_current_user)):
     cmd = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
-    if not cmd or (user.get("role") == "client" and cmd["userId"] != user["id"]):
+    # Annulation : le client proprietaire ou un admin, jamais un livreur.
+    if not cmd or not (est_admin(user) or cmd["userId"] == user["id"]):
         raise HTTPException(status_code=404, detail="Commande introuvable")
     if cmd["statut"] in ("en_route", "livree", "annulee"):
         raise HTTPException(status_code=400, detail="Cette commande ne peut plus etre annulee")
@@ -2930,9 +3282,13 @@ async def seed():
     for nom in sorted({p["categorie"] for p in await db.produits.find({}, {"_id": 0, "categorie": 1}).to_list(500)}):
         await db.categories.update_one(
             {"nom": nom},
-            {"$setOnInsert": {"id": str(uuid.uuid4()), "nom": nom}},
+            {"$setOnInsert": {"id": str(uuid.uuid4()), "nom": nom, "nomEn": TRADUCTIONS_DEMO.get(nom)}},
             upsert=True,
         )
+    # Traductions EN manquantes (glossaire puis LLM) : sans bloquer le demarrage.
+    # Reference gardee : asyncio ne retient que faiblement les taches.
+    global _tache_traductions
+    _tache_traductions = asyncio.create_task(traduire_catalogue_existant())
 
     # super admin unique : le compte Google du proprietaire
     promu = await db.users.update_one(

@@ -8,7 +8,7 @@ import { apiFetch } from "@/src/api";
 import { Chargement } from "@/src/components/Chargement";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
-import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { useT, type CleTexte } from "@/src/i18n";
 import { prix } from "@/src/money";
 import { LARGEUR_CONTENU } from "@/src/reactif";
@@ -22,6 +22,7 @@ export default function ArchivesClient() {
   const router = useRouter();
   const toast = useToast();
   const t = useT();
+  const libelle = useLibelle();
   const qc = useQueryClient();
   const [aSupprimer, setASupprimer] = useState<any | null>(null);
 
@@ -93,7 +94,7 @@ export default function ArchivesClient() {
               <Text style={styles.statut}>{t(`statut.${item.statut}` as CleTexte)}</Text>
               <Text style={styles.items} numberOfLines={2}>
                 {item.items
-                  .map((i: any) => `${i.quantite}× ${traduireContenuCatalogue(i.nom, t)}`)
+                  .map((i: any) => `${i.quantite}× ${libelle(i.nom, i.nomEn)}`)
                   .join(", ")}
               </Text>
               <View style={styles.actions}>

@@ -2,6 +2,8 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
+import { obtenirToken } from "@/src/api";
+
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export type EtatPush = {
@@ -22,12 +24,13 @@ export async function etatPush(): Promise<EtatPush> {
 /** Envoie le token natif du device au backend. Les tokens tournent : à rappeler
  *  à chaque retour au premier plan. Ne bloque jamais le reste de l'app. */
 export async function enregistrerToken(userId: string): Promise<boolean> {
-  if (Platform.OS === "web" || !Device.isDevice) return false;
+  const session = obtenirToken();
+  if (Platform.OS === "web" || !Device.isDevice || !session) return false;
   try {
     const token = await Notifications.getDevicePushTokenAsync();
     const res = await fetch(`${BASE}/api/register-push`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session}` },
       body: JSON.stringify({ user_id: userId, platform: Platform.OS, device_token: token.data }),
     });
     return res.ok;

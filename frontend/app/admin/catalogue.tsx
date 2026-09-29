@@ -24,7 +24,7 @@ import { apiFetch, apiUpload } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
-import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { prix } from "@/src/money";
 import { TitrePage } from "@/src/components/TitrePage";
@@ -37,19 +37,25 @@ import { useToast } from "@/src/toast";
 const TAILLE_MAX = 5 * 1024 * 1024;
 const FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
-const CATEGORIES_VIDES: { id: string; nom: string; nbProduits: number }[] = [];
-const TAILLES = (t: (cle: string, vars?: Record<string, string | number>) => string) => [
-  { nom: t("catalogue.petit"), ecart: 0 },
-  { nom: t("catalogue.moyen"), ecart: 1.5 },
-  { nom: t("catalogue.grand"), ecart: 3.0 },
+type CategorieAdmin = { id: string; nom: string; nomEn?: string | null; nbProduits: number };
+
+const CATEGORIES_VIDES: CategorieAdmin[] = [];
+// Options proposées pour un nouveau produit. Le nom français fait foi (il sert
+// d'identifiant aux commandes) quelle que soit la langue de l'interface.
+const TAILLES = [
+  { nom: "Petit", nomEn: "Small", ecart: 0 },
+  { nom: "Moyen", nomEn: "Medium", ecart: 1.5 },
+  { nom: "Grand", nomEn: "Large", ecart: 3.0 },
 ];
-const GARNITURES = (t: (cle: string, vars?: Record<string, string | number>) => string) => [
-  { nom: t("catalogue.fruitsFrais"), prix: 1.0 },
-  { nom: t("catalogue.granola"), prix: 0.75 },
-  { nom: t("catalogue.coulisFraise"), prix: 0.5 },
-  { nom: t("catalogue.pepitesChocolat"), prix: 0.75 },
-  { nom: t("catalogue.mochi"), prix: 1.25 },
+const GARNITURES = [
+  { nom: "Fruits frais", nomEn: "Fresh fruit", prix: 1.0 },
+  { nom: "Granola", nomEn: "Granola", prix: 0.75 },
+  { nom: "Coulis fraise", nomEn: "Strawberry sauce", prix: 0.5 },
+  { nom: "Pépites de chocolat", nomEn: "Chocolate chips", prix: 0.75 },
+  { nom: "Mochi", nomEn: "Mochi", prix: 1.25 },
 ];
+
+const vide = (v?: string | null) => !v?.trim();
 
 const nombre = (v: string) => {
   const n = parseFloat((v || "0").replace(",", "."));
@@ -59,13 +65,14 @@ const nombre = (v: string) => {
 export default function Catalogue() {
   useTheme();
   const t = useT();
+  const libelle = useLibelle();
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<any[]>("/produits") });
   const categoriesQ = useQuery({
     queryKey: ["admin-categories"],
-    queryFn: () => apiFetch<{ id: string; nom: string; nbProduits: number }[]>("/admin/categories"),
+    queryFn: () => apiFetch<CategorieAdmin[]>("/admin/categories"),
   });
   const categories = categoriesQ.data ?? CATEGORIES_VIDES;
   const { taux, fc, usd } = useMontant();
@@ -80,22 +87,28 @@ export default function Catalogue() {
     const texte = recherche.trim().toLowerCase();
     return (q.data ?? []).filter(
       (p: any) =>
-        !texte || p.nom.toLowerCase().includes(texte) || String(p.categorie ?? "").toLowerCase().includes(texte),
+        !texte ||
+        [p.nom, p.nomEn, p.categorie, p.categorieEn].some((v) => String(v ?? "").toLowerCase().includes(texte)),
     );
   }, [q.data, recherche]);
   const selection = useListeSelection(produits.map((p: any) => p.id));
   const [confirmerSuppressionMultiple, setConfirmerSuppressionMultiple] = useState(false);
   const [nouvelleCat, setNouvelleCat] = useState("");
-  const [catASupprimer, setCatASupprimer] = useState<{ id: string; nom: string; nbProduits: number } | null>(null);
+  const [catASupprimer, setCatASupprimer] = useState<CategorieAdmin | null>(null);
+  // Libellés anglais des catégories en cours de saisie (id -> texte).
+  const [categoriesEn, setCategoriesEn] = useState<Record<string, string>>({});
 
   const [edition, setEdition] = useState<any>(null);
   const [nom, setNom] = useState("");
+  const [nomEn, setNomEn] = useState("");
   const [categorie, setCategorie] = useState("");
   const [prixTexte, setPrixTexte] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [apercuLocal, setApercuLocal] = useState<string | null>(null);
   const [envoiPhoto, setEnvoiPhoto] = useState(false);
   const [description, setDescription] = useState("");
+  const [descriptionEn, setDescriptionEn] = useState("");
+  const [traduction, setTraduction] = useState(false);
   const [disponible, setDisponible] = useState(true);
   const [enAvant, setEnAvant] = useState(false);
   const [tailles, setTailles] = useState<Option[]>([]);
@@ -104,22 +117,24 @@ export default function Catalogue() {
   const ouvrir = (p: any | null) => {
     setEdition(p ?? { nouveau: true });
     setNom(p?.nom ?? "");
+    setNomEn(p?.nomEn ?? "");
     setCategorie(p?.categorie ?? categories[0]?.nom ?? "");
     setPrixTexte(p ? String(p.prix * taux) : "");
     setImage(p?.image ?? null);
     setApercuLocal(null);
     setDescription(p?.description ?? "");
+    setDescriptionEn(p?.descriptionEn ?? "");
     setDisponible(p?.disponible ?? true);
     setEnAvant(p?.enAvant ?? false);
     setTailles(
       p
-        ? (p.tailles ?? []).map((t: any) => ({ nom: t.nom, valeur: String((t.ecart ?? 0) * taux) }))
-        : TAILLES(t).map((taille) => ({ nom: taille.nom, valeur: String(taille.ecart * taux) })),
+        ? (p.tailles ?? []).map((t: any) => ({ nom: t.nom, nomEn: t.nomEn ?? "", valeur: String((t.ecart ?? 0) * taux) }))
+        : TAILLES.map((taille) => ({ nom: taille.nom, nomEn: taille.nomEn, valeur: String(taille.ecart * taux) })),
     );
     setGarnitures(
       p
-        ? (p.garnitures ?? []).map((g: any) => ({ nom: g.nom, valeur: String((g.prix ?? 0) * taux) }))
-        : GARNITURES(t).map((garniture) => ({ nom: garniture.nom, valeur: String(garniture.prix * taux) })),
+        ? (p.garnitures ?? []).map((g: any) => ({ nom: g.nom, nomEn: g.nomEn ?? "", valeur: String((g.prix ?? 0) * taux) }))
+        : GARNITURES.map((garniture) => ({ nom: garniture.nom, nomEn: garniture.nomEn, valeur: String(garniture.prix * taux) })),
     );
   };
 
@@ -187,6 +202,40 @@ export default function Catalogue() {
     }
   };
 
+  // Remplit les champs anglais vides pour relecture ; une saisie de l'admin n'est
+  // jamais écrasée. Les champs encore vides seront traduits à l'enregistrement.
+  const traduireFormulaire = async () => {
+    const textes = [
+      vide(nomEn) ? nom : "",
+      vide(descriptionEn) ? description : "",
+      ...tailles.map((o) => (vide(o.nomEn) ? o.nom : "")),
+      ...garnitures.map((o) => (vide(o.nomEn) ? o.nom : "")),
+    ];
+    if (textes.every((texte) => vide(texte))) return;
+    setTraduction(true);
+    try {
+      const { traductions } = await apiFetch<{ traductions: (string | null)[] }>("/admin/traduire", {
+        method: "POST",
+        body: { textes },
+      });
+      if (!traductions.some(Boolean)) {
+        toast.show(t("catalogue.traductionIndisponible"), "erreur");
+        return;
+      }
+      const [enNom, enDescription, ...enOptions] = traductions;
+      const completer = (valeur: string | undefined, trad?: string | null) => (vide(valeur) && trad) || valeur || "";
+      const nbTailles = tailles.length;
+      setNomEn((v) => completer(v, enNom));
+      setDescriptionEn((v) => completer(v, enDescription));
+      setTailles((liste) => liste.map((o, i) => ({ ...o, nomEn: completer(o.nomEn, enOptions[i]) })));
+      setGarnitures((liste) => liste.map((o, i) => ({ ...o, nomEn: completer(o.nomEn, enOptions[nbTailles + i]) })));
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    } finally {
+      setTraduction(false);
+    }
+  };
+
   const enregistrer = async () => {
     const prixFC = parseFloat(prixTexte.replace(",", "."));
     if (!nom.trim() || isNaN(prixFC) || prixFC < 0) {
@@ -196,19 +245,29 @@ export default function Catalogue() {
     const prixUSD = Math.round((prixFC / taux) * 100) / 100;
     const body = {
       nom,
+      nomEn: nomEn.trim() || null,
       categorie,
       prix: prixUSD,
       emoji: null,
       image,
       description,
+      descriptionEn: descriptionEn.trim() || null,
       disponible,
       enAvant,
       tailles: tailles
         .filter((t) => t.nom.trim())
-        .map((t) => ({ nom: t.nom.trim(), ecart: Math.round((nombre(t.valeur) / taux) * 100) / 100 })),
+        .map((t) => ({
+          nom: t.nom.trim(),
+          nomEn: t.nomEn?.trim() || null,
+          ecart: Math.round((nombre(t.valeur) / taux) * 100) / 100,
+        })),
       garnitures: garnitures
         .filter((g) => g.nom.trim())
-        .map((g) => ({ nom: g.nom.trim(), prix: Math.round((nombre(g.valeur) / taux) * 100) / 100 })),
+        .map((g) => ({
+          nom: g.nom.trim(),
+          nomEn: g.nomEn?.trim() || null,
+          prix: Math.round((nombre(g.valeur) / taux) * 100) / 100,
+        })),
     };
     try {
       if (edition?.nouveau) await apiFetch("/admin/produits", { method: "POST", body });
@@ -255,6 +314,22 @@ export default function Catalogue() {
       qc.invalidateQueries({ queryKey: ["categories"] });
       setNouvelleCat("");
       toast.show(t("catalogue.categorieAjoutee", { nom: nomCat }), "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
+  const enregistrerCategorieEn = async (c: CategorieAdmin) => {
+    const saisie = categoriesEn[c.id];
+    if (saisie === undefined || saisie.trim() === (c.nomEn ?? "")) return;
+    try {
+      // Vide, le libellé est retraduit automatiquement par le serveur.
+      await apiFetch(`/admin/categories/${c.id}`, { method: "PUT", body: { nomEn: saisie.trim() || null } });
+      await qc.invalidateQueries({ queryKey: ["admin-categories"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      qc.invalidateQueries({ queryKey: ["produits"] });
+      setCategoriesEn(({ [c.id]: _, ...reste }) => reste);
+      toast.show(t("catalogue.traductionEnregistree"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -398,11 +473,11 @@ export default function Catalogue() {
                 <View style={[styles.colProduit, styles.cellProduit]}>
                   <PhotoProduit image={item.image} taille={44} rayon={radius.md} />
                   <Text style={styles.nom} numberOfLines={1}>
-                    {traduireContenuCatalogue(item.nom, t)}
+                    {libelle(item.nom, item.nomEn)}
                   </Text>
                 </View>
                 <Text style={[styles.cat, styles.colCategorie]}>
-                  {traduireContenuCatalogue(item.categorie, t)}
+                  {libelle(item.categorie, item.categorieEn)}
                 </Text>
                 <Text style={[styles.prix, styles.colPrix]}>{prix(item.prix)}</Text>
                 <View style={[styles.colEtat, styles.cellEtat]}>
@@ -431,8 +506,8 @@ export default function Catalogue() {
                 />
                 <PhotoProduit image={item.image} taille={56} rayon={radius.md} />
                 <View style={styles.texte}>
-                  <Text style={styles.nom}>{traduireContenuCatalogue(item.nom, t)}</Text>
-                  <Text style={styles.cat}>{traduireContenuCatalogue(item.categorie, t)}</Text>
+                  <Text style={styles.nom}>{libelle(item.nom, item.nomEn)}</Text>
+                  <Text style={styles.cat}>{libelle(item.categorie, item.categorieEn)}</Text>
                   <Text style={styles.prix}>{prix(item.prix)}</Text>
                   {!item.disponible ? <Text style={styles.rupture}>{t("catalogue.rupture")}</Text> : null}
                   {item.enAvant ? <Text style={styles.enAvant}>⭐ {t("catalogue.recommande")}</Text> : null}
@@ -490,8 +565,28 @@ export default function Catalogue() {
               </View>
 
               <Champ label={t("params.nom")} testID="input-produit-nom" value={nom} onChangeText={setNom} />
+              <Champ label={t("catalogue.nomAnglais")} testID="input-produit-nom-en" value={nomEn} onChangeText={setNomEn} />
               <Champ label={t("catalogue.prix")} testID="input-produit-prix" value={prixTexte} onChangeText={setPrixTexte} keyboardType="decimal-pad" />
               <Champ label={t("catalogue.description")} testID="input-produit-description" value={description} onChangeText={setDescription} multiline />
+              <Champ
+                label={t("catalogue.descriptionAnglais")}
+                testID="input-produit-description-en"
+                value={descriptionEn}
+                onChangeText={setDescriptionEn}
+                multiline
+              />
+              <View style={styles.traductionBloc}>
+                <Text style={[styles.photoAide, styles.texte]}>{t("catalogue.traductionAuto")}</Text>
+                <Bouton
+                  testID="btn-traduire-produit"
+                  label={t("catalogue.traduire")}
+                  icone="languages"
+                  variant="secondaire"
+                  petit
+                  loading={traduction}
+                  onPress={traduireFormulaire}
+                />
+              </View>
 
               <Text style={styles.label}>{t("catalogue.categorie")}</Text>
               <View style={styles.chipsRow}>
@@ -503,7 +598,7 @@ export default function Catalogue() {
                     style={[styles.chip, categorie === c.nom && styles.chipActif]}
                   >
                     <Text style={[styles.chipTexte, categorie === c.nom && { color: colors.onBrandPrimary }]}>
-                      {traduireContenuCatalogue(c.nom, t)}
+                      {libelle(c.nom, c.nomEn)}
                     </Text>
                   </Pressable>
                 ))}
@@ -592,7 +687,7 @@ export default function Catalogue() {
                 <View style={styles.alerte}>
                   <Text style={styles.alerteTexte}>
                     {t("catalogue.supprimerCategorieQuestion", {
-                      nom: traduireContenuCatalogue(catASupprimer.nom, t),
+                      nom: libelle(catASupprimer.nom, catASupprimer.nomEn),
                     })}{" "}
                     {catASupprimer.nbProduits > 0
                       ? t("catalogue.produitsCategorieSupprimes", { n: catASupprimer.nbProduits })
@@ -616,7 +711,18 @@ export default function Catalogue() {
               <View testID="liste-categories">
                 {categories.map((c) => (
                   <View key={c.id} testID={`categorie-${c.nom}`} style={styles.ligneCat}>
-                    <Text style={styles.ligneCatNom}>{traduireContenuCatalogue(c.nom, t)}</Text>
+                    <View style={styles.ligneCatTexte}>
+                      <Text style={styles.ligneCatNom}>{c.nom}</Text>
+                      <TextInput
+                        testID={`input-categorie-en-${c.nom}`}
+                        value={categoriesEn[c.id] ?? c.nomEn ?? ""}
+                        onChangeText={(v) => setCategoriesEn((courant) => ({ ...courant, [c.id]: v }))}
+                        onBlur={() => enregistrerCategorieEn(c)}
+                        placeholder={t("catalogue.enAnglais")}
+                        placeholderTextColor={colors.muted}
+                        style={styles.saisieCategorieEn}
+                      />
+                    </View>
                     <Text style={styles.ligneCatNb}>
                       {c.nbProduits > 1 ? t("catalogue.plusieursProduits", { n: c.nbProduits }) : t("catalogue.unProduit", { n: c.nbProduits })}
                     </Text>
@@ -703,7 +809,19 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  ligneCatNom: { flex: 1, fontFamily: fonts.text, fontSize: 15, color: colors.onSurface },
+  ligneCatTexte: { flex: 1, gap: spacing.xs, paddingVertical: spacing.sm },
+  ligneCatNom: { fontFamily: fonts.text, fontSize: 15, color: colors.onSurface },
+  saisieCategorieEn: {
+    minHeight: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    fontFamily: fonts.text,
+    fontSize: 13,
+    color: colors.onSurface,
+  },
   ligneCatNb: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   alerte: {
     backgroundColor: colors.errorSoft,
@@ -793,6 +911,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   photoBloc: { flexDirection: "row", gap: spacing.lg, alignItems: "center" },
   photoActions: { flex: 1, gap: spacing.sm },
   photoAide: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
+  traductionBloc: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   texte: { flex: 1 },
   nom: { fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   cat: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },

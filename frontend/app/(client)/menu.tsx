@@ -10,7 +10,7 @@ import { Chips } from "@/src/components/Chips";
 import { FeuilleProduit, Produit } from "@/src/components/FeuilleProduit";
 import { Icone } from "@/src/components/Icone";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
-import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { useEcran } from "@/src/reactif";
@@ -19,7 +19,8 @@ import { useMontant } from "@/src/taux";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
-const CATEGORIES_DEFAUT = ["Tous"];
+const TOUS = "Tous";
+const CATEGORIES_VIDES: { nom: string; nomEn?: string | null }[] = [];
 const LARGEUR_PAGE = 1360;
 
 /** Catalogue web : filtres en colonne sur grand écran, grille de produits multi-colonnes. */
@@ -28,21 +29,30 @@ export default function Menu() {
   const router = useRouter();
   const toast = useToast();
   const t = useT();
+  const libelle = useLibelle();
   const { usd, fc, prix } = useMontant();
   const { ajouter, nbArticles, sousTotal } = usePanier();
   const { bureau, large, tablette } = useEcran();
 
   const [recherche, setRecherche] = useState("");
-  const [categorie, setCategorie] = useState("Tous");
+  const [categorie, setCategorie] = useState(TOUS);
   const [produitOuvert, setProduitOuvert] = useState<Produit | null>(null);
 
   const colonnes = large ? 4 : bureau ? 3 : tablette ? 2 : 1;
 
   const produitsQ = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<Produit[]>("/produits") });
-  const categoriesQ = useQuery({ queryKey: ["categories"], queryFn: () => apiFetch<string[]>("/categories") });
+  const categoriesQ = useQuery({
+    queryKey: ["categories", "details"],
+    queryFn: () => apiFetch<{ nom: string; nomEn?: string | null }[]>("/categories?details=true"),
+  });
 
   const produits = useMemo(() => produitsQ.data ?? [], [produitsQ.data]);
-  const categories = categoriesQ.data ?? CATEGORIES_DEFAUT;
+  const detailsCategories = categoriesQ.data ?? CATEGORIES_VIDES;
+  const categories = useMemo(() => [TOUS, ...detailsCategories.map((c) => c.nom)], [detailsCategories]);
+  const nomCategorie = (nom: string) =>
+    nom === TOUS
+      ? t("catalogue.valeurs.toutesCategories")
+      : libelle(nom, detailsCategories.find((c) => c.nom === nom)?.nomEn);
   const enAvant = produits.filter((p) => p.enAvant);
   const rechercheActive = recherche.trim().length > 0;
 
@@ -50,8 +60,9 @@ export default function Menu() {
     const q = recherche.trim().toLowerCase();
     return produits.filter(
       (p) =>
-        (categorie === "Tous" || p.categorie === categorie) &&
-        (!q || p.nom.toLowerCase().includes(q) || p.categorie.toLowerCase().includes(q)),
+        (categorie === TOUS || p.categorie === categorie) &&
+        (!q ||
+          [p.nom, p.nomEn, p.categorie, p.categorieEn].some((texte) => texte?.toLowerCase().includes(q))),
     );
   }, [produits, categorie, recherche]);
 
@@ -87,7 +98,7 @@ export default function Menu() {
           options={categories}
           valeur={categorie}
           onChange={setCategorie}
-          labelOption={(option) => traduireContenuCatalogue(option, t)}
+          labelOption={nomCategorie}
         />
       ) : null}
 
@@ -97,7 +108,7 @@ export default function Menu() {
 
       <View style={styles.titreListe}>
         <Text style={styles.sectionTitre}>
-          {categorie === "Tous" ? t("accueil.notreCarte") : traduireContenuCatalogue(categorie, t)}
+          {categorie === TOUS ? t("accueil.notreCarte") : nomCategorie(categorie)}
         </Text>
         <Text style={styles.compteur}>
           {t(filtres.length === 1 ? "accueil.unProduit" : "accueil.plusieursProduits", { n: filtres.length })}
@@ -142,9 +153,9 @@ export default function Menu() {
             <PhotoProduit image={item.image} taille={colonnes > 1 ? 150 : 76} />
             <View style={[styles.carteTexte, colonnes > 1 && styles.carteTexteGrille]}>
               <Text style={styles.produitNom} numberOfLines={1}>
-                {traduireContenuCatalogue(item.nom, t)}
+                {libelle(item.nom, item.nomEn)}
               </Text>
-              <Text style={styles.produitCat}>{traduireContenuCatalogue(item.categorie, t)}</Text>
+              <Text style={styles.produitCat}>{libelle(item.categorie, item.categorieEn)}</Text>
               <Text style={styles.produitPrix}>
                 {fc(item.prix)} <Text style={styles.produitFc}>≈ {usd(item.prix)}</Text>
               </Text>
@@ -191,7 +202,7 @@ export default function Menu() {
                   ]}
                 >
                   <Text style={[styles.filtreTexte, actif && { color: colors.onBrandPrimary }]}>
-                    {traduireContenuCatalogue(c, t)}
+                    {nomCategorie(c)}
                   </Text>
                 </Pressable>
               );

@@ -1,6 +1,6 @@
 // Service worker minimal : rend l'app installable (PWA) et sert la coquille
 // applicative hors ligne. Les requêtes /api/* passent toujours par le réseau.
-const CACHE = "pinkberry-v2";
+const CACHE = "pinkberry-v3";
 const COQUILLE = ["/", "/manifest.json", "/icones/icon-192.png", "/icones/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -56,7 +56,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: donnees.body || "",
     icon: donnees.icon || "/icones/icon-192.png",
-    badge: donnees.badge || "/icones/icon-192.png",
+    badge: donnees.badge || "/icones/badge-96.png",
     data: { url: donnees.url || "/" },
     tag: donnees.tag || "pinkberry",
     renotify: true,

@@ -11,7 +11,7 @@ import { AttentePaiement } from "@/src/components/AttentePaiement";
 import { Bouton } from "@/src/components/Bouton";
 import { ChoixPaiement, type Devise, type ModePaiement, type Operateur } from "@/src/components/ChoixPaiement";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
-import { traduireContenuCatalogue } from "@/src/catalogue-i18n";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { TitrePage } from "@/src/components/TitrePage";
@@ -29,6 +29,7 @@ export default function Confirmation() {
   const toast = useToast();
   const qc = useQueryClient();
   const t = useT();
+  const libelle = useLibelle();
   const { usd, fc, prix } = useMontant();
   const { fraisLivraison: FRAIS } = useConfigApp();
   const { articles, adresse, sousTotal, vider } = usePanier();
@@ -132,7 +133,7 @@ export default function Confirmation() {
             <View key={a.cle} style={styles.articleRow}>
               <PhotoProduit image={a.image} taille={36} rayon={12} />
               <Text style={styles.articleNom}>
-                {a.quantite}× {traduireContenuCatalogue(a.nom, t)}
+                {a.quantite}× {libelle(a.nom, a.nomEn)}
               </Text>
               <Text style={styles.articlePrix}>{prix(a.prixUnitaire * a.quantite)}</Text>
             </View>

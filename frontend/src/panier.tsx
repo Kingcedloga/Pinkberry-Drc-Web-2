@@ -1,12 +1,14 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
-export type Garniture = { nom: string; prix: number };
+export type Garniture = { nom: string; prix: number; nomEn?: string | null };
 
 export type ArticlePanier = {
   cle: string;
   produitId: string;
   nom: string;
+  nomEn?: string | null;
   taille?: string | null;
+  tailleEn?: string | null;
   garnitures: Garniture[];
   quantite: number;
   prixUnitaire: number;

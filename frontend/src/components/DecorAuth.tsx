@@ -66,7 +66,7 @@ export function EnteteMarque({
     <View style={styles.entete}>
       <View style={styles.marque}>
         <Animated.View style={anime ? { transform: [{ rotate: tourne }] } : undefined}>
-          <Swirl taille={taille} couleur={colors.brandPrimary} />
+          <Swirl taille={taille} />
         </Animated.View>
         <Text style={[styles.mot, { fontSize: taille * 0.76 }]}>Pinkberry</Text>
       </View>

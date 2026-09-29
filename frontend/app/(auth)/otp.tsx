@@ -14,6 +14,9 @@ import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
+/** Doit rester egal a OTP_CHIFFRES cote backend. */
+const LONGUEUR_CODE = 6;
+
 export default function VerificationOtp() {
   useTheme();
   const router = useRouter();
@@ -34,7 +37,7 @@ export default function VerificationOtp() {
   const inputRef = useRef<TextInput>(null);
 
   const valider = async () => {
-    if (code.length !== 4) {
+    if (code.length !== LONGUEUR_CODE) {
       toast.show(t("otp.codeRequis"), "erreur");
       return;
     }
@@ -60,7 +63,7 @@ export default function VerificationOtp() {
     try {
       const r = await apiFetch<{ emailEnvoye?: boolean }>("/auth/renvoyer-otp", {
         method: "POST",
-        body: { telephone, motDePasse: "" },
+        body: { telephone },
       });
       setEnvoiEchoue(r.emailEnvoye === false);
       toast.show(
@@ -72,7 +75,7 @@ export default function VerificationOtp() {
     }
   };
 
-  const cases = [0, 1, 2, 3];
+  const cases = Array.from({ length: LONGUEUR_CODE }, (_, i) => i);
 
   return (
     <CarteAuth testID="ecran-otp">
@@ -96,9 +99,9 @@ export default function VerificationOtp() {
           ref={inputRef}
           testID="input-otp"
           value={code}
-          onChangeText={(v) => setCode(v.replace(/[^0-9]/g, "").slice(0, 4))}
+          onChangeText={(v) => setCode(v.replace(/[^0-9]/g, "").slice(0, LONGUEUR_CODE))}
           keyboardType="number-pad"
-          maxLength={4}
+          maxLength={LONGUEUR_CODE}
           style={styles.inputCache}
           autoFocus
         />
@@ -142,10 +145,10 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   titres: { alignItems: "center", gap: 4 },
   titre: { fontFamily: fonts.display, fontSize: 24, fontWeight: "800", color: colors.onSurface },
   sous: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, textAlign: "center" },
-  cases: { flexDirection: "row", gap: spacing.md, justifyContent: "center", marginVertical: spacing.md },
+  cases: { flexDirection: "row", gap: spacing.sm, justifyContent: "center", marginVertical: spacing.md },
   case: {
-    width: 60,
-    height: 68,
+    width: 44,
+    height: 56,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
@@ -154,7 +157,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     justifyContent: "center",
   },
   caseActive: { borderColor: colors.borderStrong },
-  caseTexte: { fontFamily: fonts.display, fontSize: 28, color: colors.onSurface },
+  caseTexte: { fontFamily: fonts.display, fontSize: 24, color: colors.onSurface },
   inputCache: { height: 1, opacity: 0, position: "absolute" },
   alerte: {
     flexDirection: "row",
