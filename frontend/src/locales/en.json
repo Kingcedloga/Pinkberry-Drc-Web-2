@@ -487,7 +487,13 @@
     "ajouterSousCategorie": "+ Subcategory (Enter)",
     "retirerSousCategorie": "Remove subcategory {{nom}}",
     "sousCategorieAjoutee": "Subcategory “{{nom}}” added",
-    "sousCategorieRetiree": "Subcategory “{{nom}}” removed: its products stay in the category"
+    "sousCategorieRetiree": "Subcategory “{{nom}}” removed: its products stay in the category",
+    "recommander": "Recommend",
+    "nePlusRecommander": "Stop recommending",
+    "rendreDisponible": "Make available",
+    "mettreEnRupture": "Mark out of stock",
+    "etatsMisAJour": "{{n}} product(s) updated",
+    "prixRequisDisponible": "{{n}} product(s) at 0 FC left out of stock: set their price first"
   },
   "feuilleProduit": {
     "choisirTaille": "Choose size",

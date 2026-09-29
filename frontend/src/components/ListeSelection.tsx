@@ -5,39 +5,61 @@ import { Icone } from "@/src/components/Icone";
 import { useT } from "@/src/i18n";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 
+export type ActionSelection = { label: string; onPress: () => void; testID?: string; disabled?: boolean };
+
 export function SelectionBar({
   selectedCount,
   onClear,
   onDelete,
   deleteLabel,
   bottomOffset,
+  actions,
 }: {
   selectedCount: number;
   onClear: () => void;
   onDelete: () => void;
   deleteLabel?: string;
   bottomOffset?: number;
+  /** Actions groupées supplémentaires, affichées sous la ligne principale. */
+  actions?: ActionSelection[];
 }) {
   const t = useT();
   if (selectedCount === 0) return null;
 
   return (
     <View style={[styles.barre, { bottom: bottomOffset ?? spacing.lg }]}>
-      <Pressable onPress={onClear} style={styles.clearButton}>
-        <Text style={styles.clearText}>{t("selection.annuler")}</Text>
-      </Pressable>
+      <View style={styles.ligneBarre}>
+        <Pressable onPress={onClear} style={styles.clearButton}>
+          <Text style={styles.clearText}>{t("selection.annuler")}</Text>
+        </Pressable>
 
-      <View style={styles.compteurWrap}>
-        <Text style={styles.compteur}>
-          {selectedCount > 1
-            ? t("selection.selectionnes", { n: selectedCount })
-            : t("selection.selectionne", { n: selectedCount })}
-        </Text>
+        <View style={styles.compteurWrap}>
+          <Text style={styles.compteur}>
+            {selectedCount > 1
+              ? t("selection.selectionnes", { n: selectedCount })
+              : t("selection.selectionne", { n: selectedCount })}
+          </Text>
+        </View>
+
+        <Pressable onPress={onDelete} style={styles.deleteButton}>
+          <Text style={styles.deleteText}>{deleteLabel ?? t("selection.supprimer")}</Text>
+        </Pressable>
       </View>
-
-      <Pressable onPress={onDelete} style={styles.deleteButton}>
-        <Text style={styles.deleteText}>{deleteLabel ?? t("selection.supprimer")}</Text>
-      </Pressable>
+      {actions?.length ? (
+        <View style={styles.actions}>
+          {actions.map((a) => (
+            <Pressable
+              key={a.label}
+              testID={a.testID}
+              onPress={a.onPress}
+              disabled={a.disabled}
+              style={[styles.actionButton, a.disabled && { opacity: 0.5 }]}
+            >
+              <Text style={styles.actionText}>{a.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -171,8 +193,6 @@ const styles = stylesDynamiques(() =>
       borderWidth: 1,
       borderColor: colors.border,
       padding: spacing.md,
-      flexDirection: "row",
-      alignItems: "center",
       gap: spacing.sm,
       ...({
         elevation: 6,
@@ -182,6 +202,15 @@ const styles = stylesDynamiques(() =>
         shadowOffset: { width: 0, height: 6 },
       }),
     },
+    ligneBarre: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    actions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+    actionButton: {
+      backgroundColor: colors.brandTertiary,
+      borderRadius: radius.pill,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs + 2,
+    },
+    actionText: { color: colors.brandPrimary, fontFamily: fonts.text, fontSize: 12, fontWeight: "800" },
     clearButton: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
     clearText: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, fontWeight: "700" },
     selectionHeader: {

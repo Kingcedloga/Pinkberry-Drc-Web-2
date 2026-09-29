@@ -487,7 +487,13 @@
     "ajouterSousCategorie": "+ Sous-catégorie (Entrée)",
     "retirerSousCategorie": "Retirer la sous-catégorie {{nom}}",
     "sousCategorieAjoutee": "Sous-catégorie « {{nom}} » ajoutée",
-    "sousCategorieRetiree": "Sous-catégorie « {{nom}} » retirée : ses produits restent dans la catégorie"
+    "sousCategorieRetiree": "Sous-catégorie « {{nom}} » retirée : ses produits restent dans la catégorie",
+    "recommander": "Recommander",
+    "nePlusRecommander": "Ne plus recommander",
+    "rendreDisponible": "Rendre disponible",
+    "mettreEnRupture": "Mettre en rupture",
+    "etatsMisAJour": "{{n}} produit(s) mis à jour",
+    "prixRequisDisponible": "{{n}} produit(s) à 0 FC laissé(s) en rupture : saisissez d'abord leur prix"
   },
   "feuilleProduit": {
     "choisirTaille": "Choisir la taille",

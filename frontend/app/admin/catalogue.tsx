@@ -430,6 +430,70 @@ export default function Catalogue() {
     }
   };
 
+  // Changement rapide de l'état depuis la liste : affiché tout de suite, annulé
+  // si le serveur refuse (ex. produit à 0 FC qu'on voudrait rendre disponible).
+  const [etatsEnCours, setEtatsEnCours] = useState<Set<string>>(() => new Set());
+  const changerEtat = async (item: any, maj: { disponible?: boolean; enAvant?: boolean }) => {
+    if (etatsEnCours.has(item.id)) return;
+    setEtatsEnCours((s) => new Set(s).add(item.id));
+    qc.setQueryData<any[]>(["produits"], (liste) => liste?.map((p) => (p.id === item.id ? { ...p, ...maj } : p)));
+    try {
+      await apiFetch(`/admin/produits/${item.id}/etat`, { method: "PATCH", body: maj });
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    } finally {
+      await qc.invalidateQueries({ queryKey: ["produits"] });
+      setEtatsEnCours((s) => {
+        const suivant = new Set(s);
+        suivant.delete(item.id);
+        return suivant;
+      });
+    }
+  };
+
+  const changerEtatSelection = async (maj: { disponible?: boolean; enAvant?: boolean }) => {
+    try {
+      const r = await apiFetch<{ updated_count: number; ignores: string[] }>("/admin/produits/bulk/etat", {
+        method: "POST",
+        body: { ids: selection.selectedIds, ...maj },
+      });
+      await qc.invalidateQueries({ queryKey: ["produits"] });
+      if (r.updated_count > 0) toast.show(t("catalogue.etatsMisAJour", { n: r.updated_count }), "succes");
+      if (r.ignores.length > 0) toast.show(t("catalogue.prixRequisDisponible", { n: r.ignores.length }), "erreur");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
+  const badgesEtat = (item: any) => (
+    <View style={styles.badges}>
+      <Pressable
+        testID={`btn-etat-disponible-${item.nom}`}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: !!item.disponible }}
+        accessibilityLabel={t("catalogue.disponible")}
+        onPress={() => changerEtat(item, { disponible: !item.disponible })}
+        style={[styles.badge, item.disponible ? styles.badgeDisponible : styles.badgeRupture]}
+      >
+        <Text style={[styles.badgeTexte, { color: item.disponible ? colors.success : colors.error }]}>
+          {item.disponible ? t("catalogue.disponible") : t("catalogue.rupture")}
+        </Text>
+      </Pressable>
+      <Pressable
+        testID={`btn-etat-recommande-${item.nom}`}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: !!item.enAvant }}
+        accessibilityLabel={t("catalogue.recommande")}
+        onPress={() => changerEtat(item, { enAvant: !item.enAvant })}
+        style={[styles.badge, item.enAvant ? styles.badgeRecommande : styles.badgeNeutre]}
+      >
+        <Text style={[styles.badgeTexte, { color: item.enAvant ? colors.brandPrimary : colors.muted }]}>
+          {item.enAvant ? `⭐ ${t("catalogue.recommande")}` : `☆ ${t("catalogue.recommander")}`}
+        </Text>
+      </Pressable>
+    </View>
+  );
+
   const supprimerSelection = async () => {
     const count = selection.selectedIds.length;
     try {
@@ -545,14 +609,7 @@ export default function Catalogue() {
                   {item.sousCategorie ? ` · ${libelle(item.sousCategorie, item.sousCategorieEn)}` : ""}
                 </Text>
                 <Text style={[styles.prix, styles.colPrix]}>{prix(item.prix)}</Text>
-                <View style={[styles.colEtat, styles.cellEtat]}>
-                  {item.disponible ? (
-                    <Text style={styles.badgeVert}>{t("catalogue.disponible")}</Text>
-                  ) : (
-                    <Text style={styles.rupture}>{t("catalogue.rupture")}</Text>
-                  )}
-                  {item.enAvant ? <Text style={styles.enAvant}>⭐ {t("catalogue.recommande")}</Text> : null}
-                </View>
+                <View style={[styles.colEtat, styles.cellEtat]}>{badgesEtat(item)}</View>
                 <View style={[styles.colActions, styles.cellActions]}>
                   <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
                     <Icone name="edit-2" size={17} color={colors.brandPrimary} />
@@ -577,8 +634,7 @@ export default function Catalogue() {
                     {item.sousCategorie ? ` · ${libelle(item.sousCategorie, item.sousCategorieEn)}` : ""}
                   </Text>
                   <Text style={styles.prix}>{prix(item.prix)}</Text>
-                  {!item.disponible ? <Text style={styles.rupture}>{t("catalogue.rupture")}</Text> : null}
-                  {item.enAvant ? <Text style={styles.enAvant}>⭐ {t("catalogue.recommande")}</Text> : null}
+                  {badgesEtat(item)}
                 </View>
                 <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
                   <Icone name="edit-2" size={17} color={colors.brandPrimary} />
@@ -890,6 +946,12 @@ export default function Catalogue() {
         selectedCount={selection.selectedIds.length}
         onClear={selection.clear}
         onDelete={() => setConfirmerSuppressionMultiple(true)}
+        actions={[
+          { label: t("catalogue.rendreDisponible"), testID: "btn-selection-disponible", onPress: () => changerEtatSelection({ disponible: true }) },
+          { label: t("catalogue.mettreEnRupture"), testID: "btn-selection-rupture", onPress: () => changerEtatSelection({ disponible: false }) },
+          { label: `⭐ ${t("catalogue.recommander")}`, testID: "btn-selection-recommander", onPress: () => changerEtatSelection({ enAvant: true }) },
+          { label: t("catalogue.nePlusRecommander"), testID: "btn-selection-non-recommander", onPress: () => changerEtatSelection({ enAvant: false }) },
+        ]}
       />
       <BulkDeleteDialog
         visible={confirmerSuppressionMultiple}
@@ -1021,8 +1083,14 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   colActions: { width: 96 },
   cellProduit: { flexDirection: "row", alignItems: "center", gap: spacing.md, minWidth: 0 },
   cellEtat: { gap: 2 },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginTop: 2 },
+  badge: { minHeight: 28, paddingHorizontal: spacing.sm, borderRadius: radius.pill, justifyContent: "center", borderWidth: 1 },
+  badgeDisponible: { backgroundColor: colors.successSoft, borderColor: colors.successSoft },
+  badgeRupture: { backgroundColor: colors.errorSoft, borderColor: colors.errorSoft },
+  badgeRecommande: { backgroundColor: colors.brandTertiary, borderColor: colors.brandTertiary },
+  badgeNeutre: { backgroundColor: "transparent", borderColor: colors.border },
+  badgeTexte: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800" },
   cellActions: { flexDirection: "row", justifyContent: "flex-end", gap: spacing.xs },
-  badgeVert: { fontFamily: fonts.text, fontSize: 12, fontWeight: "800", color: colors.success },
   carte: {
     flexDirection: "row",
     alignItems: "center",
@@ -1072,10 +1140,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   nom: { fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   cat: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
   prix: { fontFamily: fonts.display, fontSize: 14, color: colors.brandPrimary },
-  enAvant: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.brandPrimary },
   switchTexte: { flex: 1 },
   switchAide: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
-  rupture: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800", color: colors.error },
   iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   voileCentre: {

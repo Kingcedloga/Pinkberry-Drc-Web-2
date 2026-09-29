@@ -519,6 +519,16 @@ class BulkIdsIn(BaseModel):
     ids: List[str]
 
 
+class EtatProduitIn(BaseModel):
+    """Changement rapide depuis la liste : champs absents = inchanges."""
+    disponible: Optional[bool] = None
+    enAvant: Optional[bool] = None
+
+
+class BulkEtatIn(BulkIdsIn, EtatProduitIn):
+    pass
+
+
 # ------------------------------------------------------------------------- auth
 OTP_CHIFFRES = 6
 OTP_MINUTES = 10
@@ -1849,6 +1859,14 @@ async def completer_sous_categories(sous: List[Dict[str, Any]]) -> List[Dict[str
     return [{"nom": n, "nomEn": en or trad.get(n)} for n, en in propres.items()]
 
 
+PRIX_REQUIS = "Saisissez un prix avant de rendre le produit disponible"
+
+
+def _vendable(p: Dict[str, Any]) -> bool:
+    """Un produit a 0 FC reste en rupture : il serait vendu gratuitement."""
+    return en_fc(p.get("prix")) > 0
+
+
 async def normaliser_produit(doc: Dict[str, Any]) -> None:
     """Prix en FC entiers ; sous-categorie existante dans la categorie."""
     doc["prix"] = en_fc(doc.get("prix"))
@@ -1856,6 +1874,8 @@ async def normaliser_produit(doc: Dict[str, Any]) -> None:
         t["ecart"] = en_fc(t.get("ecart"))
     for g in doc.get("garnitures") or []:
         g["prix"] = en_fc(g.get("prix"))
+    if doc.get("disponible") and not _vendable(doc):
+        raise HTTPException(status_code=400, detail=PRIX_REQUIS)
     doc["sousCategorie"] = _texte(doc.get("sousCategorie")) or None
     if doc["sousCategorie"]:
         cat = (await categories_par_nom()).get(doc["categorie"]) or {}
@@ -2020,6 +2040,39 @@ async def modifier_produit(produit_id: str, body: ProduitIn, _=Depends(require_a
 async def supprimer_produit(produit_id: str, _=Depends(require_admin)):
     await db.produits.delete_one({"id": produit_id})
     return {"ok": True}
+
+
+def _maj_etat(body: EtatProduitIn) -> Dict[str, bool]:
+    maj = {k: v for k, v in body.model_dump(include={"disponible", "enAvant"}).items() if v is not None}
+    if not maj:
+        raise HTTPException(status_code=400, detail="Aucun changement d'etat demande")
+    return maj
+
+
+@api_router.patch("/admin/produits/{produit_id}/etat")
+async def modifier_etat_produit(produit_id: str, body: EtatProduitIn, _=Depends(require_admin)):
+    maj = _maj_etat(body)
+    produit = await db.produits.find_one({"id": produit_id}, {"_id": 0})
+    if not produit:
+        raise HTTPException(status_code=404, detail="Produit introuvable")
+    if maj.get("disponible") and not _vendable(produit):
+        raise HTTPException(status_code=400, detail=PRIX_REQUIS)
+    await db.produits.update_one({"id": produit_id}, {"$set": maj})
+    return {**produit, **maj}
+
+
+@api_router.post("/admin/produits/bulk/etat")
+async def modifier_etat_produits_bulk(body: BulkEtatIn, _=Depends(require_admin)):
+    """Les produits a 0 FC sont laisses en rupture et listes dans `ignores`."""
+    maj = _maj_etat(body)
+    ids = list(dict.fromkeys(i for i in body.ids if i))
+    ignores: List[str] = []
+    if maj.get("disponible"):
+        produits = await db.produits.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "nom": 1, "prix": 1}).to_list(len(ids))
+        ignores = [p["nom"] for p in produits if not _vendable(p)]
+        ids = [p["id"] for p in produits if _vendable(p)]
+    res = await db.produits.update_many({"id": {"$in": ids}}, {"$set": maj}) if ids else None
+    return {"ok": True, "updated_count": res.matched_count if res else 0, "ignores": ignores}
 
 
 @api_router.delete("/admin/produits/bulk/delete")
