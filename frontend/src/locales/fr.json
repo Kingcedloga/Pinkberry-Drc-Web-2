@@ -501,7 +501,9 @@
     "garnitures": "Garnitures",
     "quantite": "Quantité",
     "ajouterPanier": "Ajouter au panier · {{total}}",
-    "plus": "+ {{prix}}"
+    "plus": "+ {{prix}}",
+    "sansGarnitures": "Sans garnitures",
+    "avecGarnitures": "Avec garnitures"
   },
   "selection": {
     "annuler": "Annuler",

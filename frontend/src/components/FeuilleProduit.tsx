@@ -49,12 +49,21 @@ export function FeuilleProduit({
   const { usd, fc, prix } = useMontant();
   const [tailleIndex, setTailleIndex] = useState(0);
   const [garnituresChoisies, setGarnitures] = useState<string[]>([]);
+  // Les garnitures ne s'affichent qu'après « Avec garnitures ».
+  const [avecGarnitures, setAvecGarnitures] = useState(false);
   const [quantite, setQuantite] = useState(1);
 
   const reset = () => {
     setTailleIndex(0);
     setGarnitures([]);
+    setAvecGarnitures(false);
     setQuantite(1);
+  };
+
+  // Fermer sans commander repart de zéro : les choix ne passent pas au produit suivant.
+  const fermer = () => {
+    reset();
+    onClose();
   };
 
   const prixUnitaire = useMemo(() => {
@@ -81,16 +90,15 @@ export function FeuilleProduit({
       emoji: produit.emoji,
       image: produit.image,
     });
-    reset();
-    onClose();
+    fermer();
   };
 
   return (
-    <Modal visible={visible} animationType={bureau ? "fade" : "slide"} transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType={bureau ? "fade" : "slide"} transparent onRequestClose={fermer}>
       <View style={[styles.voile, bureau && styles.voileCentre]}>
         <Pressable
           style={bureau ? StyleSheet.absoluteFill : styles.zoneFermeture}
-          onPress={onClose}
+          onPress={fermer}
           testID="fermer-feuille-fond"
         />
         <View
@@ -102,7 +110,7 @@ export function FeuilleProduit({
           ]}
         >
           {bureau ? (
-            <Pressable testID="btn-fermer-feuille" onPress={onClose} style={styles.fermer}>
+            <Pressable testID="btn-fermer-feuille" onPress={fermer} style={styles.fermer}>
               <Icone name="x" size={20} color={colors.muted} />
             </Pressable>
           ) : (
@@ -151,7 +159,29 @@ export function FeuilleProduit({
             {produit.garnitures.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitre}>{tr("feuilleProduit.garnitures")}</Text>
-                {produit.garnitures.map((g) => {
+                <View style={styles.choixGarnitures} accessibilityRole="radiogroup">
+                  {[false, true].map((avec) => {
+                    const actif = avecGarnitures === avec;
+                    return (
+                      <Pressable
+                        key={String(avec)}
+                        testID={avec ? "btn-avec-garnitures" : "btn-sans-garnitures"}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: actif }}
+                        onPress={() => {
+                          setAvecGarnitures(avec);
+                          if (!avec) setGarnitures([]);
+                        }}
+                        style={[styles.choixGarniture, actif && styles.choixGarnitureActif]}
+                      >
+                        <Text style={[styles.choixGarnitureTexte, actif && { color: colors.onBrandPrimary }]}>
+                          {tr(avec ? "feuilleProduit.avecGarnitures" : "feuilleProduit.sansGarnitures")}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {avecGarnitures && produit.garnitures.map((g) => {
                   const coche = garnituresChoisies.includes(g.nom);
                   return (
                     <Pressable
@@ -254,6 +284,19 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     backgroundColor: colors.surface,
   },
   optionActive: { borderColor: colors.brandPrimary, backgroundColor: colors.brandTertiary },
+  choixGarnitures: { flexDirection: "row", gap: spacing.sm },
+  choixGarniture: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  choixGarnitureActif: { borderColor: colors.brandPrimary, backgroundColor: colors.brandPrimary },
+  choixGarnitureTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.onSurface },
   optionNom: { flex: 1, fontFamily: fonts.text, fontSize: 15, fontWeight: "700", color: colors.onSurface },
   optionPrix: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, fontWeight: "700" },
   radio: {

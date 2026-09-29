@@ -501,7 +501,9 @@
     "garnitures": "Toppings",
     "quantite": "Quantity",
     "ajouterPanier": "Add to cart · {{total}}",
-    "plus": "+ {{prix}}"
+    "plus": "+ {{prix}}",
+    "sansGarnitures": "No toppings",
+    "avecGarnitures": "With toppings"
   },
   "selection": {
     "annuler": "Cancel",
