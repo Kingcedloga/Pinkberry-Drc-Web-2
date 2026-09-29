@@ -22,7 +22,7 @@ export default function Panier() {
   const { bureau } = useEcran();
   const t = useT();
   const libelle = useLibelle();
-  const { usd, fc, prix } = useMontant();
+  const { usd, fc } = useMontant();
   const { articles, changerQuantite, retirer, sousTotal, nbArticles } = usePanier();
 
   return (
@@ -100,9 +100,9 @@ export default function Panier() {
               <Text style={styles.sousTotalLabel}>{t("panier.sousTotal", { n: nbArticles })}</Text>
               <View>
                 <Text testID="panier-sous-total" style={styles.sousTotalValeur}>
-                  {prix(sousTotal)}
+                  {fc(sousTotal)}
                 </Text>
-                <Text style={styles.sousTotalFc}>≈ {fc(sousTotal)}</Text>
+                <Text style={styles.sousTotalFc}>≈ {usd(sousTotal)}</Text>
               </View>
             </View>
             <Bouton

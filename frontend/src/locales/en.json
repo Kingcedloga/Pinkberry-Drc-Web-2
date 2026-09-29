@@ -446,7 +446,7 @@
     "garnituresAide": "Price of the topping selected by the customer",
     "garnitureExemple": "E.g. Granola",
     "tauxTitreModal": "Exchange rate",
-    "tauxDescription": "How many Congolese francs is one US dollar worth? The new rate applies immediately to all prices shown to customers.",
+    "tauxDescription": "How many Congolese francs is 1 US dollar worth? Prices stay set in francs; the rate is used to show the dollar equivalent and for payments in USD.",
     "tauxSaisie": "1 USD = ... FC",
     "apercu": "Preview: CDF ≈ USD",
     "enregistrerTaux": "Save exchange rate",
@@ -481,7 +481,13 @@
     "traductionAuto": "English fields left empty are translated automatically on save.",
     "traduire": "Translate to English",
     "traductionIndisponible": "Translation is unavailable right now. You can type it in yourself.",
-    "traductionEnregistree": "Translation saved"
+    "traductionEnregistree": "Translation saved",
+    "sousCategorie": "Subcategory",
+    "aucuneSousCategorie": "None",
+    "ajouterSousCategorie": "+ Subcategory (Enter)",
+    "retirerSousCategorie": "Remove subcategory {{nom}}",
+    "sousCategorieAjoutee": "Subcategory “{{nom}}” added",
+    "sousCategorieRetiree": "Subcategory “{{nom}}” removed: its products stay in the category"
   },
   "feuilleProduit": {
     "choisirTaille": "Choose size",

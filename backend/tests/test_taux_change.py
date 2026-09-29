@@ -26,7 +26,8 @@ def test_config_public_has_taux_and_frais():
     j = r.json()
     assert "tauxFC" in j and "fraisLivraison" in j
     assert isinstance(j["tauxFC"], (int, float)) and j["tauxFC"] > 0
-    assert j["fraisLivraison"] == 2.5
+    # Frais en FC (monnaie de reference) : montant entier positif.
+    assert j["fraisLivraison"] > 0 and j["fraisLivraison"] == int(j["fraisLivraison"])
 
 
 def test_admin_update_taux_persists_via_get_config():

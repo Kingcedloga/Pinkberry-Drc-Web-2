@@ -130,10 +130,10 @@ export default function SuiviCommande() {
             <Text style={styles.livraisonTitre}>{t("suivi.arrive")}</Text>
             <Text style={styles.livraisonLabel}>{t("suivi.montantEspeces")}</Text>
             <Text testID="montant-cash" style={styles.montant}>
-              {prix(cmd.total)}
+              {fc(cmd.total)}
             </Text>
             <Text testID="montant-cash-fc" style={styles.montantFc}>
-              ≈ {fc(cmd.total)}
+              ≈ {usd(cmd.total)}
             </Text>
             <Bouton
               testID="btn-jai-paye"
@@ -212,7 +212,7 @@ export default function SuiviCommande() {
           </View>
           <View style={styles.itemRow}>
             <Text style={styles.totalLabel}>{t("suivi.total")}</Text>
-            <Text style={styles.totalValeur}>{prix(cmd.total)}</Text>
+            <Text style={styles.totalValeur}>{fc(cmd.total)}</Text>
           </View>
           <Text style={styles.adresseTexte}>
             {cmd.adresse?.avenue} n° {cmd.adresse?.numero}, {cmd.adresse?.commune} — {cmd.adresse?.repere}

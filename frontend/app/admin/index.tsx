@@ -218,9 +218,9 @@ export default function Dashboard() {
                 </View>
 
                 <Text testID="ventes-chiffre" style={styles.ventesChiffre}>
-                  {prix(ventes?.chiffre ?? 0)}
+                  {fc(ventes?.chiffre ?? 0)}
                 </Text>
-                <Text style={styles.ventesChiffreFc}>≈ {fc(ventes?.chiffre ?? 0)}</Text>
+                <Text style={styles.ventesChiffreFc}>≈ {usd(ventes?.chiffre ?? 0)}</Text>
 
                 <View style={styles.ventesLigne}>
                   <View style={styles.ventesMini}>

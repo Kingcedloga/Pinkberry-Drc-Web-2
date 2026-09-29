@@ -28,7 +28,7 @@ export default function DetailCourse() {
   const { t } = useLangue();
   const libelle = useLibelle();
   const qc = useQueryClient();
-  const { usd, fc, prix } = useMontant();
+  const { usd, fc } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [partageGps, setPartageGps] = useState(false);
@@ -198,9 +198,9 @@ export default function DetailCourse() {
         <View style={styles.carte}>
           <Text style={styles.carteTitre}>{t("livreur.cashAEncaisser")}</Text>
           <Text testID="montant-a-encaisser" style={styles.montant}>
-            {prix(cmd.total)}
+            {fc(cmd.total)}
           </Text>
-          <Text style={styles.montantFc}>≈ {fc(cmd.total)}</Text>
+          <Text style={styles.montantFc}>≈ {usd(cmd.total)}</Text>
           {cmd.items.map((i: any, idx: number) => (
             <Text key={idx} style={styles.ligne}>
               {i.quantite}× {libelle(i.nom, i.nomEn)}{" "}

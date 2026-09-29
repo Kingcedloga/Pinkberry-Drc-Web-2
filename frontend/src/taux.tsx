@@ -6,10 +6,13 @@ import { TAUX_FC_DEFAUT, setTauxFC } from "@/src/money";
 
 type ConfigApp = { tauxFC: number; fraisLivraison: number; demo?: boolean };
 
-const TauxContext = createContext<ConfigApp>({ tauxFC: TAUX_FC_DEFAUT, fraisLivraison: 2.5 });
+// Valeurs d'attente avant la réponse de /config (frais en FC).
+const CONFIG_DEFAUT: ConfigApp = { tauxFC: TAUX_FC_DEFAUT, fraisLivraison: 5750 };
+
+const TauxContext = createContext<ConfigApp>(CONFIG_DEFAUT);
 
 export function TauxProvider({ children }: { children: React.ReactNode }) {
-  const [config, setConfig] = useState<ConfigApp>({ tauxFC: TAUX_FC_DEFAUT, fraisLivraison: 2.5 });
+  const [config, setConfig] = useState<ConfigApp>(CONFIG_DEFAUT);
 
   const q = useQuery({
     queryKey: ["config"],
@@ -42,12 +45,15 @@ function groupe(n: number): string {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
-/** Formateurs de montants basés sur le taux défini par l'admin. */
+/**
+ * Formateurs de montants. Les montants sont en FC (monnaie de référence) ;
+ * le taux défini par l'admin ne donne que l'équivalent en dollars.
+ */
 export function useMontant() {
   const taux = useTaux();
   return useMemo(() => {
-    const usd = (n: number) => `$${(n ?? 0).toFixed(2)}`;
-    const fc = (n: number) => `${groupe(Math.round((n ?? 0) * taux))} FC`;
+    const usd = (n: number) => `$${((n ?? 0) / taux).toFixed(2)}`;
+    const fc = (n: number) => `${groupe(Math.round(n ?? 0))} FC`;
     return { usd, fc, prix: (n: number) => `${fc(n)} ≈ ${usd(n)}`, taux };
   }, [taux]);
 }

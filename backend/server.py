@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import copy
 import hashlib
 import hmac
 import ipaddress
@@ -52,8 +53,23 @@ EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Pinkberry Drc")
 # Domaine public de la web app : sert les images des emails (logo).
 SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/")
 
+# Le franc congolais est la monnaie de reference : prix du catalogue, commandes,
+# frais de livraison et rapports sont en FC entiers. Le taux (FC pour 1 USD)
+# ne sert qu'a l'equivalent affiche en dollars et aux paiements en USD.
 TAUX_FC = float(os.environ.get("TAUX_FC", "2800"))
-FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "2.5"))
+FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "5750"))
+MONNAIE = "CDF"
+# Valeurs d'un enregistrement de parametres cree a neuf (deja en FC).
+PARAMETRES_INITIAUX = {"cle": "global", "tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON, "monnaie": MONNAIE}
+
+
+def en_fc(montant: Any) -> int:
+    return int(round(float(montant or 0)))
+
+
+def fc_txt(montant: Any) -> str:
+    """« 16 800 FC » (espace comme separateur de milliers)."""
+    return f"{en_fc(montant):,} FC".replace(",", " ")
 SUPERADMIN_EMAIL = (os.environ.get("SUPERADMIN_EMAIL") or "mecedloga@gmail.com").strip().lower()
 # Comptes de demonstration (admin / client / livreurs) : uniquement si les mots de
 # passe sont fournis par l'environnement, et desactivables d'un coup.
@@ -359,6 +375,8 @@ class ProduitIn(BaseModel):
     description: Optional[str] = None
     nomEn: Optional[str] = None
     descriptionEn: Optional[str] = None
+    # Section de la categorie (ex. « Thés au lait » dans « Boissons »).
+    sousCategorie: Optional[str] = None
     disponible: bool = True
     enAvant: bool = False
     tailles: List[Taille] = Field(default_factory=list)
@@ -439,8 +457,15 @@ class CategorieIn(BaseModel):
     nomEn: Optional[str] = None
 
 
-class CategorieTraductionIn(BaseModel):
+class SousCategorie(BaseModel):
+    nom: str
     nomEn: Optional[str] = None
+
+
+class CategorieMajIn(BaseModel):
+    """Champs absents = inchanges. `nomEn` vide = retraduit automatiquement."""
+    nomEn: Optional[str] = None
+    sousCategories: Optional[List[SousCategorie]] = None
 
 
 class TraductionIn(BaseModel):
@@ -1335,8 +1360,8 @@ async def paiement_mobile_money(body: PaiementMobileIn, user=Depends(get_current
     if commande.get("paiement", {}).get("statut") == "paye":
         raise HTTPException(status_code=400, detail="Commande deja payee")
 
-    total_usd = float(commande["total"])
-    montant = total_usd if devise == "USD" else total_usd * float((await lire_config())["tauxFC"])
+    total_fc = float(commande["total"])
+    montant = total_fc if devise == "CDF" else total_fc / float((await lire_config())["tauxFC"])
     decimales = operateur["decimales"][devise]
     montant_txt = f"{round(montant, decimales):.{decimales}f}" if decimales else str(int(round(montant)))
 
@@ -1710,42 +1735,6 @@ async def envoyer_webpush(
 _tache_traductions: Optional[asyncio.Task] = None
 LLM_MODELE_TRADUCTION = os.environ.get("LLM_MODELE_TRADUCTION", "claude-haiku-4-5-20251001")
 
-# Traductions du catalogue de demonstration (reprises de l'ancien dictionnaire
-# du front) : elles amorcent le glossaire sans appel au LLM.
-TRADUCTIONS_DEMO = {
-    "Pots de crème": "Frozen yogurt cups",
-    "Smoothies": "Smoothies",
-    "Toppings": "Toppings",
-    "Boissons": "Drinks",
-    "Pot Original": "Original Cup",
-    "Pot Fraise": "Strawberry Cup",
-    "Pot Mangue": "Mango Cup",
-    "Pot Chocolat": "Chocolate Cup",
-    "Smoothie Fraise-Banane": "Strawberry-Banana Smoothie",
-    "Smoothie Tropical": "Tropical Smoothie",
-    "Granola croustillant": "Crunchy Granola",
-    "Fruits frais coupés": "Fresh-cut Fruit",
-    "Eau minérale 50cl": "Bottled Water 50cl",
-    "Jus d'ananas": "Pineapple Juice",
-    "Le classique pinkberry, yogourt glacé nature et acidulé.": "The classic Pinkberry: tangy, plain frozen yogurt.",
-    "Frozen yogurt à la fraise de saison.": "Seasonal strawberry frozen yogurt.",
-    "Mangue mûre et yogourt glacé onctueux.": "Ripe mango with smooth frozen yogurt.",
-    "Chocolat noir intense.": "Rich dark chocolate.",
-    "Fraise, banane et yogourt.": "Strawberry, banana and yogurt.",
-    "Ananas, mangue, passion.": "Pineapple, mango and passion fruit.",
-    "Portion supplémentaire de granola.": "An extra serving of granola.",
-    "Assortiment de fruits du jour.": "An assortment of today's fresh fruit.",
-    "Bien fraîche.": "Served ice cold.",
-    "Pressé du jour.": "Freshly pressed today.",
-    "Petit": "Small",
-    "Moyen": "Medium",
-    "Grand": "Large",
-    "Fruits frais": "Fresh fruit",
-    "Granola": "Granola",
-    "Coulis fraise": "Strawberry sauce",
-    "Pépites de chocolat": "Chocolate chips",
-    "Mochi": "Mochi",
-}
 
 
 def _texte(v: Any) -> str:
@@ -1763,14 +1752,15 @@ def _champs_traduisibles(p: Dict[str, Any]) -> List[tuple]:
 
 async def glossaire() -> Dict[str, str]:
     """FR -> EN deja connus : demo, puis catalogue (corrections de l'admin comprises)."""
-    connus = dict(TRADUCTIONS_DEMO)
+    connus = dict(TRADUCTIONS_MENU)
     for p in await db.produits.find({}, {"_id": 0}).to_list(500):
         for o, fr, en in _champs_traduisibles(p):
             if _texte(o.get(fr)) and _texte(o.get(en)):
                 connus[_texte(o[fr])] = _texte(o[en])
     for c in await db.categories.find({}, {"_id": 0}).to_list(100):
-        if _texte(c.get("nomEn")):
-            connus[_texte(c["nom"])] = _texte(c["nomEn"])
+        for o in [c, *(c.get("sousCategories") or [])]:
+            if _texte(o.get("nomEn")):
+                connus[_texte(o["nom"])] = _texte(o["nomEn"])
     return connus
 
 
@@ -1844,8 +1834,33 @@ async def completer_traductions_produit(doc: Dict[str, Any], ancien: Optional[Di
         o[en] = _texte(o.get(en)) or trad.get(_texte(o.get(fr))) or None
 
 
-async def traductions_categories() -> Dict[str, Optional[str]]:
-    return {c["nom"]: c.get("nomEn") for c in await db.categories.find({}, {"_id": 0}).to_list(100)}
+async def categories_par_nom() -> Dict[str, Dict[str, Any]]:
+    return {c["nom"]: c for c in await db.categories.find({}, {"_id": 0}).to_list(100)}
+
+
+async def completer_sous_categories(sous: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Noms nettoyes, sans doublon, anglais complete quand il manque."""
+    propres: Dict[str, Optional[str]] = {}
+    for o in sous:
+        nom = _texte(o.get("nom"))
+        if len(nom) >= 2 and nom.lower() not in {n.lower() for n in propres}:
+            propres[nom] = _texte(o.get("nomEn")) or None
+    trad = await traduire_en([n for n, en in propres.items() if not en])
+    return [{"nom": n, "nomEn": en or trad.get(n)} for n, en in propres.items()]
+
+
+async def normaliser_produit(doc: Dict[str, Any]) -> None:
+    """Prix en FC entiers ; sous-categorie existante dans la categorie."""
+    doc["prix"] = en_fc(doc.get("prix"))
+    for t in doc.get("tailles") or []:
+        t["ecart"] = en_fc(t.get("ecart"))
+    for g in doc.get("garnitures") or []:
+        g["prix"] = en_fc(g.get("prix"))
+    doc["sousCategorie"] = _texte(doc.get("sousCategorie")) or None
+    if doc["sousCategorie"]:
+        cat = (await categories_par_nom()).get(doc["categorie"]) or {}
+        if doc["sousCategorie"] not in {o["nom"] for o in cat.get("sousCategories") or []}:
+            raise HTTPException(status_code=400, detail="Sous-categorie inconnue pour cette categorie")
 
 
 async def traduire_catalogue_existant() -> None:
@@ -1857,10 +1872,13 @@ async def traduire_catalogue_existant() -> None:
                 continue
             await completer_traductions_produit(p)
             await db.produits.update_one({"id": p["id"]}, {"$set": p})
-        for c in await db.categories.find({"$or": [{"nomEn": None}, {"nomEn": ""}]}, {"_id": 0}).to_list(100):
-            en = (await traduire_en([c["nom"]])).get(_texte(c["nom"]))
-            if en:
-                await db.categories.update_one({"id": c["id"]}, {"$set": {"nomEn": en}})
+        for c in await db.categories.find({}, {"_id": 0}).to_list(100):
+            sous = c.get("sousCategories") or []
+            if _texte(c.get("nomEn")) and all(_texte(o.get("nomEn")) for o in sous):
+                continue
+            en = _texte(c.get("nomEn")) or (await traduire_en([c["nom"]])).get(_texte(c["nom"]))
+            maj = {"nomEn": en or None, "sousCategories": await completer_sous_categories(sous)}
+            await db.categories.update_one({"id": c["id"]}, {"$set": maj})
         await migrer_traductions_commandes()
     except Exception as e:
         logger.warning(f"Traduction du catalogue existant : {e!r}")
@@ -1883,10 +1901,13 @@ async def migrer_traductions_commandes() -> None:
 @api_router.get("/produits")
 async def liste_produits():
     items = await db.produits.find({}, {"_id": 0}).to_list(500)
-    categories = await traductions_categories()
+    categories = await categories_par_nom()
     for p in items:
-        p["categorieEn"] = categories.get(p["categorie"])
-    return sorted(items, key=lambda p: (p["categorie"], p["nom"]))
+        cat = categories.get(p["categorie"]) or {}
+        p["categorieEn"] = cat.get("nomEn")
+        sous = {o["nom"]: o.get("nomEn") for o in cat.get("sousCategories") or []}
+        p["sousCategorieEn"] = sous.get(p.get("sousCategorie") or "")
+    return sorted(items, key=lambda p: (p["categorie"], p.get("sousCategorie") or "", p["nom"]))
 
 
 @api_router.get("/categories")
@@ -1894,7 +1915,10 @@ async def liste_categories(details: bool = False):
     cats = await db.categories.find({}, {"_id": 0}).to_list(100)
     if details:
         # Libelles des deux langues ; « Tous » reste un filtre traduit par le front.
-        return sorted(({"nom": c["nom"], "nomEn": c.get("nomEn")} for c in cats), key=lambda c: c["nom"])
+        return sorted(
+            ({"nom": c["nom"], "nomEn": c.get("nomEn"), "sousCategories": c.get("sousCategories") or []} for c in cats),
+            key=lambda c: c["nom"],
+        )
     noms = sorted({c["nom"] for c in cats})
     return ["Tous", *noms]
 
@@ -1928,21 +1952,31 @@ async def creer_categorie(body: CategorieIn, _=Depends(require_admin)):
     if await db.categories.find_one({"nom": {"$regex": f"^{re.escape(nom)}$", "$options": "i"}}):
         raise HTTPException(status_code=400, detail="Cette categorie existe deja")
     nom_en = _texte(body.nomEn) or (await traduire_en([nom])).get(nom)
-    doc = {"id": str(uuid.uuid4()), "nom": nom, "nomEn": nom_en}
+    doc = {"id": str(uuid.uuid4()), "nom": nom, "nomEn": nom_en, "sousCategories": []}
     await db.categories.insert_one(dict(doc))
     doc["nbProduits"] = 0
     return doc
 
 
 @api_router.put("/admin/categories/{categorie_id}")
-async def traduire_categorie(categorie_id: str, body: CategorieTraductionIn, _=Depends(require_admin)):
-    """Corrige le libelle anglais ; vide, il est retraduit automatiquement."""
+async def modifier_categorie(categorie_id: str, body: CategorieMajIn, _=Depends(require_admin)):
+    """Libelle anglais et sous-categories. Les produits d'une sous-categorie
+    retiree restent dans la categorie, sans section."""
     cat = await db.categories.find_one({"id": categorie_id}, {"_id": 0})
     if not cat:
         raise HTTPException(status_code=404, detail="Categorie introuvable")
-    nom_en = _texte(body.nomEn) or (await traduire_en([cat["nom"]])).get(_texte(cat["nom"]))
-    await db.categories.update_one({"id": categorie_id}, {"$set": {"nomEn": nom_en}})
-    return {**cat, "nomEn": nom_en}
+    maj: Dict[str, Any] = {}
+    if "nomEn" in body.model_fields_set:
+        maj["nomEn"] = _texte(body.nomEn) or (await traduire_en([cat["nom"]])).get(_texte(cat["nom"]))
+    if body.sousCategories is not None:
+        maj["sousCategories"] = await completer_sous_categories([o.model_dump() for o in body.sousCategories])
+        await db.produits.update_many(
+            {"categorie": cat["nom"], "sousCategorie": {"$nin": [None, *(o["nom"] for o in maj["sousCategories"])]}},
+            {"$set": {"sousCategorie": None}},
+        )
+    if maj:
+        await db.categories.update_one({"id": categorie_id}, {"$set": maj})
+    return {**cat, **maj}
 
 
 @api_router.delete("/admin/categories/{categorie_id}")
@@ -1958,6 +1992,7 @@ async def supprimer_categorie(categorie_id: str, _=Depends(require_admin)):
 @api_router.post("/admin/produits")
 async def creer_produit(body: ProduitIn, _=Depends(require_admin)):
     doc = body.model_dump()
+    await normaliser_produit(doc)
     await completer_traductions_produit(doc)
     doc["id"] = str(uuid.uuid4())
     await db.produits.insert_one(dict(doc))
@@ -1970,6 +2005,12 @@ async def modifier_produit(produit_id: str, body: ProduitIn, _=Depends(require_a
     if not ancien:
         raise HTTPException(status_code=404, detail="Produit introuvable")
     doc = body.model_dump()
+    # Champs ajoutes apres coup : un client qui ne les connait pas (ancienne
+    # version de l'app) ne doit pas les effacer en les omettant.
+    for cle in ("sousCategorie", "nomEn", "descriptionEn"):
+        if cle not in body.model_fields_set:
+            doc[cle] = ancien.get(cle)
+    await normaliser_produit(doc)
     await completer_traductions_produit(doc, ancien)
     await db.produits.update_one({"id": produit_id}, {"$set": doc})
     return await db.produits.find_one({"id": produit_id}, {"_id": 0})
@@ -2311,7 +2352,7 @@ async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
             "tailleEn": taille.get("nomEn") if taille else None,
             "garnitures": garnitures,
             "quantite": i.quantite,
-            "prixUnitaire": round(prix, 2),
+            "prixUnitaire": en_fc(prix),
             "emoji": p.get("emoji"),
             "image": p.get("image"),
         })
@@ -2344,6 +2385,7 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
     await db.adresses.replace_one({"userId": user["id"], "label": adresse["label"]}, dict(adresse), upsert=True)
 
     sous_total = sum(i["prixUnitaire"] * i["quantite"] for i in items)
+    frais = en_fc((await lire_config())["fraisLivraison"])
     numero = f"PB-{random.randint(1000, 9999)}"
     cmd = {
         "id": str(uuid.uuid4()),
@@ -2354,9 +2396,10 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
         "adresseId": adresse["id"],
         "adresse": {k: v for k, v in adresse.items() if k != "userId"},
         "items": items,
-        "sousTotal": round(sous_total, 2),
-        "fraisLivraison": FRAIS_LIVRAISON,
-        "total": round(sous_total + FRAIS_LIVRAISON, 2),
+        "sousTotal": en_fc(sous_total),
+        "fraisLivraison": frais,
+        "total": en_fc(sous_total + frais),
+        "devise": MONNAIE,
         "statut": "recue",
         "livreurId": None,
         "paiement": {
@@ -2648,7 +2691,7 @@ async def rapport_commandes(
             "client": c.get("clientNom") or "—",
             "adresse": f"{adr.get('commune', '')} — {adr.get('avenue', '')} {adr.get('numero', '')}".strip(" —"),
             "articles": articles,
-            "total": round(float(c.get("total", 0)), 2),
+            "total": en_fc(c.get("total", 0)),
             "statut": LIBELLES_STATUT.get(c.get("statut", ""), c.get("statut", "")),
             "paiement": resume_paiement(c)[0],
             "statutPaiement": resume_paiement(c)[1],
@@ -2659,7 +2702,7 @@ async def rapport_commandes(
     annulees = [c for c in cmds if c.get("statut") == "annulee"]
     resume = {
         "nbCommandes": len(cmds),
-        "chiffre": round(sum(float(c.get("total", 0)) for c in livrees), 2),
+        "chiffre": en_fc(sum(float(c.get("total", 0)) for c in livrees)),
         "nbLivrees": len(livrees),
         "nbAnnulees": len(annulees),
     }
@@ -2668,7 +2711,7 @@ async def rapport_commandes(
 
     resume_lignes = [
         ("Nombre de commandes", resume["nbCommandes"]),
-        ("Chiffre d'affaires (commandes livrées)", f"$ {resume['chiffre']:.2f}"),
+        ("Chiffre d'affaires (commandes livrées)", fc_txt(resume["chiffre"])),
         ("Livraisons réussies", resume["nbLivrees"]),
         ("Commandes annulées", resume["nbAnnulees"]),
     ]
@@ -2695,7 +2738,7 @@ COLONNES_RAPPORT = [
     ("client", "Client", 20),
     ("adresse", "Adresse / commune", 30),
     ("articles", "Articles", 40),
-    ("total", "Total USD", 11),
+    ("total", "Total FC", 12),
     ("statut", "Statut", 14),
     ("paiement", "Paiement", 18),
     ("statutPaiement", "Statut paiement", 16),
@@ -2802,7 +2845,7 @@ def construire_pdf(
     donnees = [[Paragraph(f"<b>{c[1]}</b>", petit) for c in colonnes]]
     for lg in lignes:
         donnees.append([
-            Paragraph(f"$ {lg[c[0]]:.2f}" if c[0] in ("total", "cash") else str(lg[c[0]]), petit)
+            Paragraph(fc_txt(lg[c[0]]) if c[0] in ("total", "cash") else str(lg[c[0]]), petit)
             for c in colonnes
         ])
 
@@ -2843,7 +2886,7 @@ async def admin_stats(_=Depends(require_admin)):
         "enCours": len([c for c in cmds if c["statut"] in ("recue", "en_preparation", "recuperee", "en_route")]),
         "livrees": len(livrees),
         "annulees": len([c for c in cmds if c["statut"] == "annulee"]),
-        "revenus": round(sum(c["total"] for c in livrees), 2),
+        "revenus": en_fc(sum(c["total"] for c in livrees)),
     }
 
 
@@ -2891,20 +2934,20 @@ async def ventes_du_jour(_=Depends(require_admin)):
         {"statut": "livree", "createdAt": {"$gte": debut, "$lte": fin}}, {"_id": 0}
     ).to_list(1000)
 
-    chiffre = round(sum(c["total"] for c in cmds), 2)
+    chiffre = en_fc(sum(c["total"] for c in cmds))
     articles: Dict[str, Dict[str, Any]] = {}
     for c in cmds:
         for i in c.get("items", []):
             e = articles.setdefault(i["nom"], {"nom": i["nom"], "quantite": 0, "montant": 0.0, "image": i.get("image")})
             e["quantite"] += i.get("quantite", 0)
-            e["montant"] = round(e["montant"] + i.get("prixUnitaire", 0) * i.get("quantite", 0), 2)
+            e["montant"] = en_fc(e["montant"] + i.get("prixUnitaire", 0) * i.get("quantite", 0))
 
     top = sorted(articles.values(), key=lambda a: (a["quantite"], a["montant"]), reverse=True)[:5]
     return {
         "date": jour,
         "chiffre": chiffre,
         "nbCommandes": len(cmds),
-        "panierMoyen": round(chiffre / len(cmds), 2) if cmds else 0,
+        "panierMoyen": en_fc(chiffre / len(cmds)) if cmds else 0,
         "topProduits": top,
     }
 
@@ -2913,7 +2956,7 @@ COLONNES_RAPPORT_LIVREUR = [
     ("numero", "N° commande", 14),
     ("date", "Date", 17),
     ("adresse", "Adresse / commune", 34),
-    ("cash", "Cash encaissé USD", 16),
+    ("cash", "Cash encaissé FC", 16),
     ("statut", "Statut", 14),
 ]
 
@@ -3054,18 +3097,18 @@ async def rapport_livreur(debut: str, fin: str, format: str = "xlsx", user=Depen
             "numero": c.get("numero", ""),
             "date": (c.get("createdAt") or "")[:16].replace("T", " "),
             "adresse": f"{adr.get('commune', '')} — {adr.get('avenue', '')} {adr.get('numero', '')}".strip(" —"),
-            "cash": round(encaisse, 2),
+            "cash": en_fc(encaisse),
             "statut": LIBELLES_STATUT.get(c.get("statut", ""), c.get("statut", "")),
         })
 
     nb_livrees = len([c for c in cmds if c.get("statut") == "livree"])
     nb_annulees = len([c for c in cmds if c.get("statut") == "annulee"])
-    total_cash = round(sum(lg["cash"] for lg in lignes), 2)
+    total_cash = en_fc(sum(lg["cash"] for lg in lignes))
     resume_lignes = [
         ("Courses effectuées", len(cmds)),
         ("Livraisons réussies", nb_livrees),
         ("Courses annulées", nb_annulees),
-        ("Total cash encaissé", f"$ {total_cash:.2f}"),
+        ("Total cash encaissé", fc_txt(total_cash)),
     ]
 
     nom_livreur = (await db.livreurs.find_one({"id": user.get("livreurId")}, {"_id": 0}) or {}).get(
@@ -3137,6 +3180,40 @@ async def livreur_position(body: PositionIn, user=Depends(require_livreur)):
     return {"ok": True}
 
 
+async def migrer_monnaie_fc() -> None:
+    """Bascule unique des montants USD vers le FC, au taux enregistre. Le marqueur
+    `monnaie` des parametres la rend idempotente ; une base neuve est deja en FC."""
+    params = await db.parametres.find_one({"cle": "global"}, {"_id": 0})
+    if not params or params.get("monnaie") == MONNAIE:
+        return
+    taux = float(params["tauxFC"])
+    conv = lambda v: en_fc(float(v or 0) * taux)  # noqa: E731
+
+    async for p in db.produits.find({}, {"_id": 0}):
+        maj = {
+            "prix": conv(p.get("prix")),
+            "tailles": [{**t, "ecart": conv(t.get("ecart"))} for t in p.get("tailles") or []],
+            "garnitures": [{**g, "prix": conv(g.get("prix"))} for g in p.get("garnitures") or []],
+        }
+        await db.produits.update_one({"id": p["id"]}, {"$set": maj})
+    async for c in db.commandes.find({"devise": {"$exists": False}}, {"_id": 0}):
+        items = [
+            {
+                **i,
+                "prixUnitaire": conv(i.get("prixUnitaire")),
+                "garnitures": [{**g, "prix": conv(g.get("prix"))} for g in i.get("garnitures") or []],
+            }
+            for i in c.get("items") or []
+        ]
+        maj = {k: conv(c.get(k)) for k in ("sousTotal", "fraisLivraison", "total")}
+        await db.commandes.update_one({"id": c["id"]}, {"$set": {**maj, "items": items, "devise": MONNAIE}})
+    await db.parametres.update_one(
+        {"cle": "global"},
+        {"$set": {"fraisLivraison": conv(params.get("fraisLivraison", 2.5)), "monnaie": MONNAIE}},
+    )
+    logger.info(f"Montants convertis en FC au taux {taux}")
+
+
 async def lire_config() -> Dict[str, Any]:
     """Le taux vient TOUJOURS de la base. Les valeurs d'environnement ne servent
     qu'a creer l'enregistrement initial, une seule fois."""
@@ -3144,7 +3221,7 @@ async def lire_config() -> Dict[str, Any]:
     if not doc:
         await db.parametres.update_one(
             {"cle": "global"},
-            {"$setOnInsert": {"cle": "global", "tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON}},
+            {"$setOnInsert": PARAMETRES_INITIAUX},
             upsert=True,
         )
         doc = await db.parametres.find_one({"cle": "global"}, {"_id": 0})
@@ -3170,7 +3247,7 @@ async def modifier_config(body: ConfigIn, _=Depends(require_admin)):
         {"cle": "global"},
         {
             "$set": {"tauxFC": float(body.tauxFC), "majLe": iso(now_utc())},
-            "$setOnInsert": {"cle": "global", "fraisLivraison": FRAIS_LIVRAISON},
+            "$setOnInsert": {k: v for k, v in PARAMETRES_INITIAUX.items() if k != "tauxFC"},
         },
         upsert=True,
     )
@@ -3202,41 +3279,79 @@ COMMUNES = [
     ("Lemba", False), ("Ngiri-Ngiri", False),
 ]
 
-IMG_POT = "https://images.unsplash.com/photo-1669127045641-0ae683639570?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwxfHxmcm96ZW4lMjB5b2d1cnQlMjBjdXB8ZW58MHx8fHwxNzg5NDA5NDkyfDA&ixlib=rb-4.1.0&q=85"
-IMG_SUNDAE = "https://images.unsplash.com/photo-1556909044-5c0e1da96641?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwzfHxmcm96ZW4lMjB5b2d1cnQlMjBjdXB8ZW58MHx8fHwxNzg5NDA5NDkyfDA&ixlib=rb-4.1.0&q=85"
-IMG_CONE = "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwxfHxpY2UlMjBjcmVhbXxlbnwwfHx8fDE3ODk0MDk1MDl8MA&ixlib=rb-4.1.0&q=85"
-
-TAILLES = [{"nom": "Petit", "ecart": 0}, {"nom": "Moyen", "ecart": 1.5}, {"nom": "Grand", "ecart": 3.0}]
-GARNITURES = [
-    {"nom": "Fruits frais", "prix": 1.0},
-    {"nom": "Granola", "prix": 0.75},
-    {"nom": "Coulis fraise", "prix": 0.5},
-    {"nom": "Pépites de chocolat", "prix": 0.75},
-    {"nom": "Mochi", "prix": 1.25},
+# Carte Pinkberry, prix en FC : catalogue d'une installation neuve. Les prix des
+# garnitures et des boissons sont saisis par l'admin ; tant qu'un produit (ou
+# une de ses garnitures) vaut 0 FC, il est cree « en rupture », donc non commandable.
+RECIPIENT = "Récipient"
+BOISSONS = "Boissons"
+TAILLES_YOGOURT = [
+    {"nom": "Régulier", "nomEn": "Regular", "ecart": 0},
+    {"nom": "Moyen", "nomEn": "Medium", "ecart": 1000},
+    {"nom": "Grand", "nomEn": "Large", "ecart": 3000},
 ]
+GARNITURES_YOGOURT = [
+    {"nom": "Fruit frais du jour", "nomEn": "Fresh fruit of the day", "prix": 0},
+    {"nom": "Garnitures premium", "nomEn": "Premium toppings", "prix": 0},
+    {"nom": "Garnitures liquides", "nomEn": "Liquid toppings", "prix": 0},
+    {"nom": "Garnitures de luxe", "nomEn": "Deluxe toppings", "prix": 0},
+    {"nom": "Nappé", "nomEn": "Drizzle", "prix": 0},
+]
+CATEGORIES_MENU = [
+    {"nom": RECIPIENT, "nomEn": "Containers", "sousCategories": []},
+    {
+        "nom": BOISSONS,
+        "nomEn": "Drinks",
+        "sousCategories": [
+            {"nom": "Thés au lait", "nomEn": "Milk teas"},
+            {"nom": "Sodas pétillants", "nomEn": "Sparkling sodas"},
+            {"nom": "Thés aux fruits", "nomEn": "Fruit teas"},
+            {"nom": "Slush", "nomEn": "Slush"},
+        ],
+    },
+]
+
+
+def _yogourt(nom: str, nom_en: str) -> Dict[str, Any]:
+    return {"nom": nom, "nomEn": nom_en, "categorie": RECIPIENT, "prix": 7000,
+            "tailles": TAILLES_YOGOURT, "garnitures": GARNITURES_YOGOURT}
+
+
+def _boisson(sous: str, nom: str, nom_en: str) -> Dict[str, Any]:
+    return {"nom": nom, "nomEn": nom_en, "categorie": BOISSONS, "sousCategorie": sous, "prix": 0,
+            "tailles": [], "garnitures": []}
+
 
 PRODUITS_DEMO = [
-    {"nom": "Pot Original", "categorie": "Pots de crème", "prix": 4.5, "emoji": "🍦", "image": IMG_POT,
-     "description": "Le classique pinkberry, yogourt glacé nature et acidulé.", "tailles": TAILLES, "garnitures": GARNITURES},
-    {"nom": "Pot Fraise", "categorie": "Pots de crème", "prix": 5.0, "emoji": "🍓", "image": IMG_SUNDAE,
-     "description": "Frozen yogurt à la fraise de saison.", "tailles": TAILLES, "garnitures": GARNITURES},
-    {"nom": "Pot Mangue", "categorie": "Pots de crème", "prix": 5.0, "emoji": "🥭", "image": IMG_POT,
-     "description": "Mangue mûre et yogourt glacé onctueux.", "tailles": TAILLES, "garnitures": GARNITURES},
-    {"nom": "Pot Chocolat", "categorie": "Pots de crème", "prix": 5.5, "emoji": "🍫", "image": IMG_CONE,
-     "description": "Chocolat noir intense.", "tailles": TAILLES, "garnitures": GARNITURES},
-    {"nom": "Smoothie Fraise-Banane", "categorie": "Smoothies", "prix": 6.0, "emoji": "🥤", "image": IMG_SUNDAE,
-     "description": "Fraise, banane et yogourt.", "tailles": TAILLES[:2], "garnitures": []},
-    {"nom": "Smoothie Tropical", "categorie": "Smoothies", "prix": 6.5, "emoji": "🍹", "image": IMG_SUNDAE,
-     "description": "Ananas, mangue, passion.", "tailles": TAILLES[:2], "garnitures": []},
-    {"nom": "Granola croustillant", "categorie": "Toppings", "prix": 1.0, "emoji": "🥣", "image": IMG_POT,
-     "description": "Portion supplémentaire de granola.", "tailles": [], "garnitures": []},
-    {"nom": "Fruits frais coupés", "categorie": "Toppings", "prix": 1.5, "emoji": "🍉", "image": IMG_POT,
-     "description": "Assortiment de fruits du jour.", "tailles": [], "garnitures": []},
-    {"nom": "Eau minérale 50cl", "categorie": "Boissons", "prix": 1.0, "emoji": "💧", "image": IMG_CONE,
-     "description": "Bien fraîche.", "tailles": [], "garnitures": []},
-    {"nom": "Jus d'ananas", "categorie": "Boissons", "prix": 2.0, "emoji": "🧃", "image": IMG_CONE,
-     "description": "Pressé du jour.", "tailles": [], "garnitures": []},
+    _yogourt("Bol", "Cup"),
+    _yogourt("Cornet gaufré", "Waffle Cone"),
+    _yogourt("Bol gaufré", "Waffle Bowl"),
+    _boisson("Thés au lait", "Matcha à la fraise avec tapioca", "Strawberry Matcha with Tapioca"),
+    _boisson("Thés au lait", "Taro au lait avec tapioca", "Taro Milk Tea with Tapioca"),
+    _boisson("Thés au lait", "Matcha au lait avec tapioca", "Matcha Milk Tea with Tapioca"),
+    _boisson("Thés au lait", "Thé au lait au sucre brun avec tapioca", "Brown Sugar Milk Tea with Tapioca"),
+    _boisson("Sodas pétillants", "Soda fraise", "Strawberry Soda"),
+    _boisson("Sodas pétillants", "Soda mangue", "Mango Soda"),
+    _boisson("Sodas pétillants", "Soda orange", "Orange Soda"),
+    _boisson("Sodas pétillants", "Soda grenadille", "Passion Fruit Soda"),
+    _boisson("Thés aux fruits", "Grenadille et litchi vert", "Passion Fruit & Green Lychee Tea"),
+    _boisson("Thés aux fruits", "Grenadille avec perles de fruit (boba)", "Passion Fruit Tea with Fruit Pearls (Boba)"),
+    _boisson("Thés aux fruits", "Fruit tropical avec gelée de litchi", "Tropical Fruit Tea with Lychee Jelly"),
+    _boisson("Slush", "Slush à la fraise", "Strawberry Slush"),
+    _boisson("Slush", "Slush à la mangue", "Mango Slush"),
+    _boisson("Slush", "Slush au taro", "Taro Slush"),
 ]
+
+# Glossaire FR -> EN amorce par la carte : coherence des traductions automatiques.
+TRADUCTIONS_MENU = {
+    o["nom"]: o["nomEn"]
+    for o in [
+        *CATEGORIES_MENU,
+        *(s for c in CATEGORIES_MENU for s in c["sousCategories"]),
+        *PRODUITS_DEMO,
+        *TAILLES_YOGOURT,
+        *GARNITURES_YOGOURT,
+    ]
+}
 
 
 async def seed():
@@ -3262,9 +3377,10 @@ async def seed():
     # s'il n'existe pas ($setOnInsert), jamais d'ecrasement au demarrage.
     await db.parametres.update_one(
         {"cle": "global"},
-        {"$setOnInsert": {"cle": "global", "tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON}},
+        {"$setOnInsert": PARAMETRES_INITIAUX},
         upsert=True,
     )
+    await migrer_monnaie_fc()
     for commune, active in COMMUNES:
         await db.zones.update_one(
             {"commune": commune},
@@ -3272,17 +3388,24 @@ async def seed():
             upsert=True,
         )
     if await db.produits.count_documents({}) == 0:
+        for c in CATEGORIES_MENU:
+            await db.categories.update_one(
+                {"nom": c["nom"]},
+                {"$setOnInsert": {"id": str(uuid.uuid4()), **copy.deepcopy(c)}},
+                upsert=True,
+            )
         for p in PRODUITS_DEMO:
-            doc = dict(p)
+            doc = {"description": None, "descriptionEn": None, "image": None, "emoji": None, "enAvant": False,
+                   "sousCategorie": None, **copy.deepcopy(p)}
             doc["id"] = str(uuid.uuid4())
-            doc["disponible"] = True
+            doc["disponible"] = doc["prix"] > 0 and all(g["prix"] > 0 for g in doc["garnitures"])
             await db.produits.insert_one(doc)
 
     # categories : reprises des produits existants puis gerees par l'admin
     for nom in sorted({p["categorie"] for p in await db.produits.find({}, {"_id": 0, "categorie": 1}).to_list(500)}):
         await db.categories.update_one(
             {"nom": nom},
-            {"$setOnInsert": {"id": str(uuid.uuid4()), "nom": nom, "nomEn": TRADUCTIONS_DEMO.get(nom)}},
+            {"$setOnInsert": {"id": str(uuid.uuid4()), "nom": nom, "nomEn": TRADUCTIONS_MENU.get(nom), "sousCategories": []}},
             upsert=True,
         )
     # Traductions EN manquantes (glossaire puis LLM) : sans bloquer le demarrage.

@@ -20,7 +20,8 @@ import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
 
 const TOUS = "Tous";
-const CATEGORIES_VIDES: { nom: string; nomEn?: string | null }[] = [];
+type Libelle = { nom: string; nomEn?: string | null };
+const CATEGORIES_VIDES: (Libelle & { sousCategories?: Libelle[] })[] = [];
 const LARGEUR_PAGE = 1360;
 
 /** Catalogue web : filtres en colonne sur grand écran, grille de produits multi-colonnes. */
@@ -35,7 +36,12 @@ export default function Menu() {
   const { bureau, large, tablette } = useEcran();
 
   const [recherche, setRecherche] = useState("");
-  const [categorie, setCategorie] = useState(TOUS);
+  const [categorie, setCategorieState] = useState(TOUS);
+  const [sousCategorie, setSousCategorie] = useState(TOUS);
+  const setCategorie = (nom: string) => {
+    setCategorieState(nom);
+    setSousCategorie(TOUS);
+  };
   const [produitOuvert, setProduitOuvert] = useState<Produit | null>(null);
 
   const colonnes = large ? 4 : bureau ? 3 : tablette ? 2 : 1;
@@ -43,7 +49,7 @@ export default function Menu() {
   const produitsQ = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<Produit[]>("/produits") });
   const categoriesQ = useQuery({
     queryKey: ["categories", "details"],
-    queryFn: () => apiFetch<{ nom: string; nomEn?: string | null }[]>("/categories?details=true"),
+    queryFn: () => apiFetch<typeof CATEGORIES_VIDES>("/categories?details=true"),
   });
 
   const produits = useMemo(() => produitsQ.data ?? [], [produitsQ.data]);
@@ -53,6 +59,12 @@ export default function Menu() {
     nom === TOUS
       ? t("catalogue.valeurs.toutesCategories")
       : libelle(nom, detailsCategories.find((c) => c.nom === nom)?.nomEn);
+  // Sections de la catégorie choisie (ex. « Thés au lait » dans « Boissons »).
+  const sousCategories = detailsCategories.find((c) => c.nom === categorie)?.sousCategories ?? [];
+  const nomSousCategorie = (nom: string) =>
+    nom === TOUS
+      ? t("catalogue.valeurs.toutesCategories")
+      : libelle(nom, sousCategories.find((s) => s.nom === nom)?.nomEn);
   const enAvant = produits.filter((p) => p.enAvant);
   const rechercheActive = recherche.trim().length > 0;
 
@@ -61,10 +73,13 @@ export default function Menu() {
     return produits.filter(
       (p) =>
         (categorie === TOUS || p.categorie === categorie) &&
+        (sousCategorie === TOUS || p.sousCategorie === sousCategorie) &&
         (!q ||
-          [p.nom, p.nomEn, p.categorie, p.categorieEn].some((texte) => texte?.toLowerCase().includes(q))),
+          [p.nom, p.nomEn, p.categorie, p.categorieEn, p.sousCategorie, p.sousCategorieEn].some((texte) =>
+            texte?.toLowerCase().includes(q),
+          )),
     );
-  }, [produits, categorie, recherche]);
+  }, [produits, categorie, sousCategorie, recherche]);
 
   // La dernière rangée est complétée pour que les cartes gardent leur largeur.
   const donnees = useMemo(() => {
@@ -102,13 +117,27 @@ export default function Menu() {
         />
       ) : null}
 
+      {sousCategories.length > 0 ? (
+        <Chips
+          testID="chips-sous-categories"
+          options={[TOUS, ...sousCategories.map((s) => s.nom)]}
+          valeur={sousCategorie}
+          onChange={setSousCategorie}
+          labelOption={nomSousCategorie}
+        />
+      ) : null}
+
       {!rechercheActive ? (
         <BanniereRecommandes produits={enAvant} onChoisir={(p) => setProduitOuvert(p)} />
       ) : null}
 
       <View style={styles.titreListe}>
         <Text style={styles.sectionTitre}>
-          {categorie === TOUS ? t("accueil.notreCarte") : nomCategorie(categorie)}
+          {categorie === TOUS
+            ? t("accueil.notreCarte")
+            : sousCategorie === TOUS
+              ? nomCategorie(categorie)
+              : `${nomCategorie(categorie)} · ${nomSousCategorie(sousCategorie)}`}
         </Text>
         <Text style={styles.compteur}>
           {t(filtres.length === 1 ? "accueil.unProduit" : "accueil.plusieursProduits", { n: filtres.length })}
@@ -155,7 +184,11 @@ export default function Menu() {
               <Text style={styles.produitNom} numberOfLines={1}>
                 {libelle(item.nom, item.nomEn)}
               </Text>
-              <Text style={styles.produitCat}>{libelle(item.categorie, item.categorieEn)}</Text>
+              <Text style={styles.produitCat}>
+                {item.sousCategorie
+                  ? libelle(item.sousCategorie, item.sousCategorieEn)
+                  : libelle(item.categorie, item.categorieEn)}
+              </Text>
               <Text style={styles.produitPrix}>
                 {fc(item.prix)} <Text style={styles.produitFc}>≈ {usd(item.prix)}</Text>
               </Text>

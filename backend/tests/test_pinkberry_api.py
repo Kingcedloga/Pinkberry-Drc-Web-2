@@ -72,7 +72,7 @@ def test_config():
     r = requests.get(f"{API}/config", timeout=10)
     assert r.status_code == 200
     j = r.json()
-    assert j["tauxFC"] > 0 and j["fraisLivraison"] == 2.5
+    assert j["tauxFC"] > 0 and j["fraisLivraison"] > 0
 
 
 # ------------------------------------------------------------------------ auth
@@ -153,8 +153,9 @@ def test_commande_gombe_success(client_ctx):
     assert r.status_code == 200, r.text
     cmd = r.json()
     assert cmd["statut"] == "recue"
-    assert cmd["fraisLivraison"] == 2.5
-    assert cmd["total"] == round(cmd["sousTotal"] + 2.5, 2)
+    frais = requests.get(f"{API}/config", timeout=10).json()["fraisLivraison"]
+    assert cmd["devise"] == "CDF" and cmd["fraisLivraison"] == frais
+    assert cmd["total"] == cmd["sousTotal"] + cmd["fraisLivraison"]
     client_ctx["cmd_id"] = cmd["id"]
     # GET verify persistence
     r2 = requests.get(f"{API}/commandes/{cmd['id']}", headers=_h(client_ctx["tok"]), timeout=10)

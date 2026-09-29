@@ -101,7 +101,7 @@ class TestRapport:
         assert "Rapport des commandes" in titre and debut in titre and fin in titre
 
         entetes_attendues = ["N° commande", "Date", "Client", "Adresse / commune",
-                             "Articles", "Total USD", "Statut", "Livreur"]
+                             "Articles", "Total FC", "Statut", "Livreur"]
         entetes = [ws.cell(row=3, column=i + 1).value for i in range(8)]
         assert entetes == entetes_attendues, entetes
 
@@ -135,10 +135,10 @@ class TestRapport:
         fin = today.date().isoformat()
         cids = []
         for i, (statut, archivee, montant) in enumerate([
-            ("livree", False, 12.5),
-            ("livree", True, 8.0),   # archivee mais DOIT être dans le rapport
-            ("annulee", False, 5.0),
-            ("recue", False, 3.0),   # ni livree ni annulee -> pas dans chiffre/livrees/annulees
+            ("livree", False, 12500),
+            ("livree", True, 8000),   # archivee mais DOIT être dans le rapport
+            ("annulee", False, 5000),
+            ("recue", False, 3000),   # ni livree ni annulee -> pas dans chiffre/livrees/annulees
         ]):
             cid = f"TEST_ITER11_{uuid.uuid4().hex[:8]}"
             doc = {
@@ -189,9 +189,8 @@ class TestRapport:
             assert recap["nb"] >= 4
             assert recap["ok"] >= 2  # 2 livrées
             assert recap["ko"] >= 1  # 1 annulée
-            # CA doit inclure au moins nos 2 livrées (12.5 + 8.0 = 20.5)
-            assert "20.50" in str(recap["ca"]) or "20,50" in str(recap["ca"]) \
-                or float(str(recap["ca"]).replace("$", "").replace(",", ".").strip()) >= 20.5
+            # CA en FC (« 20 500 FC ») : au moins nos 2 livrées (12 500 + 8 000)
+            assert int(str(recap["ca"]).replace("FC", "").replace(" ", "").strip()) >= 20500
         finally:
             for cid in cids:
                 db.commandes.delete_one({"id": cid})

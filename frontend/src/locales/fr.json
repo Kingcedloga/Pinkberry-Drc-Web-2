@@ -446,7 +446,7 @@
     "garnituresAide": "Prix de la garniture ajoutée par le client",
     "garnitureExemple": "Ex. Granola",
     "tauxTitreModal": "Taux de change",
-    "tauxDescription": "Combien de francs congolais vaut 1 dollar américain ? Le nouveau taux s'applique immédiatement à tous les prix affichés côté client.",
+    "tauxDescription": "Combien de francs congolais vaut 1 dollar américain ? Les prix restent fixés en francs ; le taux sert à afficher l'équivalent en dollars et aux paiements en USD.",
     "tauxSaisie": "1 USD = ... FC",
     "apercu": "Aperçu : FC ≈ USD",
     "enregistrerTaux": "Enregistrer le taux",
@@ -481,7 +481,13 @@
     "traductionAuto": "Les champs anglais laissés vides sont traduits automatiquement à l'enregistrement.",
     "traduire": "Traduire en anglais",
     "traductionIndisponible": "Traduction indisponible pour le moment. Vous pouvez la saisir vous-même.",
-    "traductionEnregistree": "Traduction enregistrée"
+    "traductionEnregistree": "Traduction enregistrée",
+    "sousCategorie": "Sous-catégorie",
+    "aucuneSousCategorie": "Aucune",
+    "ajouterSousCategorie": "+ Sous-catégorie (Entrée)",
+    "retirerSousCategorie": "Retirer la sous-catégorie {{nom}}",
+    "sousCategorieAjoutee": "Sous-catégorie « {{nom}} » ajoutée",
+    "sousCategorieRetiree": "Sous-catégorie « {{nom}} » retirée : ses produits restent dans la catégorie"
   },
   "feuilleProduit": {
     "choisirTaille": "Choisir la taille",

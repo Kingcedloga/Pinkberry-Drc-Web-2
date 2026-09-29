@@ -37,30 +37,30 @@ import { useToast } from "@/src/toast";
 const TAILLE_MAX = 5 * 1024 * 1024;
 const FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
-type CategorieAdmin = { id: string; nom: string; nomEn?: string | null; nbProduits: number };
+type SousCategorie = { nom: string; nomEn?: string | null };
+type CategorieAdmin = {
+  id: string;
+  nom: string;
+  nomEn?: string | null;
+  sousCategories?: SousCategorie[];
+  nbProduits: number;
+};
 
 const CATEGORIES_VIDES: CategorieAdmin[] = [];
-// Options proposées pour un nouveau produit. Le nom français fait foi (il sert
-// d'identifiant aux commandes) quelle que soit la langue de l'interface.
-const TAILLES = [
-  { nom: "Petit", nomEn: "Small", ecart: 0 },
-  { nom: "Moyen", nomEn: "Medium", ecart: 1.5 },
-  { nom: "Grand", nomEn: "Large", ecart: 3.0 },
-];
-const GARNITURES = [
-  { nom: "Fruits frais", nomEn: "Fresh fruit", prix: 1.0 },
-  { nom: "Granola", nomEn: "Granola", prix: 0.75 },
-  { nom: "Coulis fraise", nomEn: "Strawberry sauce", prix: 0.5 },
-  { nom: "Pépites de chocolat", nomEn: "Chocolate chips", prix: 0.75 },
-  { nom: "Mochi", nomEn: "Mochi", prix: 1.25 },
-];
 
 const vide = (v?: string | null) => !v?.trim();
 
+/** Montant saisi en FC (monnaie de référence), arrondi au franc. */
 const nombre = (v: string) => {
-  const n = parseFloat((v || "0").replace(",", "."));
-  return isNaN(n) ? 0 : Math.round(n * 100) / 100;
+  const n = parseFloat((v || "0").replace(/\s/g, "").replace(",", "."));
+  return isNaN(n) ? 0 : Math.round(n);
 };
+
+// Tailles et garnitures d'un produit, prêtes pour l'édition (montants en FC).
+const optionsDe = (p: any) => ({
+  tailles: (p?.tailles ?? []).map((t: any) => ({ nom: t.nom, nomEn: t.nomEn ?? "", valeur: String(t.ecart ?? 0) })),
+  garnitures: (p?.garnitures ?? []).map((g: any) => ({ nom: g.nom, nomEn: g.nomEn ?? "", valeur: String(g.prix ?? 0) })),
+});
 
 export default function Catalogue() {
   useTheme();
@@ -75,7 +75,7 @@ export default function Catalogue() {
     queryFn: () => apiFetch<CategorieAdmin[]>("/admin/categories"),
   });
   const categories = categoriesQ.data ?? CATEGORIES_VIDES;
-  const { taux, fc, usd } = useMontant();
+  const { taux, fc } = useMontant();
 
   const [tauxOuvert, setTauxOuvert] = useState(false);
   const [tauxTexte, setTauxTexte] = useState("");
@@ -88,20 +88,24 @@ export default function Catalogue() {
     return (q.data ?? []).filter(
       (p: any) =>
         !texte ||
-        [p.nom, p.nomEn, p.categorie, p.categorieEn].some((v) => String(v ?? "").toLowerCase().includes(texte)),
+        [p.nom, p.nomEn, p.categorie, p.categorieEn, p.sousCategorie, p.sousCategorieEn].some((v) =>
+          String(v ?? "").toLowerCase().includes(texte),
+        ),
     );
   }, [q.data, recherche]);
   const selection = useListeSelection(produits.map((p: any) => p.id));
   const [confirmerSuppressionMultiple, setConfirmerSuppressionMultiple] = useState(false);
   const [nouvelleCat, setNouvelleCat] = useState("");
   const [catASupprimer, setCatASupprimer] = useState<CategorieAdmin | null>(null);
-  // Libellés anglais des catégories en cours de saisie (id -> texte).
+  // Libellés anglais et nouvelles sous-catégories en cours de saisie (id -> texte).
   const [categoriesEn, setCategoriesEn] = useState<Record<string, string>>({});
+  const [nouvellesSousCats, setNouvellesSousCats] = useState<Record<string, string>>({});
 
   const [edition, setEdition] = useState<any>(null);
   const [nom, setNom] = useState("");
   const [nomEn, setNomEn] = useState("");
   const [categorie, setCategorie] = useState("");
+  const [sousCategorie, setSousCategorie] = useState("");
   const [prixTexte, setPrixTexte] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [apercuLocal, setApercuLocal] = useState<string | null>(null);
@@ -113,29 +117,57 @@ export default function Catalogue() {
   const [enAvant, setEnAvant] = useState(false);
   const [tailles, setTailles] = useState<Option[]>([]);
   const [garnitures, setGarnitures] = useState<Option[]>([]);
+  // Faux tant que l'admin n'a pas retouché les tailles/garnitures d'un nouveau produit.
+  const [optionsModifiees, setOptionsModifiees] = useState(false);
+
+  const sousCategoriesDe = (nomCat: string) => categories.find((c) => c.nom === nomCat)?.sousCategories ?? [];
+
+  // Modèle d'une catégorie : le produit existant le plus complet. Un nouveau
+  // produit en reprend prix, tailles et garnitures pour garder la carte homogène.
+  const modeleDe = (nomCat: string) =>
+    (q.data ?? [])
+      .filter((p: any) => p.categorie === nomCat)
+      .sort(
+        (a: any, b: any) =>
+          (b.tailles?.length ?? 0) + (b.garnitures?.length ?? 0) - (a.tailles?.length ?? 0) - (a.garnitures?.length ?? 0),
+      )[0] ?? null;
+
+  const appliquerModele = (nomCat: string) => {
+    const modele = modeleDe(nomCat);
+    const options = optionsDe(modele);
+    setPrixTexte(modele ? String(modele.prix) : "");
+    setTailles(options.tailles);
+    setGarnitures(options.garnitures);
+  };
+
+  const choisirCategorie = (nomCat: string) => {
+    setCategorie(nomCat);
+    setSousCategorie("");
+    if (edition?.nouveau && !optionsModifiees) appliquerModele(nomCat);
+  };
 
   const ouvrir = (p: any | null) => {
+    const nomCat = p?.categorie ?? categories[0]?.nom ?? "";
     setEdition(p ?? { nouveau: true });
     setNom(p?.nom ?? "");
     setNomEn(p?.nomEn ?? "");
-    setCategorie(p?.categorie ?? categories[0]?.nom ?? "");
-    setPrixTexte(p ? String(p.prix * taux) : "");
+    setCategorie(nomCat);
+    setSousCategorie(p?.sousCategorie ?? "");
+    setOptionsModifiees(false);
     setImage(p?.image ?? null);
     setApercuLocal(null);
     setDescription(p?.description ?? "");
     setDescriptionEn(p?.descriptionEn ?? "");
     setDisponible(p?.disponible ?? true);
     setEnAvant(p?.enAvant ?? false);
-    setTailles(
-      p
-        ? (p.tailles ?? []).map((t: any) => ({ nom: t.nom, nomEn: t.nomEn ?? "", valeur: String((t.ecart ?? 0) * taux) }))
-        : TAILLES.map((taille) => ({ nom: taille.nom, nomEn: taille.nomEn, valeur: String(taille.ecart * taux) })),
-    );
-    setGarnitures(
-      p
-        ? (p.garnitures ?? []).map((g: any) => ({ nom: g.nom, nomEn: g.nomEn ?? "", valeur: String((g.prix ?? 0) * taux) }))
-        : GARNITURES.map((garniture) => ({ nom: garniture.nom, nomEn: garniture.nomEn, valeur: String(garniture.prix * taux) })),
-    );
+    if (p) {
+      const options = optionsDe(p);
+      setPrixTexte(String(p.prix));
+      setTailles(options.tailles);
+      setGarnitures(options.garnitures);
+    } else {
+      appliquerModele(nomCat);
+    }
   };
 
   const choisirPhoto = async () => {
@@ -237,17 +269,17 @@ export default function Catalogue() {
   };
 
   const enregistrer = async () => {
-    const prixFC = parseFloat(prixTexte.replace(",", "."));
+    const prixFC = parseFloat(prixTexte.replace(/\s/g, "").replace(",", "."));
     if (!nom.trim() || isNaN(prixFC) || prixFC < 0) {
       toast.show(t("catalogue.nomPrixRequis"), "erreur");
       return;
     }
-    const prixUSD = Math.round((prixFC / taux) * 100) / 100;
     const body = {
       nom,
       nomEn: nomEn.trim() || null,
       categorie,
-      prix: prixUSD,
+      sousCategorie: sousCategorie || null,
+      prix: Math.round(prixFC),
       emoji: null,
       image,
       description,
@@ -259,14 +291,14 @@ export default function Catalogue() {
         .map((t) => ({
           nom: t.nom.trim(),
           nomEn: t.nomEn?.trim() || null,
-          ecart: Math.round((nombre(t.valeur) / taux) * 100) / 100,
+          ecart: nombre(t.valeur),
         })),
       garnitures: garnitures
         .filter((g) => g.nom.trim())
         .map((g) => ({
           nom: g.nom.trim(),
           nomEn: g.nomEn?.trim() || null,
-          prix: Math.round((nombre(g.valeur) / taux) * 100) / 100,
+          prix: nombre(g.valeur),
         })),
     };
     try {
@@ -334,6 +366,38 @@ export default function Catalogue() {
       toast.show(e.message, "erreur");
     }
   };
+
+  const enregistrerSousCategories = async (c: CategorieAdmin, liste: SousCategorie[], message: string) => {
+    try {
+      await apiFetch(`/admin/categories/${c.id}`, { method: "PUT", body: { sousCategories: liste } });
+      await qc.invalidateQueries({ queryKey: ["admin-categories"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      qc.invalidateQueries({ queryKey: ["produits"] });
+      toast.show(message, "succes");
+      return true;
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+      return false;
+    }
+  };
+
+  const ajouterSousCategorie = async (c: CategorieAdmin) => {
+    const nomSous = (nouvellesSousCats[c.id] ?? "").trim();
+    if (nomSous.length < 2) return;
+    const ok = await enregistrerSousCategories(
+      c,
+      [...(c.sousCategories ?? []), { nom: nomSous }],
+      t("catalogue.sousCategorieAjoutee", { nom: nomSous }),
+    );
+    if (ok) setNouvellesSousCats(({ [c.id]: _, ...reste }) => reste);
+  };
+
+  const retirerSousCategorie = (c: CategorieAdmin, nomSous: string) =>
+    enregistrerSousCategories(
+      c,
+      (c.sousCategories ?? []).filter((s) => s.nom !== nomSous),
+      t("catalogue.sousCategorieRetiree", { nom: nomSous }),
+    );
 
   const supprimerCategorie = async () => {
     if (!catASupprimer) return;
@@ -412,7 +476,7 @@ export default function Catalogue() {
         <View style={styles.banniereTexte}>
           <Text style={styles.banniereTitre}>{t("catalogue.tauxTitre")}</Text>
           <Text testID="taux-actuel" style={styles.banniereValeur}>
-            1 USD = {fc(1)}
+            1 USD = {fc(taux)}
           </Text>
         </View>
         <Text style={styles.banniereLien}>{t("catalogue.modifier")}</Text>
@@ -478,6 +542,7 @@ export default function Catalogue() {
                 </View>
                 <Text style={[styles.cat, styles.colCategorie]}>
                   {libelle(item.categorie, item.categorieEn)}
+                  {item.sousCategorie ? ` · ${libelle(item.sousCategorie, item.sousCategorieEn)}` : ""}
                 </Text>
                 <Text style={[styles.prix, styles.colPrix]}>{prix(item.prix)}</Text>
                 <View style={[styles.colEtat, styles.cellEtat]}>
@@ -507,7 +572,10 @@ export default function Catalogue() {
                 <PhotoProduit image={item.image} taille={56} rayon={radius.md} />
                 <View style={styles.texte}>
                   <Text style={styles.nom}>{libelle(item.nom, item.nomEn)}</Text>
-                  <Text style={styles.cat}>{libelle(item.categorie, item.categorieEn)}</Text>
+                  <Text style={styles.cat}>
+                    {libelle(item.categorie, item.categorieEn)}
+                    {item.sousCategorie ? ` · ${libelle(item.sousCategorie, item.sousCategorieEn)}` : ""}
+                  </Text>
                   <Text style={styles.prix}>{prix(item.prix)}</Text>
                   {!item.disponible ? <Text style={styles.rupture}>{t("catalogue.rupture")}</Text> : null}
                   {item.enAvant ? <Text style={styles.enAvant}>⭐ {t("catalogue.recommande")}</Text> : null}
@@ -594,7 +662,7 @@ export default function Catalogue() {
                   <Pressable
                     key={c.id}
                     testID={`cat-${c.nom}`}
-                    onPress={() => setCategorie(c.nom)}
+                    onPress={() => choisirCategorie(c.nom)}
                     style={[styles.chip, categorie === c.nom && styles.chipActif]}
                   >
                     <Text style={[styles.chipTexte, categorie === c.nom && { color: colors.onBrandPrimary }]}>
@@ -603,6 +671,29 @@ export default function Catalogue() {
                   </Pressable>
                 ))}
               </View>
+
+              {sousCategoriesDe(categorie).length > 0 ? (
+                <>
+                  <Text style={styles.label}>{t("catalogue.sousCategorie")}</Text>
+                  <View style={styles.chipsRow}>
+                    {[{ nom: "" } as SousCategorie, ...sousCategoriesDe(categorie)].map((s) => {
+                      const actif = sousCategorie === s.nom;
+                      return (
+                        <Pressable
+                          key={s.nom || "aucune"}
+                          testID={`sous-cat-${s.nom || "aucune"}`}
+                          onPress={() => setSousCategorie(s.nom)}
+                          style={[styles.chip, actif && styles.chipActif]}
+                        >
+                          <Text style={[styles.chipTexte, actif && { color: colors.onBrandPrimary }]}>
+                            {s.nom ? libelle(s.nom, s.nomEn) : t("catalogue.aucuneSousCategorie")}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
 
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>{t("catalogue.disponible")}</Text>
@@ -630,7 +721,10 @@ export default function Catalogue() {
                 aide={t("catalogue.taillesAide")}
                 cle="taille"
                 options={tailles}
-                onChange={setTailles}
+                onChange={(o) => {
+                  setTailles(o);
+                  setOptionsModifiees(true);
+                }}
                 placeholderNom={t("catalogue.tailleExemple")}
               />
 
@@ -639,7 +733,10 @@ export default function Catalogue() {
                 aide={t("catalogue.garnituresAide")}
                 cle="garniture"
                 options={garnitures}
-                onChange={setGarnitures}
+                onChange={(o) => {
+                  setGarnitures(o);
+                  setOptionsModifiees(true);
+                }}
                 placeholderNom={t("catalogue.garnitureExemple")}
               />
 
@@ -663,12 +760,8 @@ export default function Catalogue() {
               placeholder="2800"
             />
             <Text style={styles.apercu}>
-              {t("catalogue.apercu")} {" "}
-              {String(Math.round(6 * (parseFloat(tauxTexte.replace(/\s/g, "").replace(",", ".")) || 0))).replace(
-                /\B(?=(\d{3})+(?!\d))/g,
-                " ",
-              )}{" "}
-              FC ≈ {usd(6)}
+              {t("catalogue.apercu")} {fc(10000)} ≈ $
+              {(10000 / (parseFloat(tauxTexte.replace(/\s/g, "").replace(",", ".")) || 1)).toFixed(2)}
             </Text>
             <Bouton testID="btn-enregistrer-taux" label={t("catalogue.enregistrerTaux")} onPress={enregistrerTaux} />
             <Bouton testID="btn-annuler-taux" label={t("commun.annuler")} variant="contour" onPress={() => setTauxOuvert(false)} />
@@ -722,6 +815,40 @@ export default function Catalogue() {
                         placeholderTextColor={colors.muted}
                         style={styles.saisieCategorieEn}
                       />
+                      <View style={styles.sousCats}>
+                        {(c.sousCategories ?? []).map((s) => (
+                          <Pressable
+                            key={s.nom}
+                            testID={`btn-retirer-sous-categorie-${s.nom}`}
+                            accessibilityLabel={t("catalogue.retirerSousCategorie", { nom: s.nom })}
+                            onPress={() => retirerSousCategorie(c, s.nom)}
+                            style={styles.sousCatChip}
+                          >
+                            <Text style={styles.sousCatTexte}>{s.nom}</Text>
+                            <Icone name="x" size={12} color={colors.muted} />
+                          </Pressable>
+                        ))}
+                        <TextInput
+                          testID={`input-sous-categorie-${c.nom}`}
+                          value={nouvellesSousCats[c.id] ?? ""}
+                          onChangeText={(v) => setNouvellesSousCats((courant) => ({ ...courant, [c.id]: v }))}
+                          onSubmitEditing={() => ajouterSousCategorie(c)}
+                          returnKeyType="done"
+                          placeholder={t("catalogue.ajouterSousCategorie")}
+                          placeholderTextColor={colors.muted}
+                          style={styles.saisieSousCat}
+                        />
+                        {(nouvellesSousCats[c.id] ?? "").trim().length >= 2 ? (
+                          <Pressable
+                            testID={`btn-ajouter-sous-categorie-${c.nom}`}
+                            onPress={() => ajouterSousCategorie(c)}
+                            style={styles.sousCatAjouter}
+                            hitSlop={6}
+                          >
+                            <Icone name="plus" size={14} color={colors.onBrandPrimary} />
+                          </Pressable>
+                        ) : null}
+                      </View>
                     </View>
                     <Text style={styles.ligneCatNb}>
                       {c.nbProduits > 1 ? t("catalogue.plusieursProduits", { n: c.nbProduits }) : t("catalogue.unProduit", { n: c.nbProduits })}
@@ -912,6 +1039,35 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   photoActions: { flex: 1, gap: spacing.sm },
   photoAide: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },
   traductionBloc: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  sousCats: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.xs },
+  sousCatChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    minHeight: 30,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandTertiary,
+  },
+  sousCatTexte: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.onSurface },
+  saisieSousCat: {
+    flexGrow: 1,
+    minWidth: 150,
+    minHeight: 30,
+    paddingHorizontal: spacing.sm,
+    fontFamily: fonts.text,
+    fontSize: 12,
+    color: colors.onSurface,
+    outlineStyle: "none",
+  } as any,
+  sousCatAjouter: {
+    width: 26,
+    height: 26,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.brandPrimary,
+  },
   texte: { flex: 1 },
   nom: { fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   cat: { fontFamily: fonts.text, fontSize: 11, color: colors.muted },

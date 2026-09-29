@@ -18,6 +18,8 @@ export type Produit = {
   nomEn?: string | null;
   categorie: string;
   categorieEn?: string | null;
+  sousCategorie?: string | null;
+  sousCategorieEn?: string | null;
   prix: number;
   image?: string | null;
   emoji?: string | null;
@@ -194,11 +196,11 @@ export function FeuilleProduit({
           <View style={styles.cta}>
             <Bouton
               testID="btn-ajouter-panier"
-              label={tr("feuilleProduit.ajouterPanier", { total: prix(prixUnitaire * quantite) })}
+              label={tr("feuilleProduit.ajouterPanier", { total: fc(prixUnitaire * quantite) })}
               icone="shopping-bag"
               onPress={ajouter}
             />
-            <Text style={styles.ctaFc}>≈ {fc(prixUnitaire * quantite)}</Text>
+            <Text style={styles.ctaFc}>≈ {usd(prixUnitaire * quantite)}</Text>
           </View>
         </View>
       </View>

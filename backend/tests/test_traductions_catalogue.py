@@ -31,7 +31,7 @@ def _produit(admin, **extra):
         "categorie": categorie,
         "prix": 3,
         "description": "",
-        "tailles": [{"nom": "Petit", "ecart": 0}],
+        "tailles": [{"nom": "Régulier", "ecart": 0}],
         "garnitures": [{"nom": "Mochi", "prix": 1, "nomEn": "Mochi bites"}],
         **extra,
     }
@@ -45,7 +45,7 @@ def test_creation_complete_les_champs_vides_et_garde_la_saisie():
     _, p = _produit(admin)
     try:
         assert p["nomEn"] == "TEST English name"
-        assert p["tailles"][0]["nomEn"] == "Small"  # glossaire
+        assert p["tailles"][0]["nomEn"] == "Regular"  # glossaire
         assert p["garnitures"][0]["nomEn"] == "Mochi bites"  # saisie conservee
         assert p["descriptionEn"] is None  # rien a traduire
 
@@ -64,7 +64,7 @@ def test_renommage_fr_invalide_la_traduction_non_modifiee():
             **body,
             "nom": body["nom"] + " bis",
             "nomEn": p["nomEn"],  # renvoye tel quel : perime
-            "tailles": [{"nom": "Grand", "ecart": 0, "nomEn": "Small"}],  # renommee sans toucher l'EN
+            "tailles": [{"nom": "Grand", "ecart": 0, "nomEn": "Regular"}],  # renommee sans toucher l'EN
             "garnitures": [{"nom": "Mochi", "prix": 1, "nomEn": "Mochi balls"}],  # correction manuelle
         }
         r = requests.put(f"{API}/admin/produits/{p['id']}", json=maj, headers=admin, timeout=60)
@@ -88,7 +88,7 @@ def test_commande_copie_les_libelles_anglais():
             headers=client,
             timeout=30,
             json={
-                "items": [{"produitId": p["id"], "nom": p["nom"], "taille": "Petit", "garnitures": [{"nom": "Mochi"}],
+                "items": [{"produitId": p["id"], "nom": p["nom"], "taille": "Régulier", "garnitures": [{"nom": "Mochi"}],
                            "quantite": 1, "prixUnitaire": 0}],
                 "adresse": {"label": "TEST", "commune": "Gombe", "avenue": "TEST", "numero": "1", "repere": "TEST",
                             "telephone": CLIENT_TEL},
@@ -98,7 +98,7 @@ def test_commande_copie_les_libelles_anglais():
         cmd_id = r.json()["id"]
         ligne = r.json()["items"][0]
         assert ligne["nomEn"] == "TEST English name"
-        assert ligne["tailleEn"] == "Small"
+        assert ligne["tailleEn"] == "Regular"
         assert ligne["garnitures"][0]["nomEn"] == "Mochi bites"
     finally:
         if cmd_id:
@@ -114,7 +114,7 @@ def test_categories_details_et_traduction_manuelle():
     assert noms[0] == "Tous"  # format historique inchange
 
     details = requests.get(f"{API}/categories", params={"details": "true"}, timeout=15).json()
-    assert all(set(c) == {"nom", "nomEn"} for c in details)
+    assert all(set(c) == {"nom", "nomEn", "sousCategories"} for c in details)
 
     r = requests.post(f"{API}/admin/categories", json={"nom": f"TEST_Cat {uuid.uuid4().hex[:6]}", "nomEn": "TEST Cat"},
                       headers=admin, timeout=60)
@@ -129,7 +129,38 @@ def test_categories_details_et_traduction_manuelle():
         requests.delete(f"{API}/admin/categories/{cat['id']}", headers=admin, timeout=15)
 
 
+def test_sous_categories_et_prix_en_fc():
+    admin = _h(ADMIN_TEL, ADMIN_PWD)
+    r = requests.post(f"{API}/admin/categories", json={"nom": f"TEST_Cat {uuid.uuid4().hex[:6]}", "nomEn": "TEST Cat"},
+                      headers=admin, timeout=60)
+    assert r.status_code == 200, r.text
+    cat = r.json()
+    p = None
+    try:
+        r = requests.put(f"{API}/admin/categories/{cat['id']}", headers=admin, timeout=60,
+                         json={"sousCategories": [{"nom": "Slush", "nomEn": "Slush"}, {"nom": "slush"}, {"nom": "x"}]})
+        assert r.status_code == 200, r.text
+        assert r.json()["sousCategories"] == [{"nom": "Slush", "nomEn": "Slush"}]  # doublon et trop court ecartes
+
+        _, p = _produit(admin, categorie=cat["nom"], sousCategorie="Slush", prix=7000.4,
+                        tailles=[{"nom": "Moyen", "ecart": 999.6}], garnitures=[])
+        assert (p["prix"], p["tailles"][0]["ecart"]) == (7000, 1000)  # FC entiers
+        publie = next(x for x in requests.get(f"{API}/produits", timeout=15).json() if x["id"] == p["id"])
+        assert publie["sousCategorieEn"] == "Slush"
+
+        r = requests.post(f"{API}/admin/produits", headers=admin, timeout=60,
+                          json={"nom": "TEST_x", "categorie": cat["nom"], "prix": 1, "sousCategorie": "Inconnue"})
+        assert r.status_code == 400
+
+        # Retirer la sous-categorie laisse le produit dans la categorie, sans section.
+        requests.put(f"{API}/admin/categories/{cat['id']}", json={"sousCategories": []}, headers=admin, timeout=60)
+        publie = next(x for x in requests.get(f"{API}/produits", timeout=15).json() if x["id"] == p["id"])
+        assert publie["sousCategorie"] is None
+    finally:
+        requests.delete(f"{API}/admin/categories/{cat['id']}", headers=admin, timeout=15)
+
+
 def test_traduire_exige_un_admin():
     client = _h(CLIENT_TEL, CLIENT_PWD)
-    r = requests.post(f"{API}/admin/traduire", json={"textes": ["Petit"]}, headers=client, timeout=15)
+    r = requests.post(f"{API}/admin/traduire", json={"textes": ["Régulier"]}, headers=client, timeout=15)
     assert r.status_code in (401, 403)
