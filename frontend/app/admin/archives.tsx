@@ -95,7 +95,7 @@ export default function Archives() {
           contentContainerStyle={[styles.liste, { paddingBottom: insets.bottom + spacing.xxxl }]}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
-          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={(q.data ?? []).length} />}
+          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} selectedCount={selection.selectedIds.length} />}
           ListEmptyComponent={
             <View style={styles.centre}>
               <Icone name="package" size={40} color={colors.brandTertiary} />

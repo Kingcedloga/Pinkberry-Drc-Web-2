@@ -300,7 +300,7 @@ export default function Dashboard() {
                   {t(commandes.length === 1 ? "admin.uneCommande" : "admin.plusieursCommandes", { n: commandes.length })}
                 </Text>
                 {archivables.length > 0 ? (
-                  <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={archivables.length} />
+                  <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} selectedCount={selection.selectedIds.length} />
                 ) : null}
               </View>
 

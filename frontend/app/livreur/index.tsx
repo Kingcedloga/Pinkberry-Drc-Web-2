@@ -106,7 +106,7 @@ export default function Courses() {
               </View>
               <CarteNotifications texte={t("livreur.notifications")} />
               {terminees.length > 0 ? (
-                <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={terminees.length} />
+                <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} selectedCount={selection.selectedIds.length} />
               ) : null}
             </View>
           }

@@ -175,7 +175,7 @@ export default function Personnel() {
               <Text style={styles.refus}>{t("admin.aucunComptePersonnel")}</Text>
             </View>
           }
-          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={(q.data ?? []).length} />}
+          ListHeaderComponent={<SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} selectedCount={selection.selectedIds.length} />}
           renderItem={({ item }: any) =>
             item.vide ? (
               <View style={styles.carteGrille} />

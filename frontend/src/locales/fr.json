@@ -520,7 +520,7 @@
     "annuler": "Annuler",
     "selectionne": "{n} sélectionné",
     "selectionnes": "{n} sélectionnés",
-    "toutSelectionner": "Tout sélectionner ({count})",
+    "toutSelectionner": "Tout sélectionner ({{count}})",
     "supprimer": "Supprimer",
     "supprimerElement": "Supprimer {n} élément",
     "supprimerElements": "Supprimer {n} éléments",

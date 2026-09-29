@@ -126,7 +126,7 @@ export default function Zones() {
             </View>
           }
           ListHeaderComponent={
-            <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} count={(q.data ?? []).length} />
+            <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} selectedCount={selection.selectedIds.length} />
           }
           renderItem={({ item }: any) =>
             item.vide ? (

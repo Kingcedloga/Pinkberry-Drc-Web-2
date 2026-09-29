@@ -45,18 +45,18 @@ export function SelectionBar({
 export function SelectionHeader({
   checked,
   onToggle,
-  count,
+  selectedCount,
 }: {
   checked: boolean;
   onToggle: () => void;
-  count: number;
+  selectedCount: number;
 }) {
   const t = useT();
   return (
     <View style={styles.selectionHeader}>
       <ToggleSelection checked={checked} onToggle={onToggle} />
       <Pressable onPress={onToggle} accessibilityRole="button">
-        <Text style={styles.selectAllText}>{t("selection.toutSelectionner", { count })}</Text>
+        <Text style={styles.selectAllText}>{t("selection.toutSelectionner", { count: selectedCount })}</Text>
       </Pressable>
     </View>
   );
