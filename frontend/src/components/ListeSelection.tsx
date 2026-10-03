@@ -77,7 +77,7 @@ export function SelectionHeader({
   return (
     <View style={styles.selectionHeader}>
       <ToggleSelection checked={checked} onToggle={onToggle} />
-      <Pressable onPress={onToggle} accessibilityRole="button">
+      <Pressable onPress={onToggle} accessibilityRole="button" style={styles.toutSelectionner}>
         <Text style={styles.selectAllText}>{t("selection.toutSelectionner", { count: totalCount })}</Text>
       </Pressable>
     </View>
@@ -144,13 +144,15 @@ export function ToggleSelection({
         event.stopPropagation();
         onToggle();
       }}
-      style={[styles.checkBox, checked && styles.checkBoxSelected]}
-      hitSlop={8}
+      // Zone tactile de 44 px autour d'une case visuelle de 22 px.
+      style={styles.zoneCheckBox}
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
       accessibilityLabel={checked ? t("selection.deselectionner") : t("selection.selectionner")}
     >
-      {checked ? <Icone name="check" size={14} color={colors.onBrandPrimary} /> : null}
+      <View style={[styles.checkBox, checked && styles.checkBoxSelected]}>
+        {checked ? <Icone name="check" size={14} color={colors.onBrandPrimary} /> : null}
+      </View>
     </Pressable>
   );
 }
@@ -208,7 +210,8 @@ const styles = stylesDynamiques(() =>
       backgroundColor: colors.brandTertiary,
       borderRadius: radius.pill,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs + 2,
+      minHeight: 44,
+      justifyContent: "center",
     },
     actionText: { color: colors.brandPrimary, fontFamily: fonts.text, fontSize: 12, fontWeight: "800" },
     clearButton: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
@@ -217,9 +220,10 @@ const styles = stylesDynamiques(() =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
-      minHeight: 40,
+      minHeight: 44,
       alignSelf: "flex-start",
     },
+    toutSelectionner: { minHeight: 44, justifyContent: "center" },
     selectAllText: { fontFamily: fonts.text, fontSize: 12, color: colors.brandPrimary, fontWeight: "700" },
     compteurWrap: { flex: 1 },
     compteur: { fontFamily: fonts.display, fontSize: 15, color: colors.onSurface, fontWeight: "700" },
@@ -231,6 +235,7 @@ const styles = stylesDynamiques(() =>
       paddingVertical: spacing.sm,
     },
     deleteText: { color: colors.error, fontFamily: fonts.text, fontSize: 13, fontWeight: "800" },
+    zoneCheckBox: { width: 44, height: 44, alignItems: "center", justifyContent: "center", margin: -11 },
     checkBox: {
       width: 22,
       height: 22,

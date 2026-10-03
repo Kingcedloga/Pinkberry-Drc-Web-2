@@ -479,11 +479,13 @@ export default function Catalogue() {
         accessibilityState={{ checked: !!item.disponible }}
         accessibilityLabel={t("catalogue.disponible")}
         onPress={() => changerEtat(item, { disponible: !item.disponible })}
-        style={[styles.badge, item.disponible ? styles.badgeDisponible : styles.badgeRupture]}
+        style={styles.badgeZone}
       >
-        <Text style={[styles.badgeTexte, { color: item.disponible ? colors.success : colors.error }]}>
-          {item.disponible ? t("catalogue.disponible") : t("catalogue.rupture")}
-        </Text>
+        <View style={[styles.badge, item.disponible ? styles.badgeDisponible : styles.badgeRupture]}>
+          <Text style={[styles.badgeTexte, { color: item.disponible ? colors.success : colors.error }]}>
+            {item.disponible ? t("catalogue.disponible") : t("catalogue.rupture")}
+          </Text>
+        </View>
       </Pressable>
       <Pressable
         testID={`btn-etat-recommande-${item.nom}`}
@@ -491,11 +493,13 @@ export default function Catalogue() {
         accessibilityState={{ checked: !!item.enAvant }}
         accessibilityLabel={t("catalogue.recommande")}
         onPress={() => changerEtat(item, { enAvant: !item.enAvant })}
-        style={[styles.badge, item.enAvant ? styles.badgeRecommande : styles.badgeNeutre]}
+        style={styles.badgeZone}
       >
-        <Text style={[styles.badgeTexte, { color: item.enAvant ? colors.brandPrimary : colors.muted }]}>
-          {item.enAvant ? `⭐ ${t("catalogue.recommande")}` : `☆ ${t("catalogue.recommander")}`}
-        </Text>
+        <View style={[styles.badge, item.enAvant ? styles.badgeRecommande : styles.badgeNeutre]}>
+          <Text style={[styles.badgeTexte, { color: item.enAvant ? colors.brandPrimary : colors.muted }]}>
+            {item.enAvant ? `⭐ ${t("catalogue.recommande")}` : `☆ ${t("catalogue.recommander")}`}
+          </Text>
+        </View>
       </Pressable>
     </View>
   );
@@ -636,7 +640,8 @@ export default function Catalogue() {
                 </View>
               </View>
             ) : (
-              <View testID={`admin-produit-${item.nom}`} style={styles.carte}>
+              <View testID={`admin-produit-${item.nom}`} style={styles.carteMobile}>
+              <View style={styles.carte}>
                 <ToggleSelection
                   checked={selection.selectedIds.includes(item.id)}
                   onToggle={() => selection.toggle(item.id)}
@@ -650,7 +655,6 @@ export default function Catalogue() {
                     {item.sousCategorie ? ` · ${libelle(item.sousCategorie, item.sousCategorieEn)}` : ""}
                   </Text>
                   <Text style={styles.prix}>{item.configurable ? t("catalogue.compose") : prix(item.prix)}</Text>
-                  {badgesEtat(item)}
                 </View>
                 <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
                   <Icone name="edit-2" size={17} color={colors.brandPrimary} />
@@ -658,6 +662,8 @@ export default function Catalogue() {
                 <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
                   <Icone name="trash-2" size={17} color={colors.error} />
                 </Pressable>
+              </View>
+              {badgesEtat(item)}
               </View>
             )
           }
@@ -1035,7 +1041,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   ligneCatTexte: { flex: 1, gap: spacing.xs, paddingVertical: spacing.sm },
   ligneCatNom: { fontFamily: fonts.text, fontSize: 15, color: colors.onSurface },
   saisieCategorieEn: {
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -1117,7 +1123,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   colActions: { width: 96 },
   cellProduit: { flexDirection: "row", alignItems: "center", gap: spacing.md, minWidth: 0 },
   cellEtat: { gap: 2 },
-  badges: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginTop: 2 },
+  badges: { flexDirection: "row", flexWrap: "wrap", columnGap: spacing.xs },
+  badgeZone: { minHeight: 44, justifyContent: "center" },
   badge: { minHeight: 28, paddingHorizontal: spacing.sm, borderRadius: radius.pill, justifyContent: "center", borderWidth: 1 },
   badgeDisponible: { backgroundColor: colors.successSoft, borderColor: colors.successSoft },
   badgeRupture: { backgroundColor: colors.errorSoft, borderColor: colors.errorSoft },
@@ -1125,10 +1132,9 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   badgeNeutre: { backgroundColor: "transparent", borderColor: colors.border },
   badgeTexte: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800" },
   cellActions: { flexDirection: "row", justifyContent: "flex-end", gap: spacing.xs },
-  carte: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
+  // Carte produit sur petit écran : ligne principale, puis l'état sur toute la largeur.
+  carteMobile: {
+    gap: spacing.xs,
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     padding: spacing.md,
@@ -1136,6 +1142,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     borderColor: colors.border,
     ...softShadow,
   },
+  carte: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   emoji: { fontSize: 30 },
   photoBloc: { flexDirection: "row", gap: spacing.lg, alignItems: "center" },
   photoActions: { flex: 1, gap: spacing.sm },
@@ -1146,7 +1153,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    minHeight: 30,
+    minHeight: 44,
     paddingHorizontal: spacing.sm,
     borderRadius: radius.pill,
     backgroundColor: colors.brandTertiary,
@@ -1155,7 +1162,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   saisieSousCat: {
     flexGrow: 1,
     minWidth: 150,
-    minHeight: 30,
+    minHeight: 44,
     paddingHorizontal: spacing.sm,
     fontFamily: fonts.text,
     fontSize: 12,
@@ -1163,8 +1170,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     outlineStyle: "none",
   } as any,
   sousCatAjouter: {
-    width: 26,
-    height: 26,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -1221,7 +1228,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   label: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.muted },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
     borderWidth: 1,

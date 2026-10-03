@@ -4,10 +4,10 @@ import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { LogBox, Platform } from "react-native";
+import { LogBox, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AuthProvider } from "@/src/auth";
 import { EcranDemarrage } from "@/src/components/EcranDemarrage";
@@ -52,13 +52,23 @@ if (Platform.OS === "android") {
 /** La pile est isolée pour suivre le thème actif (clair / sombre). */
 function PileEcrans() {
   const { colors: palette, scheme } = useTheme();
+  // Safe areas latérales (encoche en paysage) appliquées une fois pour toute l'app ;
+  // le haut et le bas sont gérés par les en-têtes et barres fixes.
+  const insets = useSafeAreaInsets();
   return (
-    <>
+    <View
+      style={{
+        flex: 1,
+        paddingLeft: insets.left,
+        paddingRight: insets.right,
+        backgroundColor: palette.surfaceSecondary,
+      }}
+    >
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <Stack
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.surfaceSecondary } }}
       />
-    </>
+    </View>
   );
 }
 

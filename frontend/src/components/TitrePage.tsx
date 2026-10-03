@@ -58,8 +58,8 @@ const styles = stylesDynamiques(() =>
     },
     gauche: { flexDirection: "row", alignItems: "center", gap: spacing.md, flexShrink: 1 },
     retour: {
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       borderRadius: radius.pill,
       backgroundColor: colors.brandTertiary,
       alignItems: "center",
@@ -68,6 +68,6 @@ const styles = stylesDynamiques(() =>
     textes: { gap: 2, flexShrink: 1 },
     titre: { fontFamily: fonts.display, fontSize: 26, color: colors.onSurface },
     sousTitre: { fontFamily: fonts.text, fontSize: 13, color: colors.muted },
-    actions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, maxWidth: "100%" },
   }),
 );

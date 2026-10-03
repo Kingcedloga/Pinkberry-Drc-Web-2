@@ -9,7 +9,9 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <!-- viewport-fit=cover : l'app occupe tout l'écran (encoche, barre d'accueil) ; les
+         marges des safe areas sont appliquées par l'app (react-native-safe-area-context). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Pinkberry Drc</title>
     <meta
       name="description"
@@ -24,7 +26,11 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#E6156F" />
+    <!-- Couleur des barres système = fond de l'en-tête, en clair et en sombre.
+         Mise à jour à l'exécution quand l'utilisateur force un thème (src/web-pwa.ts). -->
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#241820" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -72,6 +78,35 @@
         display: flex;
         height: 100%;
         flex: 1;
+      }
+    </style>
+    <style id="pinkberry-base">
+      /* Hauteur dynamique : suit les barres mobiles de Safari / Chrome (pas de saut). */
+      @supports (height: 100dvh) {
+        html, body, #root { height: 100dvh; }
+      }
+      html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+      html, body { overflow-x: hidden; overscroll-behavior-y: none; background: #FBF6F9; }
+      body { -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; }
+      @media (prefers-color-scheme: dark) {
+        html, body { background: #1A1016; }
+      }
+      /* Interrupteurs (Switch) : zone tactile de 48×44 px autour du visuel de 40×20 px.
+         L'input natif est invisible et superposé : on l'agrandit sans rien déplacer. */
+      input[role="switch"] {
+        top: -12px !important;
+        left: -4px !important;
+        width: calc(100% + 8px) !important;
+        height: calc(100% + 24px) !important;
+      }
+      /* Médias jamais plus larges que leur conteneur. */
+      img, video, canvas { max-width: 100%; }
+      /* iOS zoome sur un champ dont le texte fait moins de 16 px : on l'évite sur mobile. */
+      @media (max-width: 640px) {
+        input, textarea, select { font-size: 16px !important; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
       }
     </style>
   </head>

@@ -4,7 +4,8 @@
 
 import { useWindowDimensions } from "react-native";
 
-export const RUPTURES = { sm: 480, md: 768, lg: 1024, xl: 1440 } as const;
+/** Mobile ≤ 640 px · tablette 641–1024 px · bureau > 1024 px · grand écran ≥ 1440 px. */
+export const RUPTURES = { sm: 480, md: 641, lg: 1025, xl: 1440 } as const;
 
 /** Colonne étroite (authentification, saisie courte). */
 export const LARGEUR_ETROITE = { width: "100%", maxWidth: 520, alignSelf: "center" } as const;

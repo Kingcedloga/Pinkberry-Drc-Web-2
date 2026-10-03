@@ -366,7 +366,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   badgeAdmin: { backgroundColor: colors.brandTertiary },
   badgeLivreur: { backgroundColor: colors.surfaceSecondary },
   badgeTexte: { fontFamily: fonts.text, fontSize: 11, fontWeight: "700" },
-  supprimer: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  supprimer: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   nom: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
   detail: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   desactive: { fontFamily: fonts.text, fontSize: 12, color: colors.error, marginTop: 2 },

@@ -354,7 +354,7 @@ const styles = stylesDynamiques(() =>
     ligneInactive: { opacity: 0.55 },
     ligneActions: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginLeft: "auto" },
     saisie: {
-      minHeight: 42,
+      minHeight: 44,
       paddingHorizontal: spacing.md,
       borderRadius: radius.md,
       borderWidth: 1,
@@ -371,8 +371,8 @@ const styles = stylesDynamiques(() =>
     saisieDroite: { textAlign: "right" },
     ligneActionsEtiquetee: { alignSelf: "flex-end" },
     iconeBtn: {
-      width: 38,
-      height: 38,
+      width: 44,
+      height: 44,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",

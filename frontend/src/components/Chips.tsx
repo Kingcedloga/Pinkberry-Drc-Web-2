@@ -47,7 +47,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   row: { height: 56, flexGrow: 0 },
   contenu: { gap: spacing.sm, paddingHorizontal: spacing.lg, alignItems: "center" },
   chip: {
-    height: 36,
+    minHeight: 44,
     flexShrink: 0,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,

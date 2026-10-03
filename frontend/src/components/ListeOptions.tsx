@@ -97,8 +97,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   entete: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   titre: { fontFamily: fonts.display, fontSize: 15, fontWeight: poids.fort, color: colors.onSurface },
   ajouter: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -123,5 +123,5 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   saisieMontant: { width: 86, textAlign: "right" },
   // Sous le nom français, aligné sur lui (montant + corbeille à droite).
   saisieAnglais: { minHeight: 38, fontSize: 13, marginRight: 86 + 40 + spacing.sm * 2 },
-  supprimer: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  supprimer: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
 }));

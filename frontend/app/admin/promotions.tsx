@@ -609,7 +609,7 @@ const styles = stylesDynamiques(() =>
     },
     details: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
     actions: { flexDirection: "row", justifyContent: "flex-end", gap: spacing.xs },
-    iconeBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+    iconeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
     voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
     voileCentre: {
       flex: 1,
@@ -639,7 +639,7 @@ const styles = stylesDynamiques(() =>
     aide: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     chip: {
-      minHeight: 40,
+      minHeight: 44,
       paddingHorizontal: spacing.lg,
       borderRadius: radius.pill,
       borderWidth: 1,
@@ -650,7 +650,7 @@ const styles = stylesDynamiques(() =>
     chipActif: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
     chipTexte: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.onSurface },
     recherche: {
-      minHeight: 42,
+      minHeight: 44,
       paddingHorizontal: spacing.md,
       borderRadius: radius.pill,
       borderWidth: 1,

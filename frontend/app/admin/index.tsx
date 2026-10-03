@@ -639,7 +639,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   rechercheChamp: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: colors.onSurface, outlineStyle: "none" } as any,
   filtresStatut: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   filtreChip: {
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
     justifyContent: "center",

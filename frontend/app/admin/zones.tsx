@@ -274,7 +274,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   texte: { flex: 1, gap: 2 },
   nom: { fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
   etat: { fontFamily: fonts.text, fontSize: 11, fontWeight: "800" },
-  corbeille: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  corbeille: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {
     ...LARGEUR_FEUILLE,

@@ -485,7 +485,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   voileCentre: { justifyContent: "center", alignItems: "center", padding: spacing.xl },
   dialogue: { borderRadius: radius.xl, maxWidth: 560, maxHeight: "88%", paddingTop: spacing.lg },
-  fermer: { alignSelf: "flex-end", width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  fermer: { alignSelf: "flex-end", width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   zoneFermeture: { flex: 1 },
   feuille: {
     ...LARGEUR_FEUILLE,
@@ -549,7 +549,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
     borderWidth: 1,

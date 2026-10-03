@@ -82,7 +82,7 @@ export function CentreNotifications({ cote = "droite" }: { cote?: "gauche" | "dr
               styles.panneau,
               bureau
                 ? [styles.panneauBureau, cote === "gauche" ? styles.panneauGauche : styles.panneauDroite]
-                : [styles.panneauMobile, { paddingTop: insets.top + spacing.md }],
+                : [styles.panneauMobile, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom }],
             ]}
           >
             <View style={styles.entete}>
@@ -129,8 +129,8 @@ export function CentreNotifications({ cote = "droite" }: { cote?: "gauche" | "dr
 const styles = stylesDynamiques(() =>
   StyleSheet.create({
     cloche: {
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",

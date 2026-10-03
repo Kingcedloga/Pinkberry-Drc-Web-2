@@ -215,7 +215,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   aide: { fontFamily: fonts.text, fontSize: 12, fontWeight: poids.corps, color: colors.muted },
   raccourcis: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
-    minHeight: 40,
+    minHeight: 44,
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
