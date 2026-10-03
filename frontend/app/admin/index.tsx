@@ -1,6 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
-import { useLibelle } from "@/src/catalogue-i18n";
+import { useDetailLigne, useLibelle } from "@/src/catalogue-i18n";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -70,6 +70,7 @@ export default function Dashboard() {
   const { usd, fc, prix } = useMontant();
   const { t } = useLangue();
   const libelle = useLibelle();
+  const detail = useDetailLigne();
   const { bureau } = useEcran();
   const [ouverte, setOuverte] = useState<any>(null);
   const [filtreStatut, setFiltreStatut] = useState("tous");
@@ -499,8 +500,9 @@ export default function Dashboard() {
                 <Text style={styles.blocTitre}>{t("admin.articles")}</Text>
                 {ouverte?.items?.map((i: any, idx: number) => (
                   <Text key={idx} style={styles.blocTexte}>
-                    {i.quantite}× {libelle(i.nom, i.nomEn)}{" "}
-                    {i.taille ? `(${libelle(i.taille, i.tailleEn)})` : ""} — {prix(i.prixUnitaire * i.quantite)}
+                    {i.quantite}× {libelle(i.nom, i.nomEn)}
+                    {detail.options(i) ? ` (${detail.options(i)})` : ""} — {prix(i.prixUnitaire * i.quantite)}
+                    {detail.garnitures(i) ? `\n${t("admin.garnitures")} : ${detail.garnitures(i)}` : ""}
                   </Text>
                 ))}
                 <Text style={styles.blocTotal}>{t("admin.totalCash", { montant: prix(ouverte?.total ?? 0) })}</Text>

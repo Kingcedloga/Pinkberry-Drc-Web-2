@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
-import { useLibelle } from "@/src/catalogue-i18n";
+import { useDetailLigne, useLibelle } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { TitrePage } from "@/src/components/TitrePage";
 import { usePanier } from "@/src/panier";
@@ -22,6 +22,7 @@ export default function Panier() {
   const { bureau } = useEcran();
   const t = useT();
   const libelle = useLibelle();
+  const detail = useDetailLigne();
   const { usd, fc } = useMontant();
   const { articles, changerQuantite, retirer, sousTotal, nbArticles } = usePanier();
 
@@ -55,9 +56,7 @@ export default function Panier() {
                     {libelle(a.nom, a.nomEn)}
                   </Text>
                   <Text style={styles.options} numberOfLines={2}>
-                    {[libelle(a.taille, a.tailleEn), ...a.garnitures.map((g) => libelle(g.nom, g.nomEn))]
-                      .filter(Boolean)
-                      .join(" · ") || t("panier.sansOption")}
+                    {[detail.options(a), detail.garnitures(a)].filter(Boolean).join(" · ") || t("panier.sansOption")}
                   </Text>
                   <Text style={styles.prix}>
                     {fc(a.prixUnitaire * a.quantite)} <Text style={styles.prixFc}>≈ {usd(a.prixUnitaire * a.quantite)}</Text>

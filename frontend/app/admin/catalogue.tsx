@@ -3,6 +3,7 @@ import { Icone } from "@/src/components/Icone";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { ListeOptions, type Option } from "@/src/components/ListeOptions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import React, { useMemo, useState } from "react";
 import {
@@ -68,6 +69,7 @@ export default function Catalogue() {
   const libelle = useLibelle();
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const router = useRouter();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<any[]>("/produits") });
   const categoriesQ = useQuery({
@@ -115,6 +117,8 @@ export default function Catalogue() {
   const [traduction, setTraduction] = useState(false);
   const [disponible, setDisponible] = useState(true);
   const [enAvant, setEnAvant] = useState(false);
+  // Frozen yogurt composé : taille, récipient et garnitures viennent de /admin/composition.
+  const [configurable, setConfigurable] = useState(false);
   const [tailles, setTailles] = useState<Option[]>([]);
   const [garnitures, setGarnitures] = useState<Option[]>([]);
   // Faux tant que l'admin n'a pas retouché les tailles/garnitures d'un nouveau produit.
@@ -160,6 +164,7 @@ export default function Catalogue() {
     setDescriptionEn(p?.descriptionEn ?? "");
     setDisponible(p?.disponible ?? true);
     setEnAvant(p?.enAvant ?? false);
+    setConfigurable(!!p?.configurable);
     if (p) {
       const options = optionsDe(p);
       setPrixTexte(String(p.prix));
@@ -270,7 +275,7 @@ export default function Catalogue() {
 
   const enregistrer = async () => {
     const prixFC = parseFloat(prixTexte.replace(/\s/g, "").replace(",", "."));
-    if (!nom.trim() || isNaN(prixFC) || prixFC < 0) {
+    if (!nom.trim() || (!configurable && (isNaN(prixFC) || prixFC < 0))) {
       toast.show(t("catalogue.nomPrixRequis"), "erreur");
       return;
     }
@@ -279,7 +284,8 @@ export default function Catalogue() {
       nomEn: nomEn.trim() || null,
       categorie,
       sousCategorie: sousCategorie || null,
-      prix: Math.round(prixFC),
+      prix: configurable ? 0 : Math.round(prixFC),
+      configurable,
       emoji: null,
       image,
       description,
@@ -515,6 +521,14 @@ export default function Catalogue() {
           sousTitre={t("catalogue.sousTitre")}
           actions={
             <>
+              <Pressable
+                testID="btn-composition"
+                onPress={() => router.push("/admin/composition")}
+                style={styles.btnSecondaire}
+              >
+                <Icone name="ice-cream" size={16} color={colors.brandPrimary} />
+                <Text style={styles.btnSecondaireTexte}>{t("composition.titre")}</Text>
+              </Pressable>
               <Pressable testID="btn-gerer-categories" onPress={() => setCatsOuvert(true)} style={styles.btnSecondaire}>
                 <Icone name="grid" size={16} color={colors.brandPrimary} />
                 <Text style={styles.btnSecondaireTexte}>{t("catalogue.gererCategories")}</Text>
@@ -608,7 +622,9 @@ export default function Catalogue() {
                   {libelle(item.categorie, item.categorieEn)}
                   {item.sousCategorie ? ` · ${libelle(item.sousCategorie, item.sousCategorieEn)}` : ""}
                 </Text>
-                <Text style={[styles.prix, styles.colPrix]}>{prix(item.prix)}</Text>
+                <Text style={[styles.prix, styles.colPrix]}>
+                  {item.configurable ? t("catalogue.compose") : prix(item.prix)}
+                </Text>
                 <View style={[styles.colEtat, styles.cellEtat]}>{badgesEtat(item)}</View>
                 <View style={[styles.colActions, styles.cellActions]}>
                   <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
@@ -633,7 +649,7 @@ export default function Catalogue() {
                     {libelle(item.categorie, item.categorieEn)}
                     {item.sousCategorie ? ` · ${libelle(item.sousCategorie, item.sousCategorieEn)}` : ""}
                   </Text>
-                  <Text style={styles.prix}>{prix(item.prix)}</Text>
+                  <Text style={styles.prix}>{item.configurable ? t("catalogue.compose") : prix(item.prix)}</Text>
                   {badgesEtat(item)}
                 </View>
                 <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
@@ -690,7 +706,21 @@ export default function Catalogue() {
 
               <Champ label={t("params.nom")} testID="input-produit-nom" value={nom} onChangeText={setNom} />
               <Champ label={t("catalogue.nomAnglais")} testID="input-produit-nom-en" value={nomEn} onChangeText={setNomEn} />
-              <Champ label={t("catalogue.prix")} testID="input-produit-prix" value={prixTexte} onChangeText={setPrixTexte} keyboardType="decimal-pad" />
+              <View style={styles.switchRow}>
+                <View style={styles.switchTexte}>
+                  <Text style={styles.switchLabel}>{t("catalogue.yogourtCompose")}</Text>
+                  <Text style={styles.switchAide}>{t("catalogue.yogourtComposeAide")}</Text>
+                </View>
+                <Switch
+                  testID="switch-configurable"
+                  value={configurable}
+                  onValueChange={setConfigurable}
+                  trackColor={{ true: colors.brandPrimary, false: colors.border }}
+                />
+              </View>
+              {!configurable ? (
+                <Champ label={t("catalogue.prix")} testID="input-produit-prix" value={prixTexte} onChangeText={setPrixTexte} keyboardType="decimal-pad" />
+              ) : null}
               <Champ label={t("catalogue.description")} testID="input-produit-description" value={description} onChangeText={setDescription} multiline />
               <Champ
                 label={t("catalogue.descriptionAnglais")}
@@ -772,29 +802,33 @@ export default function Catalogue() {
                   trackColor={{ true: colors.brandPrimary, false: colors.border }}
                 />
               </View>
-              <ListeOptions
-                titre={t("catalogue.tailles")}
-                aide={t("catalogue.taillesAide")}
-                cle="taille"
-                options={tailles}
-                onChange={(o) => {
-                  setTailles(o);
-                  setOptionsModifiees(true);
-                }}
-                placeholderNom={t("catalogue.tailleExemple")}
-              />
+              {!configurable ? (
+                <>
+                  <ListeOptions
+                    titre={t("catalogue.tailles")}
+                    aide={t("catalogue.taillesAide")}
+                    cle="taille"
+                    options={tailles}
+                    onChange={(o) => {
+                      setTailles(o);
+                      setOptionsModifiees(true);
+                    }}
+                    placeholderNom={t("catalogue.tailleExemple")}
+                  />
 
-              <ListeOptions
-                titre={t("catalogue.garnitures")}
-                aide={t("catalogue.garnituresAide")}
-                cle="garniture"
-                options={garnitures}
-                onChange={(o) => {
-                  setGarnitures(o);
-                  setOptionsModifiees(true);
-                }}
-                placeholderNom={t("catalogue.garnitureExemple")}
-              />
+                  <ListeOptions
+                    titre={t("catalogue.garnitures")}
+                    aide={t("catalogue.garnituresAide")}
+                    cle="garniture"
+                    options={garnitures}
+                    onChange={(o) => {
+                      setGarnitures(o);
+                      setOptionsModifiees(true);
+                    }}
+                    placeholderNom={t("catalogue.garnitureExemple")}
+                  />
+                </>
+              ) : null}
 
               <Bouton testID="btn-enregistrer-produit" label={t("commun.enregistrer")} onPress={enregistrer} />
               <Bouton testID="btn-annuler-produit" label={t("commun.annuler")} variant="contour" onPress={() => setEdition(null)} />

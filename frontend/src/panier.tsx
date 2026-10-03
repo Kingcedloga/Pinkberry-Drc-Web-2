@@ -1,6 +1,14 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
-export type Garniture = { nom: string; prix: number; nomEn?: string | null };
+export type Garniture = {
+  nom: string;
+  prix: number;
+  nomEn?: string | null;
+  // Frozen yogurt composé : garniture du catalogue de composition et sa catégorie.
+  id?: string;
+  categorie?: string | null;
+  categorieEn?: string | null;
+};
 
 export type ArticlePanier = {
   cle: string;
@@ -9,6 +17,8 @@ export type ArticlePanier = {
   nomEn?: string | null;
   taille?: string | null;
   tailleEn?: string | null;
+  contenant?: string | null;
+  contenantEn?: string | null;
   garnitures: Garniture[];
   quantite: number;
   prixUnitaire: number;
@@ -42,7 +52,8 @@ type PanierValue = {
 const PanierContext = createContext<PanierValue | null>(null);
 
 function cleDe(a: Omit<ArticlePanier, "cle">) {
-  return `${a.produitId}|${a.taille ?? ""}|${a.garnitures.map((g) => g.nom).sort().join(",")}`;
+  const garnitures = a.garnitures.map((g) => g.id ?? g.nom).sort().join(",");
+  return `${a.produitId}|${a.taille ?? ""}|${a.contenant ?? ""}|${garnitures}`;
 }
 
 export function PanierProvider({ children }: { children: React.ReactNode }) {

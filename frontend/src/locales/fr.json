@@ -176,7 +176,8 @@
     "taux": "Taux de change et catalogue",
     "zones": "Zones de livraison",
     "personnel": "Comptes du personnel",
-    "personnelDetail": "Réservé au super admin"
+    "personnelDetail": "Réservé au super admin",
+    "garnitures": "Garnitures"
   },
   "archives": {
     "titre": "Archives",
@@ -493,7 +494,10 @@
     "rendreDisponible": "Rendre disponible",
     "mettreEnRupture": "Mettre en rupture",
     "etatsMisAJour": "{{n}} produit(s) mis à jour",
-    "prixRequisDisponible": "{{n}} produit(s) à 0 FC laissé(s) en rupture : saisissez d'abord leur prix"
+    "prixRequisDisponible": "{{n}} produit(s) à 0 FC laissé(s) en rupture : saisissez d'abord leur prix",
+    "compose": "Composé",
+    "yogourtCompose": "Frozen yogurt composé",
+    "yogourtComposeAide": "Taille, récipient et garnitures choisis par le client, aux prix définis dans « Composition »."
   },
   "feuilleProduit": {
     "choisirTaille": "Choisir la taille",
@@ -503,7 +507,18 @@
     "ajouterPanier": "Ajouter au panier · {{total}}",
     "plus": "+ {{prix}}",
     "sansGarnitures": "Sans garnitures",
-    "avecGarnitures": "Avec garnitures"
+    "avecGarnitures": "Avec garnitures",
+    "des": "Dès {{prix}}",
+    "choisirContenant": "Choisir le récipient",
+    "avecSupplement": "+ {{prix}} avec garnitures",
+    "regleGarnitures": "Choisissez {{nombre}} garnitures dans {{min}} à {{max}} catégories différentes. Elles sont incluses dans le supplément de la taille.",
+    "compteurGarnitures": "{{n}} / {{total}} garnitures",
+    "compteurCategories": "Catégories : {{n}} (de {{min}} à {{max}})",
+    "encoreGarnitures": "Choisissez encore {{n}} garniture(s)",
+    "minCategories": "Choisissez dans au moins {{min}} catégories différentes",
+    "maxCategories": "Pas plus de {{max}} catégories",
+    "categoriesPleines": "{{max}} catégories atteintes : retirez une garniture pour changer de catégorie",
+    "compositionIndisponible": "Composition indisponible pour le moment. Réessayez dans un instant."
   },
   "selection": {
     "annuler": "Annuler",
@@ -546,5 +561,33 @@
     "en_preparation": "En préparation",
     "en_route": "Livreur en route",
     "livree": "Livré"
+  },
+  "composition": {
+    "titre": "Composition",
+    "sousTitre": "Tailles, récipients, garnitures et règle de sélection du frozen yogurt",
+    "regle": "Règle des garnitures",
+    "regleAide": "Quand le client prend des garnitures, il doit en choisir exactement ce nombre, réparties sur ce nombre de catégories. Modifiable à tout moment.",
+    "regleResume": "Actuellement : {{nombre}} garnitures, sur {{min}} à {{max}} catégories",
+    "regleEnregistree": "Règle enregistrée",
+    "nombre": "Nombre de garnitures",
+    "categoriesMin": "Catégories min.",
+    "categoriesMax": "Catégories max.",
+    "tailles": "Tailles et prix",
+    "taillesAide": "Prix final = prix de base + supplément si le client prend des garnitures. Les garnitures sont incluses dans ce supplément.",
+    "prixBase": "Prix de base (FC)",
+    "supplement": "Supplément garnitures (FC)",
+    "contenants": "Récipients",
+    "contenantsAide": "Un récipient désactivé n'est plus proposé au client.",
+    "garnitures": "Garnitures par catégorie",
+    "garnituresAide": "Une catégorie désactivée, ou sans garniture disponible, disparaît côté client. Une garniture désactivée n'est plus proposée.",
+    "nomFr": "Nom (FR)",
+    "nomEn": "Nom (EN), traduit si vide",
+    "nouvelleGarniture": "Nouvelle garniture",
+    "ajouter": "Ajouter",
+    "enregistre": "Enregistré",
+    "supprime": "Supprimé",
+    "nbGarnitures": "{{n}} / {{total}} garnitures disponibles",
+    "categorieMasquee": "Catégorie désactivée : masquée côté client",
+    "categorieVide": "Aucune garniture disponible : catégorie masquée côté client"
   }
 }

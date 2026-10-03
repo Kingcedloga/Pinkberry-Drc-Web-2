@@ -15,6 +15,7 @@ import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { prixDes, useComposition } from "@/src/composition";
 import { useMontant } from "@/src/taux";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
@@ -32,6 +33,8 @@ export default function Menu() {
   const t = useT();
   const libelle = useLibelle();
   const { usd, fc, prix } = useMontant();
+  // Prix d'appel des frozen yogurts composés (plus petite taille, sans garniture).
+  const prixYogourt = prixDes(useComposition().data);
   const { ajouter, nbArticles, sousTotal } = usePanier();
   const { bureau, large, tablette } = useEcran();
 
@@ -190,7 +193,8 @@ export default function Menu() {
                   : libelle(item.categorie, item.categorieEn)}
               </Text>
               <Text style={styles.produitPrix}>
-                {fc(item.prix)} <Text style={styles.produitFc}>≈ {usd(item.prix)}</Text>
+                {item.configurable ? t("feuilleProduit.des", { prix: fc(prixYogourt) }) : fc(item.prix)}{" "}
+                <Text style={styles.produitFc}>≈ {usd(item.configurable ? prixYogourt : item.prix)}</Text>
               </Text>
               {!item.disponible ? <Text style={styles.rupture}>{t("accueil.rupture")}</Text> : null}
             </View>

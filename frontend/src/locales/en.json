@@ -176,7 +176,8 @@
     "taux": "Exchange rate and menu",
     "zones": "Delivery areas",
     "personnel": "Staff accounts",
-    "personnelDetail": "Super admin only"
+    "personnelDetail": "Super admin only",
+    "garnitures": "Toppings"
   },
   "archives": {
     "titre": "Archives",
@@ -493,7 +494,10 @@
     "rendreDisponible": "Make available",
     "mettreEnRupture": "Mark out of stock",
     "etatsMisAJour": "{{n}} product(s) updated",
-    "prixRequisDisponible": "{{n}} product(s) at 0 FC left out of stock: set their price first"
+    "prixRequisDisponible": "{{n}} product(s) at 0 FC left out of stock: set their price first",
+    "compose": "Build your own",
+    "yogourtCompose": "Build-your-own frozen yogurt",
+    "yogourtComposeAide": "Size, container and toppings picked by the customer, at the prices set in “Composition”."
   },
   "feuilleProduit": {
     "choisirTaille": "Choose size",
@@ -503,7 +507,18 @@
     "ajouterPanier": "Add to cart · {{total}}",
     "plus": "+ {{prix}}",
     "sansGarnitures": "No toppings",
-    "avecGarnitures": "With toppings"
+    "avecGarnitures": "With toppings",
+    "des": "From {{prix}}",
+    "choisirContenant": "Choose your container",
+    "avecSupplement": "+ {{prix}} with toppings",
+    "regleGarnitures": "Pick {{nombre}} toppings from {{min}} to {{max}} different categories. They are included in the size's topping supplement.",
+    "compteurGarnitures": "{{n}} / {{total}} toppings",
+    "compteurCategories": "Categories: {{n}} ({{min}} to {{max}})",
+    "encoreGarnitures": "Pick {{n}} more topping(s)",
+    "minCategories": "Pick from at least {{min}} different categories",
+    "maxCategories": "No more than {{max}} categories",
+    "categoriesPleines": "{{max}} categories reached: remove a topping to switch category",
+    "compositionIndisponible": "Options are unavailable right now. Please try again in a moment."
   },
   "selection": {
     "annuler": "Cancel",
@@ -546,5 +561,33 @@
     "en_preparation": "Being prepared",
     "en_route": "Rider on the way",
     "livree": "Delivered"
+  },
+  "composition": {
+    "titre": "Composition",
+    "sousTitre": "Frozen yogurt sizes, containers, toppings and selection rule",
+    "regle": "Topping rule",
+    "regleAide": "When customers add toppings, they must pick exactly this number, spread over this number of categories. Can be changed at any time.",
+    "regleResume": "Currently: {{nombre}} toppings, from {{min}} to {{max}} categories",
+    "regleEnregistree": "Rule saved",
+    "nombre": "Number of toppings",
+    "categoriesMin": "Min. categories",
+    "categoriesMax": "Max. categories",
+    "tailles": "Sizes and prices",
+    "taillesAide": "Final price = base price + supplement if the customer adds toppings. Toppings are included in this supplement.",
+    "prixBase": "Base price (FC)",
+    "supplement": "Toppings supplement (FC)",
+    "contenants": "Containers",
+    "contenantsAide": "A disabled container is no longer offered to customers.",
+    "garnitures": "Toppings by category",
+    "garnituresAide": "A disabled category, or one without available toppings, is hidden from customers. A disabled topping is no longer offered.",
+    "nomFr": "Name (FR)",
+    "nomEn": "Name (EN), translated if empty",
+    "nouvelleGarniture": "New topping",
+    "ajouter": "Add",
+    "enregistre": "Saved",
+    "supprime": "Deleted",
+    "nbGarnitures": "{{n}} / {{total}} toppings available",
+    "categorieMasquee": "Category disabled: hidden from customers",
+    "categorieVide": "No topping available: category hidden from customers"
   }
 }

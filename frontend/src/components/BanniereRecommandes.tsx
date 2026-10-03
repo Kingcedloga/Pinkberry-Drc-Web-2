@@ -8,6 +8,7 @@ import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useLibelle } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
+import { prixDes, useComposition } from "@/src/composition";
 import { useMontant } from "@/src/taux";
 
 /**
@@ -24,6 +25,7 @@ export function BanniereRecommandes({
   const t = useT();
   const libelle = useLibelle();
   const { usd, fc } = useMontant();
+  const prixYogourt = prixDes(useComposition().data);
 
   if (produits.length === 0) return null;
   const seul = produits.length === 1;
@@ -50,7 +52,8 @@ export function BanniereRecommandes({
           {libelle(p.categorie, p.categorieEn)}
         </Text>
         <Text style={styles.prix} numberOfLines={1}>
-          {fc(p.prix)} <Text style={styles.fc}>≈ {usd(p.prix)}</Text>
+          {p.configurable ? t("feuilleProduit.des", { prix: fc(prixYogourt) }) : fc(p.prix)}{" "}
+          <Text style={styles.fc}>≈ {usd(p.configurable ? prixYogourt : p.prix)}</Text>
         </Text>
         {!p.disponible ? <Text style={styles.rupture}>{t("accueil.rupture")}</Text> : null}
       </View>

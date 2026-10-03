@@ -13,3 +13,24 @@ export function useLibelle() {
   const anglais = i18n.language === "en";
   return (fr: string | null | undefined, en?: string | null) => (anglais && en?.trim()) || fr || "";
 }
+
+type LigneAffichee = {
+  taille?: string | null;
+  tailleEn?: string | null;
+  contenant?: string | null;
+  contenantEn?: string | null;
+  garnitures?: { nom: string; nomEn?: string | null }[];
+};
+
+/**
+ * Détail d'un article de panier ou de commande dans la langue de l'interface :
+ * `options` → « Régulière · Cornet gaufré », `garnitures` → « Brownie, Miel… ».
+ */
+export function useDetailLigne() {
+  const libelle = useLibelle();
+  return {
+    options: (l: LigneAffichee) =>
+      [libelle(l.taille, l.tailleEn), libelle(l.contenant, l.contenantEn)].filter(Boolean).join(" · "),
+    garnitures: (l: LigneAffichee) => (l.garnitures ?? []).map((g) => libelle(g.nom, g.nomEn)).join(", "),
+  };
+}

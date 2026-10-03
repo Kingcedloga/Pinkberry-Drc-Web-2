@@ -1,6 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
-import { useLibelle } from "@/src/catalogue-i18n";
+import { useDetailLigne, useLibelle } from "@/src/catalogue-i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -30,6 +30,7 @@ export default function SuiviCommande() {
   const toast = useToast();
   const t = useT();
   const libelle = useLibelle();
+  const detail = useDetailLigne();
   const qc = useQueryClient();
   const { usd, fc, prix } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -200,7 +201,8 @@ export default function SuiviCommande() {
             <View key={idx} style={styles.itemRow}>
               <Text style={styles.itemNom}>
                 {i.quantite}× {libelle(i.nom, i.nomEn)}
-                {i.taille ? ` (${libelle(i.taille, i.tailleEn)})` : ""}
+                {detail.options(i) ? ` (${detail.options(i)})` : ""}
+                {detail.garnitures(i) ? `\n${detail.garnitures(i)}` : ""}
               </Text>
               <Text style={styles.itemPrix}>{prix(i.prixUnitaire * i.quantite)}</Text>
             </View>

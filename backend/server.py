@@ -364,6 +364,8 @@ class Garniture(BaseModel):
     nom: str
     prix: float = 0
     nomEn: Optional[str] = None
+    # Garniture du frozen yogurt compose : identifiant dans la collection `garnitures`.
+    id: Optional[str] = None
 
 
 class ProduitIn(BaseModel):
@@ -377,6 +379,10 @@ class ProduitIn(BaseModel):
     descriptionEn: Optional[str] = None
     # Section de la categorie (ex. « Thés au lait » dans « Boissons »).
     sousCategorie: Optional[str] = None
+    # Frozen yogurt compose : taille, recipient et garnitures viennent de la
+    # configuration globale (/composition) ; prix, tailles et garnitures du
+    # produit sont alors ignores.
+    configurable: bool = False
     disponible: bool = True
     enAvant: bool = False
     tailles: List[Taille] = Field(default_factory=list)
@@ -398,6 +404,7 @@ class ItemIn(BaseModel):
     produitId: str
     nom: str
     taille: Optional[str] = None
+    contenant: Optional[str] = None
     garnitures: List[Garniture] = Field(default_factory=list)
     quantite: int = 1
     prixUnitaire: Optional[float] = None  # ignore : recalcule depuis le catalogue
@@ -517,6 +524,39 @@ class PaiementIn(BaseModel):
 
 class BulkIdsIn(BaseModel):
     ids: List[str]
+
+
+class TailleYogourtIn(BaseModel):
+    nom: str
+    nomEn: Optional[str] = None
+    prixBase: float = Field(ge=0)
+    supplementGarnitures: float = Field(default=0, ge=0)
+
+
+class ContenantIn(BaseModel):
+    nom: str
+    nomEn: Optional[str] = None
+    disponible: bool = True
+
+
+class CategorieGarnitureMajIn(BaseModel):
+    """Champs absents = inchanges."""
+    nom: Optional[str] = None
+    nomEn: Optional[str] = None
+    disponible: Optional[bool] = None
+
+
+class GarnitureIn(BaseModel):
+    categorieId: str
+    nom: str
+    nomEn: Optional[str] = None
+    disponible: bool = True
+
+
+class RegleGarnituresIn(BaseModel):
+    nombre: int = Field(ge=1, le=30)
+    categoriesMin: int = Field(ge=1, le=30)
+    categoriesMax: int = Field(ge=1, le=30)
 
 
 class EtatProduitIn(BaseModel):
@@ -1863,12 +1903,16 @@ PRIX_REQUIS = "Saisissez un prix avant de rendre le produit disponible"
 
 
 def _vendable(p: Dict[str, Any]) -> bool:
-    """Un produit a 0 FC reste en rupture : il serait vendu gratuitement."""
-    return en_fc(p.get("prix")) > 0
+    """Un produit a 0 FC reste en rupture : il serait vendu gratuitement. Un
+    frozen yogurt compose est tarife par les tailles de /composition."""
+    return bool(p.get("configurable")) or en_fc(p.get("prix")) > 0
 
 
 async def normaliser_produit(doc: Dict[str, Any]) -> None:
     """Prix en FC entiers ; sous-categorie existante dans la categorie."""
+    doc["configurable"] = bool(doc.get("configurable"))
+    if doc["configurable"]:
+        doc.update({"prix": 0, "tailles": [], "garnitures": []})
     doc["prix"] = en_fc(doc.get("prix"))
     for t in doc.get("tailles") or []:
         t["ecart"] = en_fc(t.get("ecart"))
@@ -2027,7 +2071,7 @@ async def modifier_produit(produit_id: str, body: ProduitIn, _=Depends(require_a
     doc = body.model_dump()
     # Champs ajoutes apres coup : un client qui ne les connait pas (ancienne
     # version de l'app) ne doit pas les effacer en les omettant.
-    for cle in ("sousCategorie", "nomEn", "descriptionEn"):
+    for cle in ("sousCategorie", "nomEn", "descriptionEn", "configurable"):
         if cle not in body.model_fields_set:
             doc[cle] = ancien.get(cle)
     await normaliser_produit(doc)
@@ -2082,6 +2126,260 @@ async def supprimer_produits_bulk(body: BulkIdsIn, _=Depends(require_admin)):
         return {"ok": True, "deleted_count": 0}
     res = await db.produits.delete_many({"id": {"$in": ids}})
     return {"ok": True, "deleted_count": res.deleted_count}
+
+
+# ------------------------------------------------- composition du frozen yogurt
+# Tailles (prix de base + supplement garnitures), recipients, categories de
+# garnitures et garnitures sont des collections gerees par l'admin. La regle de
+# selection (nombre de garnitures, categories min/max) est un parametre modifiable.
+REGLE_GARNITURES_DEFAUT = {"nombre": 6, "categoriesMin": 2, "categoriesMax": 3}
+
+
+async def lire_regle_garnitures() -> Dict[str, int]:
+    doc = await db.parametres.find_one({"cle": "global"}, {"_id": 0, "regleGarnitures": 1}) or {}
+    return {**REGLE_GARNITURES_DEFAUT, **(doc.get("regleGarnitures") or {})}
+
+
+def _par_ordre(docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return sorted(docs, key=lambda d: (d.get("ordre", 0), d.get("nom", "").lower()))
+
+
+async def lire_composition(admin: bool = False) -> Dict[str, Any]:
+    """Cote client, seuls les elements disponibles sont renvoyes, et une categorie
+    sans garniture disponible disparait."""
+    tailles = _par_ordre(await db.tailles.find({}, {"_id": 0}).to_list(50))
+    contenants = _par_ordre(await db.contenants.find({}, {"_id": 0}).to_list(50))
+    categories = _par_ordre(await db.categories_garnitures.find({}, {"_id": 0}).to_list(50))
+    garnitures = _par_ordre(await db.garnitures.find({}, {"_id": 0}).to_list(1000))
+    if not admin:
+        contenants = [c for c in contenants if c.get("disponible", True)]
+        categories = [c for c in categories if c.get("disponible", True)]
+        garnitures = [g for g in garnitures if g.get("disponible", True)]
+    par_categorie: Dict[str, List[Dict[str, Any]]] = {}
+    for g in garnitures:
+        par_categorie.setdefault(g["categorieId"], []).append(g)
+    categories = [{**c, "garnitures": par_categorie.get(c["id"], [])} for c in categories]
+    if not admin:
+        categories = [c for c in categories if c["garnitures"]]
+    return {
+        "tailles": tailles,
+        "contenants": contenants,
+        "categories": categories,
+        "regle": await lire_regle_garnitures(),
+    }
+
+
+@api_router.get("/composition")
+async def composition():
+    return JSONResponse(await lire_composition(), headers={"Cache-Control": "no-store"})
+
+
+@api_router.get("/admin/composition")
+async def admin_composition(_=Depends(require_admin)):
+    return await lire_composition(admin=True)
+
+
+async def _libelles(nom: Any, nom_en: Any, ancien: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Nom FR obligatoire ; anglais saisi, conserve ou traduit automatiquement.
+    Un anglais renvoye tel quel alors que le francais a change est retraduit."""
+    nom = _texte(nom)
+    if not nom:
+        raise HTTPException(status_code=400, detail="Le nom est obligatoire")
+    en = _texte(nom_en)
+    if ancien and nom != ancien.get("nom") and en == _texte(ancien.get("nomEn")):
+        en = ""
+    return {"nom": nom, "nomEn": en or (await traduire_en([nom])).get(nom)}
+
+
+async def _ordre_suivant(collection, filtre: Optional[Dict[str, Any]] = None) -> int:
+    dernier = await collection.find(filtre or {}, {"_id": 0, "ordre": 1}).sort("ordre", -1).to_list(1)
+    return (dernier[0].get("ordre", 0) + 1) if dernier else 0
+
+
+async def _introuvable(collection, ident: str, libelle: str) -> Dict[str, Any]:
+    doc = await collection.find_one({"id": ident}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"{libelle} introuvable")
+    return doc
+
+
+# Tailles
+@api_router.post("/admin/tailles")
+async def creer_taille(body: TailleYogourtIn, _=Depends(require_admin)):
+    doc = {
+        "id": str(uuid.uuid4()),
+        **await _libelles(body.nom, body.nomEn),
+        "prixBase": en_fc(body.prixBase),
+        "supplementGarnitures": en_fc(body.supplementGarnitures),
+        "ordre": await _ordre_suivant(db.tailles),
+    }
+    await db.tailles.insert_one(dict(doc))
+    return doc
+
+
+@api_router.put("/admin/tailles/{taille_id}")
+async def modifier_taille(taille_id: str, body: TailleYogourtIn, _=Depends(require_admin)):
+    ancien = await _introuvable(db.tailles, taille_id, "Taille")
+    maj = {
+        **await _libelles(body.nom, body.nomEn, ancien),
+        "prixBase": en_fc(body.prixBase),
+        "supplementGarnitures": en_fc(body.supplementGarnitures),
+    }
+    await db.tailles.update_one({"id": taille_id}, {"$set": maj})
+    return {**ancien, **maj}
+
+
+@api_router.delete("/admin/tailles/{taille_id}")
+async def supprimer_taille(taille_id: str, _=Depends(require_admin)):
+    await _introuvable(db.tailles, taille_id, "Taille")
+    if await db.tailles.count_documents({}) <= 1:
+        raise HTTPException(status_code=400, detail="Gardez au moins une taille")
+    await db.tailles.delete_one({"id": taille_id})
+    return {"ok": True}
+
+
+# Recipients
+@api_router.post("/admin/contenants")
+async def creer_contenant(body: ContenantIn, _=Depends(require_admin)):
+    doc = {
+        "id": str(uuid.uuid4()),
+        **await _libelles(body.nom, body.nomEn),
+        "disponible": body.disponible,
+        "ordre": await _ordre_suivant(db.contenants),
+    }
+    await db.contenants.insert_one(dict(doc))
+    return doc
+
+
+@api_router.put("/admin/contenants/{contenant_id}")
+async def modifier_contenant(contenant_id: str, body: ContenantIn, _=Depends(require_admin)):
+    ancien = await _introuvable(db.contenants, contenant_id, "Recipient")
+    maj = {**await _libelles(body.nom, body.nomEn, ancien), "disponible": body.disponible}
+    await db.contenants.update_one({"id": contenant_id}, {"$set": maj})
+    return {**ancien, **maj}
+
+
+@api_router.delete("/admin/contenants/{contenant_id}")
+async def supprimer_contenant(contenant_id: str, _=Depends(require_admin)):
+    await _introuvable(db.contenants, contenant_id, "Recipient")
+    await db.contenants.delete_one({"id": contenant_id})
+    return {"ok": True}
+
+
+# Categories de garnitures (liste fixe : on gere leur nom et leur disponibilite)
+@api_router.put("/admin/categories-garnitures/{categorie_id}")
+async def modifier_categorie_garnitures(categorie_id: str, body: CategorieGarnitureMajIn, _=Depends(require_admin)):
+    ancien = await _introuvable(db.categories_garnitures, categorie_id, "Categorie de garnitures")
+    maj: Dict[str, Any] = {}
+    if body.nom is not None or body.nomEn is not None:
+        maj.update(await _libelles(
+            body.nom if body.nom is not None else ancien["nom"],
+            body.nomEn if body.nomEn is not None else ancien.get("nomEn"),
+            ancien,
+        ))
+    if body.disponible is not None:
+        maj["disponible"] = body.disponible
+    if maj:
+        await db.categories_garnitures.update_one({"id": categorie_id}, {"$set": maj})
+    return {**ancien, **maj}
+
+
+# Garnitures
+@api_router.post("/admin/garnitures")
+async def creer_garniture(body: GarnitureIn, _=Depends(require_admin)):
+    await _introuvable(db.categories_garnitures, body.categorieId, "Categorie de garnitures")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "categorieId": body.categorieId,
+        **await _libelles(body.nom, body.nomEn),
+        "disponible": body.disponible,
+        "ordre": await _ordre_suivant(db.garnitures, {"categorieId": body.categorieId}),
+    }
+    await db.garnitures.insert_one(dict(doc))
+    return doc
+
+
+@api_router.put("/admin/garnitures/{garniture_id}")
+async def modifier_garniture(garniture_id: str, body: GarnitureIn, _=Depends(require_admin)):
+    ancien = await _introuvable(db.garnitures, garniture_id, "Garniture")
+    await _introuvable(db.categories_garnitures, body.categorieId, "Categorie de garnitures")
+    maj = {"categorieId": body.categorieId, **await _libelles(body.nom, body.nomEn, ancien), "disponible": body.disponible}
+    await db.garnitures.update_one({"id": garniture_id}, {"$set": maj})
+    return {**ancien, **maj}
+
+
+@api_router.delete("/admin/garnitures/{garniture_id}")
+async def supprimer_garniture(garniture_id: str, _=Depends(require_admin)):
+    await _introuvable(db.garnitures, garniture_id, "Garniture")
+    await db.garnitures.delete_one({"id": garniture_id})
+    return {"ok": True}
+
+
+# Regle de selection
+@api_router.put("/admin/regle-garnitures")
+async def modifier_regle_garnitures(body: RegleGarnituresIn, _=Depends(require_admin)):
+    if body.categoriesMin > body.categoriesMax:
+        raise HTTPException(status_code=400, detail="Le minimum de categories depasse le maximum")
+    if body.categoriesMin > body.nombre:
+        raise HTTPException(
+            status_code=400, detail="Impossible de couvrir plus de categories que de garnitures choisies"
+        )
+    regle = body.model_dump()
+    await db.parametres.update_one({"cle": "global"}, {"$set": {"regleGarnitures": regle}})
+    return regle
+
+
+def verifier_regle_garnitures(choisies: List[Dict[str, Any]], regle: Dict[str, int]) -> None:
+    """Sans garniture : toujours valide. Avec : exactement `nombre` garnitures
+    reparties sur `categoriesMin` a `categoriesMax` categories."""
+    if not choisies:
+        return
+    if len(choisies) != regle["nombre"]:
+        raise HTTPException(status_code=400, detail=f"Choisissez exactement {regle['nombre']} garnitures")
+    nb = len({g["categorieId"] for g in choisies})
+    if not regle["categoriesMin"] <= nb <= regle["categoriesMax"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Repartissez vos garnitures sur {regle['categoriesMin']} a {regle['categoriesMax']} categories",
+        )
+
+
+async def ligne_yogourt(p: Dict[str, Any], i: ItemIn, compo: Dict[str, Any]) -> Dict[str, Any]:
+    """Ligne d'un frozen yogurt compose, recalculee depuis la composition publique
+    (elements disponibles uniquement)."""
+    taille = next((t for t in compo["tailles"] if t["nom"] == i.taille), None)
+    if not taille:
+        raise HTTPException(status_code=400, detail=f"Taille invalide pour {p['nom']}")
+    contenant = None
+    if compo["contenants"]:
+        contenant = next((c for c in compo["contenants"] if c["nom"] == i.contenant), None)
+        if not contenant:
+            raise HTTPException(status_code=400, detail=f"Recipient indisponible pour {p['nom']}")
+    offertes = {g["id"]: {**g, "categorie": c} for c in compo["categories"] for g in c["garnitures"]}
+    ids = list(dict.fromkeys(g.id or "" for g in i.garnitures))
+    if any(gid not in offertes for gid in ids):
+        raise HTTPException(status_code=400, detail=f"Garniture indisponible pour {p['nom']}")
+    choisies = [offertes[gid] for gid in ids]
+    verifier_regle_garnitures(choisies, compo["regle"])
+    prix = taille["prixBase"] + (taille["supplementGarnitures"] if choisies else 0)
+    return {
+        "taille": taille["nom"],
+        "tailleEn": taille.get("nomEn"),
+        "contenant": contenant["nom"] if contenant else None,
+        "contenantEn": contenant.get("nomEn") if contenant else None,
+        "garnitures": [
+            {
+                "id": g["id"],
+                "nom": g["nom"],
+                "nomEn": g.get("nomEn"),
+                "categorie": g["categorie"]["nom"],
+                "categorieEn": g["categorie"].get("nomEn"),
+                "prix": 0,  # incluses dans le supplement de la taille
+            }
+            for g in choisies
+        ],
+        "prixUnitaire": en_fc(prix),
+    }
 
 
 # ------------------------------------------------------------------------ zones
@@ -2371,6 +2669,7 @@ async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
     produits = {
         p["id"]: p for p in await db.produits.find({"id": {"$in": ids}}, {"_id": 0}).to_list(len(ids))
     }
+    compo = await lire_composition() if any(p.get("configurable") for p in produits.values()) else None
     lignes = []
     for i in items:
         p = produits.get(i.produitId)
@@ -2380,6 +2679,17 @@ async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
             raise HTTPException(status_code=400, detail=f"{p['nom']} est en rupture de stock")
         if not 1 <= i.quantite <= QUANTITE_MAX:
             raise HTTPException(status_code=400, detail=f"Quantite invalide pour {p['nom']}")
+        if p.get("configurable"):
+            lignes.append({
+                "produitId": p["id"],
+                "nom": p["nom"],
+                "nomEn": p.get("nomEn"),
+                **await ligne_yogourt(p, i, compo),
+                "quantite": i.quantite,
+                "emoji": p.get("emoji"),
+                "image": p.get("image"),
+            })
+            continue
 
         tailles = p.get("tailles") or []
         taille = None
@@ -2734,7 +3044,8 @@ async def rapport_commandes(
     for c in cmds:
         articles = ", ".join(
             f"{a.get('quantite', 1)}x {a.get('nom', '')}"
-            + (f" ({a.get('taille')})" if a.get("taille") else "")
+            + (f" ({', '.join(x for x in (a.get('taille'), a.get('contenant')) if x)})"
+               if a.get("taille") or a.get("contenant") else "")
             for a in c.get("items", [])
         )
         adr = c.get("adresse") or {}
@@ -3333,24 +3644,13 @@ COMMUNES = [
 ]
 
 # Carte Pinkberry, prix en FC : catalogue d'une installation neuve. Les prix des
-# garnitures et des boissons sont saisis par l'admin ; tant qu'un produit (ou
-# une de ses garnitures) vaut 0 FC, il est cree « en rupture », donc non commandable.
-RECIPIENT = "Récipient"
+# boissons sont saisis par l'admin ; tant qu'un produit vaut 0 FC, il est cree
+# « en rupture », donc non commandable. Le frozen yogurt est un produit compose :
+# taille, recipient et garnitures viennent des collections ci-dessous.
+YOGOURTS = "Yogourts glacés"
 BOISSONS = "Boissons"
-TAILLES_YOGOURT = [
-    {"nom": "Régulier", "nomEn": "Regular", "ecart": 0},
-    {"nom": "Moyen", "nomEn": "Medium", "ecart": 1000},
-    {"nom": "Grand", "nomEn": "Large", "ecart": 3000},
-]
-GARNITURES_YOGOURT = [
-    {"nom": "Fruit frais du jour", "nomEn": "Fresh fruit of the day", "prix": 0},
-    {"nom": "Garnitures premium", "nomEn": "Premium toppings", "prix": 0},
-    {"nom": "Garnitures liquides", "nomEn": "Liquid toppings", "prix": 0},
-    {"nom": "Garnitures de luxe", "nomEn": "Deluxe toppings", "prix": 0},
-    {"nom": "Nappé", "nomEn": "Drizzle", "prix": 0},
-]
 CATEGORIES_MENU = [
-    {"nom": RECIPIENT, "nomEn": "Containers", "sousCategories": []},
+    {"nom": YOGOURTS, "nomEn": "Frozen yogurt", "sousCategories": []},
     {
         "nom": BOISSONS,
         "nomEn": "Drinks",
@@ -3362,11 +3662,40 @@ CATEGORIES_MENU = [
         ],
     },
 ]
+TAILLES_MENU = [
+    {"nom": "Régulière", "nomEn": "Regular", "prixBase": 19000, "supplementGarnitures": 7000},
+    {"nom": "Moyen", "nomEn": "Medium", "prixBase": 21000, "supplementGarnitures": 8000},
+    {"nom": "Grand", "nomEn": "Large", "prixBase": 27000, "supplementGarnitures": 10000},
+]
+CONTENANTS_MENU = [
+    {"nom": "Bol", "nomEn": "Cup"},
+    {"nom": "Cornet gaufré", "nomEn": "Waffle Cone"},
+    {"nom": "Bol gaufré", "nomEn": "Waffle Bowl"},
+]
 
 
-def _yogourt(nom: str, nom_en: str) -> Dict[str, Any]:
-    return {"nom": nom, "nomEn": nom_en, "categorie": RECIPIENT, "prix": 7000,
-            "tailles": TAILLES_YOGOURT, "garnitures": GARNITURES_YOGOURT}
+def _cat(nom: str, nom_en: str, *garnitures: tuple) -> Dict[str, Any]:
+    return {"nom": nom, "nomEn": nom_en, "garnitures": [{"nom": g, "nomEn": e} for g, e in garnitures]}
+
+
+# Garnitures de depart, a ajuster par l'admin (« Coup de cœur local » est a remplir).
+GARNITURES_MENU = [
+    _cat("Produits Boulangers", "Bakery", ("Brownie", "Brownie"), ("Cheesecake", "Cheesecake"),
+         ("Pâte à cookie", "Cookie dough")),
+    _cat("Bonbons", "Candy", ("Oursons gélifiés", "Gummy bears"), ("Guimauves", "Marshmallows"),
+         ("Bonbons acidulés", "Sour candy")),
+    _cat("Céréales", "Cereal", ("Pétales de maïs", "Corn flakes"), ("Riz soufflé", "Puffed rice"),
+         ("Céréales fruitées", "Fruity cereal")),
+    _cat("Chocolat", "Chocolate", ("Pépites de chocolat", "Chocolate chips"), ("Chocolat blanc", "White chocolate"),
+         ("Copeaux de chocolat noir", "Dark chocolate shavings")),
+    _cat("Cookies", "Cookies", ("Cookie aux pépites", "Chocolate chip cookie"), ("Speculoos", "Speculoos"),
+         ("Biscuit au chocolat", "Chocolate biscuit")),
+    _cat("Granola", "Granola", ("Granola nature", "Plain granola"), ("Granola au miel", "Honey granola"),
+         ("Granola aux fruits rouges", "Berry granola")),
+    _cat("Noix", "Nuts", ("Amandes", "Almonds"), ("Cacahuètes", "Peanuts"), ("Noix de cajou", "Cashews")),
+    _cat("Liquide", "Liquid", ("Sauce chocolat", "Chocolate sauce"), ("Caramel", "Caramel"), ("Miel", "Honey")),
+    _cat("Coup de cœur local", "Local favorite"),
+]
 
 
 def _boisson(sous: str, nom: str, nom_en: str) -> Dict[str, Any]:
@@ -3375,9 +3704,8 @@ def _boisson(sous: str, nom: str, nom_en: str) -> Dict[str, Any]:
 
 
 PRODUITS_DEMO = [
-    _yogourt("Bol", "Cup"),
-    _yogourt("Cornet gaufré", "Waffle Cone"),
-    _yogourt("Bol gaufré", "Waffle Bowl"),
+    {"nom": "Yogourt glacé", "nomEn": "Frozen yogurt", "categorie": YOGOURTS, "configurable": True, "prix": 0,
+     "tailles": [], "garnitures": []},
     _boisson("Thés au lait", "Matcha à la fraise avec tapioca", "Strawberry Matcha with Tapioca"),
     _boisson("Thés au lait", "Taro au lait avec tapioca", "Taro Milk Tea with Tapioca"),
     _boisson("Thés au lait", "Matcha au lait avec tapioca", "Matcha Milk Tea with Tapioca"),
@@ -3401,10 +3729,36 @@ TRADUCTIONS_MENU = {
         *CATEGORIES_MENU,
         *(s for c in CATEGORIES_MENU for s in c["sousCategories"]),
         *PRODUITS_DEMO,
-        *TAILLES_YOGOURT,
-        *GARNITURES_YOGOURT,
+        *TAILLES_MENU,
+        *CONTENANTS_MENU,
+        *GARNITURES_MENU,
+        *(g for c in GARNITURES_MENU for g in c["garnitures"]),
     ]
 }
+
+
+async def seed_composition() -> None:
+    """Chaque collection n'est amorcee que si elle est vide : l'admin garde la main."""
+    if await db.tailles.count_documents({}) == 0:
+        for n, t in enumerate(TAILLES_MENU):
+            await db.tailles.insert_one({"id": str(uuid.uuid4()), **t, "ordre": n})
+    if await db.contenants.count_documents({}) == 0:
+        for n, c in enumerate(CONTENANTS_MENU):
+            await db.contenants.insert_one({"id": str(uuid.uuid4()), **c, "disponible": True, "ordre": n})
+    if await db.categories_garnitures.count_documents({}) == 0:
+        for n, c in enumerate(GARNITURES_MENU):
+            cid = str(uuid.uuid4())
+            await db.categories_garnitures.insert_one(
+                {"id": cid, "nom": c["nom"], "nomEn": c["nomEn"], "disponible": True, "ordre": n}
+            )
+            for m, g in enumerate(c["garnitures"]):
+                await db.garnitures.insert_one(
+                    {"id": str(uuid.uuid4()), "categorieId": cid, **g, "disponible": True, "ordre": m}
+                )
+    await db.parametres.update_one(
+        {"cle": "global", "regleGarnitures": {"$exists": False}},
+        {"$set": {"regleGarnitures": REGLE_GARNITURES_DEFAUT}},
+    )
 
 
 async def seed():
@@ -3434,6 +3788,7 @@ async def seed():
         upsert=True,
     )
     await migrer_monnaie_fc()
+    await seed_composition()
     for commune, active in COMMUNES:
         await db.zones.update_one(
             {"commune": commune},
@@ -3449,9 +3804,9 @@ async def seed():
             )
         for p in PRODUITS_DEMO:
             doc = {"description": None, "descriptionEn": None, "image": None, "emoji": None, "enAvant": False,
-                   "sousCategorie": None, **copy.deepcopy(p)}
+                   "sousCategorie": None, "configurable": False, **copy.deepcopy(p)}
             doc["id"] = str(uuid.uuid4())
-            doc["disponible"] = doc["prix"] > 0 and all(g["prix"] > 0 for g in doc["garnitures"])
+            doc["disponible"] = _vendable(doc)
             await db.produits.insert_one(doc)
 
     # categories : reprises des produits existants puis gerees par l'admin

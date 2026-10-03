@@ -72,6 +72,7 @@ export default function Confirmation() {
             produitId: a.produitId,
             nom: a.nom,
             taille: a.taille,
+            contenant: a.contenant,
             garnitures: a.garnitures,
             quantite: a.quantite,
             prixUnitaire: a.prixUnitaire,

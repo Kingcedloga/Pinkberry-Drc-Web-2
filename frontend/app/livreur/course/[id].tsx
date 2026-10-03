@@ -1,6 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
-import { useLibelle } from "@/src/catalogue-i18n";
+import { useDetailLigne, useLibelle } from "@/src/catalogue-i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useLocalSearchParams } from "expo-router";
@@ -27,6 +27,7 @@ export default function DetailCourse() {
   const toast = useToast();
   const { t } = useLangue();
   const libelle = useLibelle();
+  const detail = useDetailLigne();
   const qc = useQueryClient();
   const { usd, fc } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -203,8 +204,8 @@ export default function DetailCourse() {
           <Text style={styles.montantFc}>≈ {usd(cmd.total)}</Text>
           {cmd.items.map((i: any, idx: number) => (
             <Text key={idx} style={styles.ligne}>
-              {i.quantite}× {libelle(i.nom, i.nomEn)}{" "}
-              {i.taille ? `(${libelle(i.taille, i.tailleEn)})` : ""}
+              {i.quantite}× {libelle(i.nom, i.nomEn)}
+              {detail.options(i) ? ` (${detail.options(i)})` : ""}
             </Text>
           ))}
         </View>

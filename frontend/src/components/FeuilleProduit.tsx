@@ -4,8 +4,10 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bouton } from "@/src/components/Bouton";
+import { Chargement } from "@/src/components/Chargement";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useLibelle } from "@/src/catalogue-i18n";
+import { evaluerSelection, prixDes, useComposition, type GarnitureYogourt } from "@/src/composition";
 import { useT } from "@/src/i18n";
 import { ArticlePanier, Garniture } from "@/src/panier";
 import { LARGEUR_FEUILLE, useEcran } from "@/src/reactif";
@@ -29,6 +31,8 @@ export type Produit = {
   enAvant?: boolean;
   tailles: { nom: string; ecart: number; nomEn?: string | null }[];
   garnitures: Garniture[];
+  /** Frozen yogurt composé : taille, récipient et garnitures viennent de /composition. */
+  configurable?: boolean;
 };
 
 export function FeuilleProduit({
@@ -48,13 +52,30 @@ export function FeuilleProduit({
   const libelle = useLibelle();
   const { usd, fc, prix } = useMontant();
   const [tailleIndex, setTailleIndex] = useState(0);
+  const [contenantIndex, setContenantIndex] = useState(0);
+  // Noms des garnitures (produit simple) ou identifiants (frozen yogurt composé).
   const [garnituresChoisies, setGarnitures] = useState<string[]>([]);
   // Les garnitures ne s'affichent qu'après « Avec garnitures ».
   const [avecGarnitures, setAvecGarnitures] = useState(false);
   const [quantite, setQuantite] = useState(1);
 
+  const compoQ = useComposition();
+  const compo = compoQ.data;
+  const compose = !!produit?.configurable;
+  const garnituresCompo = useMemo(
+    () => new Map((compo?.categories ?? []).flatMap((c) => c.garnitures.map((g) => [g.id, g] as const))),
+    [compo],
+  );
+  const choisiesYogourt = garnituresChoisies
+    .map((id) => garnituresCompo.get(id))
+    .filter((g): g is GarnitureYogourt => !!g);
+  const evaluation = compo ? evaluerSelection(choisiesYogourt, compo.regle) : null;
+  const tailleYogourt = compo?.tailles[tailleIndex];
+  const contenant = compo?.contenants[contenantIndex];
+
   const reset = () => {
     setTailleIndex(0);
+    setContenantIndex(0);
     setGarnitures([]);
     setAvecGarnitures(false);
     setQuantite(1);
@@ -68,16 +89,64 @@ export function FeuilleProduit({
 
   const prixUnitaire = useMemo(() => {
     if (!produit) return 0;
+    // Frozen yogurt : prix de base de la taille + supplément forfaitaire si garnitures.
+    if (compose) {
+      return tailleYogourt ? tailleYogourt.prixBase + (avecGarnitures ? tailleYogourt.supplementGarnitures : 0) : 0;
+    }
     const ecart = produit.tailles[tailleIndex]?.ecart ?? 0;
     const sup = produit.garnitures
       .filter((g) => garnituresChoisies.includes(g.nom))
       .reduce((s, g) => s + g.prix, 0);
     return produit.prix + ecart + sup;
-  }, [produit, tailleIndex, garnituresChoisies]);
+  }, [produit, compose, tailleYogourt, avecGarnitures, tailleIndex, garnituresChoisies]);
 
   if (!produit) return null;
 
+  // Avec garnitures, la commande n'est possible qu'une fois la règle respectée.
+  const valide = compose
+    ? !!tailleYogourt && (!compo?.contenants.length || !!contenant) && (!avecGarnitures || !!evaluation?.valide)
+    : true;
+  const messageRegle = (() => {
+    if (!compose || !avecGarnitures || !compo || !evaluation || evaluation.valide) return null;
+    const { nombre, categoriesMin, categoriesMax } = compo.regle;
+    if (evaluation.nb < nombre) return tr("feuilleProduit.encoreGarnitures", { n: nombre - evaluation.nb });
+    if (evaluation.nbCategories < categoriesMin) return tr("feuilleProduit.minCategories", { min: categoriesMin });
+    return tr("feuilleProduit.maxCategories", { max: categoriesMax });
+  })();
+
+  const basculerGarniture = (id: string, coche: boolean) =>
+    setGarnitures((prev) => (coche ? prev.filter((x) => x !== id) : [...prev, id]));
+
   const ajouter = () => {
+    if (!valide) return;
+    if (compose && compo && tailleYogourt) {
+      const categories = new Map(compo.categories.map((c) => [c.id, c]));
+      onAjouter({
+        produitId: produit.id,
+        nom: produit.nom,
+        nomEn: produit.nomEn,
+        taille: tailleYogourt.nom,
+        tailleEn: tailleYogourt.nomEn,
+        contenant: contenant?.nom ?? null,
+        contenantEn: contenant?.nomEn ?? null,
+        garnitures: avecGarnitures
+          ? choisiesYogourt.map((g) => ({
+              id: g.id,
+              nom: g.nom,
+              nomEn: g.nomEn,
+              prix: 0,
+              categorie: categories.get(g.categorieId)?.nom,
+              categorieEn: categories.get(g.categorieId)?.nomEn,
+            }))
+          : [],
+        quantite,
+        prixUnitaire,
+        emoji: produit.emoji,
+        image: produit.image,
+      });
+      fermer();
+      return;
+    }
     onAjouter({
       produitId: produit.id,
       nom: produit.nom,
@@ -129,12 +198,180 @@ export function FeuilleProduit({
                     : libelle(produit.categorie, produit.categorieEn)}
                 </Text>
                 <Text style={styles.prixBase}>
-                  {fc(produit.prix)} ≈ {usd(produit.prix)}
+                  {compose
+                    ? tr("feuilleProduit.des", { prix: fc(prixDes(compo)) })
+                    : `${fc(produit.prix)} ≈ ${usd(produit.prix)}`}
                 </Text>
               </View>
             </View>
 
-            {produit.tailles.length > 0 ? (
+            {compose && !compo ? (
+              <View style={styles.centre}>
+                {compoQ.isError ? (
+                  <Text style={styles.desc}>{tr("feuilleProduit.compositionIndisponible")}</Text>
+                ) : (
+                  <Chargement taille={40} />
+                )}
+              </View>
+            ) : null}
+
+            {compose && compo ? (
+              <>
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitre}>{tr("feuilleProduit.choisirTaille")}</Text>
+                  {compo.tailles.map((taille, i) => (
+                    <Pressable
+                      key={taille.id}
+                      testID={`taille-${taille.nom}`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: i === tailleIndex }}
+                      onPress={() => setTailleIndex(i)}
+                      style={[styles.option, i === tailleIndex && styles.optionActive]}
+                    >
+                      <View style={[styles.radio, i === tailleIndex && styles.radioActif]}>
+                        {i === tailleIndex ? <View style={styles.radioPoint} /> : null}
+                      </View>
+                      <View style={styles.optionTexte}>
+                        <Text style={styles.optionNom}>{libelle(taille.nom, taille.nomEn)}</Text>
+                        <Text style={styles.optionAide}>
+                          {tr("feuilleProduit.avecSupplement", { prix: fc(taille.supplementGarnitures) })}
+                        </Text>
+                      </View>
+                      <Text style={styles.optionPrix}>{fc(taille.prixBase)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {compo.contenants.length > 0 ? (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitre}>{tr("feuilleProduit.choisirContenant")}</Text>
+                    <View style={styles.chips} accessibilityRole="radiogroup">
+                      {compo.contenants.map((c, i) => {
+                        const actif = i === contenantIndex;
+                        return (
+                          <Pressable
+                            key={c.id}
+                            testID={`contenant-${c.nom}`}
+                            accessibilityRole="radio"
+                            accessibilityState={{ checked: actif }}
+                            onPress={() => setContenantIndex(i)}
+                            style={[styles.chip, actif && styles.chipActif]}
+                          >
+                            <Text style={[styles.chipTexte, actif && { color: colors.onBrandPrimary }]}>
+                              {libelle(c.nom, c.nomEn)}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
+
+                {compo.categories.length > 0 && evaluation ? (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitre}>{tr("feuilleProduit.garnitures")}</Text>
+                    <View style={styles.choixGarnitures} accessibilityRole="radiogroup">
+                      {[false, true].map((avec) => {
+                        const actif = avecGarnitures === avec;
+                        return (
+                          <Pressable
+                            key={String(avec)}
+                            testID={avec ? "btn-avec-garnitures" : "btn-sans-garnitures"}
+                            accessibilityRole="radio"
+                            accessibilityState={{ checked: actif }}
+                            onPress={() => {
+                              setAvecGarnitures(avec);
+                              if (!avec) setGarnitures([]);
+                            }}
+                            style={[styles.choixGarniture, actif && styles.choixGarnitureActif]}
+                          >
+                            <Text style={[styles.choixGarnitureTexte, actif && { color: colors.onBrandPrimary }]}>
+                              {tr(avec ? "feuilleProduit.avecGarnitures" : "feuilleProduit.sansGarnitures")}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+
+                    {avecGarnitures ? (
+                      <>
+                        <Text style={styles.optionAide}>
+                          {tr("feuilleProduit.regleGarnitures", {
+                            nombre: compo.regle.nombre,
+                            min: compo.regle.categoriesMin,
+                            max: compo.regle.categoriesMax,
+                          })}
+                        </Text>
+                        <View style={styles.compteurs} testID="compteurs-garnitures">
+                          <Text
+                            testID="compteur-garnitures"
+                            style={[styles.compteur, evaluation.complet && styles.compteurOk]}
+                          >
+                            {tr("feuilleProduit.compteurGarnitures", { n: evaluation.nb, total: compo.regle.nombre })}
+                          </Text>
+                          <Text
+                            testID="compteur-categories"
+                            style={[
+                              styles.compteur,
+                              evaluation.nbCategories >= compo.regle.categoriesMin &&
+                                evaluation.nbCategories <= compo.regle.categoriesMax &&
+                                styles.compteurOk,
+                            ]}
+                          >
+                            {tr("feuilleProduit.compteurCategories", {
+                              n: evaluation.nbCategories,
+                              min: compo.regle.categoriesMin,
+                              max: compo.regle.categoriesMax,
+                            })}
+                          </Text>
+                        </View>
+                        {evaluation.categoriesPleines && !evaluation.complet ? (
+                          <Text style={styles.optionAide}>
+                            {tr("feuilleProduit.categoriesPleines", { max: compo.regle.categoriesMax })}
+                          </Text>
+                        ) : null}
+
+                        {compo.categories.map((cat) => {
+                          const nbDansCat = choisiesYogourt.filter((g) => g.categorieId === cat.id).length;
+                          return (
+                            <View key={cat.id} style={styles.categorie} testID={`categorie-garnitures-${cat.nom}`}>
+                              <View style={styles.categorieEntete}>
+                                <Text style={styles.categorieNom}>{libelle(cat.nom, cat.nomEn)}</Text>
+                                {nbDansCat > 0 ? <Text style={styles.categorieNb}>{nbDansCat}</Text> : null}
+                              </View>
+                              <View style={styles.chips}>
+                                {cat.garnitures.map((g) => {
+                                  const coche = garnituresChoisies.includes(g.id);
+                                  const bloque = !coche && !evaluation.peutAjouter(g);
+                                  return (
+                                    <Pressable
+                                      key={g.id}
+                                      testID={`garniture-${g.nom}`}
+                                      accessibilityRole="checkbox"
+                                      accessibilityState={{ checked: coche, disabled: bloque }}
+                                      disabled={bloque}
+                                      onPress={() => basculerGarniture(g.id, coche)}
+                                      style={[styles.chip, coche && styles.chipActif, bloque && styles.chipBloque]}
+                                    >
+                                      {coche ? <Icone name="check" size={13} color={colors.onBrandPrimary} /> : null}
+                                      <Text style={[styles.chipTexte, coche && { color: colors.onBrandPrimary }]}>
+                                        {libelle(g.nom, g.nomEn)}
+                                      </Text>
+                                    </Pressable>
+                                  );
+                                })}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </>
+                    ) : null}
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+
+            {!compose && produit.tailles.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitre}>{tr("feuilleProduit.choisirTaille")}</Text>
                 {produit.tailles.map((taille, i) => (
@@ -156,7 +393,7 @@ export function FeuilleProduit({
               </View>
             ) : null}
 
-            {produit.garnitures.length > 0 ? (
+            {!compose && produit.garnitures.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitre}>{tr("feuilleProduit.garnitures")}</Text>
                 <View style={styles.choixGarnitures} accessibilityRole="radiogroup">
@@ -224,10 +461,16 @@ export function FeuilleProduit({
           </ScrollView>
 
           <View style={styles.cta}>
+            {messageRegle ? (
+              <Text testID="message-regle-garnitures" style={styles.messageRegle} accessibilityLiveRegion="polite">
+                {messageRegle}
+              </Text>
+            ) : null}
             <Bouton
               testID="btn-ajouter-panier"
               label={tr("feuilleProduit.ajouterPanier", { total: fc(prixUnitaire * quantite) })}
               icone="shopping-bag"
+              disabled={!valide}
               onPress={ajouter}
             />
             <Text style={styles.ctaFc}>≈ {usd(prixUnitaire * quantite)}</Text>
@@ -298,6 +541,53 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   choixGarnitureActif: { borderColor: colors.brandPrimary, backgroundColor: colors.brandPrimary },
   choixGarnitureTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.onSurface },
   optionNom: { flex: 1, fontFamily: fonts.text, fontSize: 15, fontWeight: "700", color: colors.onSurface },
+  optionTexte: { flex: 1, gap: 2 },
+  optionAide: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+  centre: { alignItems: "center", paddingVertical: spacing.lg },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    minHeight: 38,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  chipActif: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
+  chipBloque: { opacity: 0.4 },
+  chipTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.onSurface },
+  compteurs: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  compteur: {
+    fontFamily: fonts.text,
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+    backgroundColor: colors.brandTertiary,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    overflow: "hidden",
+  },
+  compteurOk: { color: colors.success, backgroundColor: colors.successSoft },
+  categorie: { gap: spacing.xs, paddingTop: spacing.xs },
+  categorieEntete: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  categorieNom: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onSurface },
+  categorieNb: {
+    minWidth: 20,
+    textAlign: "center",
+    fontFamily: fonts.text,
+    fontSize: 11,
+    fontWeight: "800",
+    color: colors.onBrandPrimary,
+    backgroundColor: colors.brandPrimary,
+    borderRadius: radius.pill,
+    paddingHorizontal: 6,
+    overflow: "hidden",
+  },
+  messageRegle: { textAlign: "center", fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.error },
   optionPrix: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, fontWeight: "700" },
   radio: {
     width: 22,
