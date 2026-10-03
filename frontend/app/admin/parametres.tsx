@@ -252,6 +252,13 @@ export default function Parametres() {
 
             <Section titre={t("admin.boutique")}>
               <Ligne
+                testID="ligne-promotions"
+                icone="gift"
+                label={t("admin.promotions")}
+                valeur={t("admin.promotionsDetail")}
+                onPress={() => router.push("/admin/promotions")}
+              />
+              <Ligne
                 testID="ligne-taux"
                 icone="repeat"
                 label={t("admin.taux")}

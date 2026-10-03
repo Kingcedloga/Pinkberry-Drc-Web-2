@@ -101,7 +101,7 @@ class TestRapport:
         assert "Rapport des commandes" in titre and debut in titre and fin in titre
 
         entetes_attendues = ["N° commande", "Date", "Client", "Adresse / commune",
-                             "Articles", "Total FC", "Statut", "Livreur"]
+                             "Articles", "Promotion", "Réduction FC", "Total FC"]
         entetes = [ws.cell(row=3, column=i + 1).value for i in range(8)]
         assert entetes == entetes_attendues, entetes
 

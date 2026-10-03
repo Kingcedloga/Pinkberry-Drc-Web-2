@@ -505,6 +505,14 @@ export default function Dashboard() {
                     {detail.garnitures(i) ? `\n${t("admin.garnitures")} : ${detail.garnitures(i)}` : ""}
                   </Text>
                 ))}
+                {(ouverte?.promotions ?? []).map((pr: any) => (
+                  <Text key={pr.id} testID={`promo-commande-${pr.id}`} style={styles.blocTexte}>
+                    {t("admin.promotionAppliquee", { nom: libelle(pr.nom, pr.nomEn) })}
+                    {pr.code ? ` (${pr.code})` : ""}
+                    {pr.montant > 0 ? ` : −${prix(pr.montant)}` : ""}
+                    {pr.livraison > 0 ? ` · ${t("promo.livraisonOfferte")}` : ""}
+                  </Text>
+                ))}
                 <Text style={styles.blocTotal}>{t("admin.totalCash", { montant: prix(ouverte?.total ?? 0) })}</Text>
               </View>
 

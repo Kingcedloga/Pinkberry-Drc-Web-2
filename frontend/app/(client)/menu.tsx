@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { apiFetch } from "@/src/api";
+import { BannierePromotions } from "@/src/components/BannierePromotions";
 import { BanniereRecommandes } from "@/src/components/BanniereRecommandes";
 import { Chargement } from "@/src/components/Chargement";
 import { Chips } from "@/src/components/Chips";
@@ -131,7 +132,10 @@ export default function Menu() {
       ) : null}
 
       {!rechercheActive ? (
-        <BanniereRecommandes produits={enAvant} onChoisir={(p) => setProduitOuvert(p)} />
+        <View style={styles.bannieres}>
+          <BannierePromotions />
+          <BanniereRecommandes produits={enAvant} onChoisir={(p) => setProduitOuvert(p)} />
+        </View>
       ) : null}
 
       <View style={styles.titreListe}>
@@ -283,6 +287,7 @@ export default function Menu() {
 
 const styles = stylesDynamiques(() =>
   StyleSheet.create({
+    bannieres: { gap: spacing.md },
     ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
     page: {
       flex: 1,

@@ -1,8 +1,8 @@
 import { Icone } from "@/src/components/Icone";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
@@ -11,9 +11,11 @@ import { AttentePaiement } from "@/src/components/AttentePaiement";
 import { Bouton } from "@/src/components/Bouton";
 import { ChoixPaiement, type Devise, type ModePaiement, type Operateur } from "@/src/components/ChoixPaiement";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
+import { RecapTotaux } from "@/src/components/RecapTotaux";
 import { useLibelle } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
+import { useMessageCode, type Totaux } from "@/src/promotions";
 import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -46,7 +48,40 @@ export default function Confirmation() {
     devise: string;
   } | null>(null);
 
-  const total = sousTotal + FRAIS;
+  // Code saisi par le client, puis code soumis au serveur (bouton « Appliquer »).
+  const [codeSaisi, setCodeSaisi] = useState("");
+  const [codeApplique, setCodeApplique] = useState<string | null>(null);
+  const messageCode = useMessageCode();
+
+  const itemsCommande = articles.map((a) => ({
+    produitId: a.produitId,
+    nom: a.nom,
+    taille: a.taille,
+    contenant: a.contenant,
+    garnitures: a.garnitures,
+    quantite: a.quantite,
+    prixUnitaire: a.prixUnitaire,
+    emoji: a.emoji,
+    image: a.image,
+  }));
+
+  // Réductions calculées par le serveur, avec les mêmes règles que la commande :
+  // promotions automatiques + code éventuel. Rien n'est calculé côté client.
+  const apercuQ = useQuery({
+    queryKey: ["apercu-promos", articles.map((a) => `${a.cle}×${a.quantite}`).join("|"), codeApplique],
+    queryFn: () =>
+      apiFetch<Totaux>("/promotions/apercu", { method: "POST", body: { items: itemsCommande, codePromo: codeApplique } }),
+    enabled: articles.length > 0,
+  });
+  const totaux: Totaux = apercuQ.data ?? { sousTotal, fraisLivraison: FRAIS, total: sousTotal + FRAIS };
+  const total = totaux.total;
+  const resultatCode = apercuQ.data?.code ?? null;
+  const codeAccepte = !!resultatCode && ["applique", "moins_avantageux"].includes(resultatCode.statut);
+  const appliquerCode = () => setCodeApplique(codeSaisi.trim().toUpperCase() || null);
+  const retirerCode = () => {
+    setCodeApplique(null);
+    setCodeSaisi("");
+  };
 
   const lancerPaiement = async (commandeId: string) => {
     const r = await apiFetch<{ depositId: string; montant: string; devise: string }>("/paiements/mobile-money", {
@@ -68,17 +103,9 @@ export default function Confirmation() {
         body: {
           adresse,
           modePaiement: mode,
-          items: articles.map((a) => ({
-            produitId: a.produitId,
-            nom: a.nom,
-            taille: a.taille,
-            contenant: a.contenant,
-            garnitures: a.garnitures,
-            quantite: a.quantite,
-            prixUnitaire: a.prixUnitaire,
-            emoji: a.emoji,
-            image: a.image,
-          })),
+          items: itemsCommande,
+          // Un code refusé n'est pas transmis : la commande garde les promotions automatiques.
+          codePromo: codeAccepte ? codeApplique : null,
         },
       });
       vider();
@@ -156,24 +183,55 @@ export default function Confirmation() {
 
           <View style={bureau ? styles.colDroite : styles.pile}>
         <View style={styles.carte}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t("confirmation.sousTotal")}</Text>
-            <Text style={styles.totalValeur}>{prix(sousTotal)}</Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t("confirmation.frais")}</Text>
-            <Text style={styles.totalValeur}>{prix(FRAIS)}</Text>
+          <View style={styles.codeBloc}>
+            <Text style={styles.codeTitre}>{t("promo.codePromo")}</Text>
+            <View style={styles.codeLigne}>
+              <TextInput
+                testID="input-code-promo"
+                value={codeSaisi}
+                onChangeText={(v) => setCodeSaisi(v.toUpperCase())}
+                onSubmitEditing={appliquerCode}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder={t("promo.codePlaceholder")}
+                placeholderTextColor={colors.muted}
+                style={styles.codeChamp}
+              />
+              {codeApplique ? (
+                <Pressable testID="btn-retirer-code" onPress={retirerCode} style={styles.codeBouton}>
+                  <Text style={styles.codeBoutonTexte}>{t("promo.retirer")}</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  testID="btn-appliquer-code"
+                  onPress={appliquerCode}
+                  disabled={!codeSaisi.trim()}
+                  style={[styles.codeBouton, styles.codeBoutonPrimaire, !codeSaisi.trim() && { opacity: 0.5 }]}
+                >
+                  <Text style={[styles.codeBoutonTexte, { color: colors.onBrandPrimary }]}>{t("promo.appliquer")}</Text>
+                </Pressable>
+              )}
+            </View>
+            {codeApplique && apercuQ.isFetching ? <Text style={styles.codeInfo}>{t("promo.verification")}</Text> : null}
+            {codeApplique && !apercuQ.isFetching && resultatCode ? (
+              <Text
+                testID="message-code-promo"
+                accessibilityLiveRegion="polite"
+                style={[
+                  styles.codeInfo,
+                  resultatCode.statut === "applique"
+                    ? styles.codeSucces
+                    : resultatCode.statut === "moins_avantageux"
+                      ? null
+                      : styles.codeErreur,
+                ]}
+              >
+                {messageCode(resultatCode)}
+              </Text>
+            ) : null}
           </View>
           <View style={styles.separateur} />
-          <View style={styles.totalRow}>
-            <Text style={styles.grandTotalLabel}>{t("confirmation.total")}</Text>
-            <View>
-              <Text testID="confirmation-total" style={styles.grandTotalValeur}>
-                {fc(total)}
-              </Text>
-              <Text style={styles.grandTotalFc}>≈ {usd(total)}</Text>
-            </View>
-          </View>
+          <RecapTotaux totaux={totaux} testID="confirmation" />
           {bureau ? <View style={styles.ctaBureau}>{cta}</View> : null}
         </View>
           </View>
@@ -244,6 +302,36 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   colGauche: { flex: 1.15, gap: spacing.md, minWidth: 0 },
   colDroite: { flex: 1, gap: spacing.md, minWidth: 0 },
   ctaBureau: { marginTop: spacing.md },
+  codeBloc: { gap: spacing.xs },
+  codeTitre: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onSurface },
+  codeLigne: { flexDirection: "row", gap: spacing.sm },
+  codeChamp: {
+    flex: 1,
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    fontFamily: fonts.text,
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 1,
+    color: colors.onSurface,
+  },
+  codeBouton: {
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.brandTertiary,
+  },
+  codeBoutonPrimaire: { backgroundColor: colors.brandPrimary },
+  codeBoutonTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
+  codeInfo: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.muted },
+  codeSucces: { color: colors.success },
+  codeErreur: { color: colors.error },
   carte: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
@@ -260,13 +348,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   articleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: 4 },
   articleNom: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   articlePrix: { fontFamily: fonts.display, fontSize: 14, color: colors.onSurface },
-  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 3 },
-  totalLabel: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, fontWeight: "700" },
-  totalValeur: { fontFamily: fonts.text, fontSize: 14, color: colors.onSurface, fontWeight: "700" },
   separateur: { height: 1, backgroundColor: colors.divider, marginVertical: spacing.sm },
-  grandTotalLabel: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
-  grandTotalValeur: { fontFamily: fonts.display, fontSize: 24, color: colors.brandPrimary, textAlign: "right" },
-  grandTotalFc: { fontFamily: fonts.text, fontSize: 11, color: colors.muted, textAlign: "right" },
   pied: {
     ...LARGEUR_CONTENU,
     backgroundColor: colors.surface,

@@ -1,5 +1,6 @@
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
+import { RecapTotaux } from "@/src/components/RecapTotaux";
 import { useDetailLigne, useLibelle } from "@/src/catalogue-i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -208,14 +209,7 @@ export default function SuiviCommande() {
             </View>
           ))}
           <View style={styles.separateur} />
-          <View style={styles.itemRow}>
-            <Text style={styles.itemNom}>{t("suivi.frais")}</Text>
-              <Text style={styles.itemPrix}>{prix(cmd.fraisLivraison)}</Text>
-          </View>
-          <View style={styles.itemRow}>
-            <Text style={styles.totalLabel}>{t("suivi.total")}</Text>
-            <Text style={styles.totalValeur}>{fc(cmd.total)}</Text>
-          </View>
+          <RecapTotaux totaux={cmd} testID="suivi" />
           <Text style={styles.adresseTexte}>
             {cmd.adresse?.avenue} n° {cmd.adresse?.numero}, {cmd.adresse?.commune} — {cmd.adresse?.repere}
           </Text>

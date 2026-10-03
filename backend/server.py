@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 from urllib.parse import quote, urlparse
 
 import bcrypt
@@ -416,6 +416,38 @@ class CommandeIn(BaseModel):
     adresse: AdresseIn
     items: List[ItemIn]
     modePaiement: Literal["cash", "mobile"] = "cash"
+    codePromo: Optional[str] = None
+
+
+class ApercuPromoIn(BaseModel):
+    items: List[ItemIn]
+    codePromo: Optional[str] = None
+
+
+TypePromo = Literal["pourcentage", "montant", "livraison"]
+CiblePromo = Literal["commande", "categorie", "produit", "premiere_commande"]
+
+
+class PromotionIn(BaseModel):
+    nom: str
+    nomEn: Optional[str] = None
+    type: TypePromo
+    valeur: float = 0  # pourcentage (1-100) ou montant en FC ; ignore pour la livraison gratuite
+    automatique: bool = True  # sinon le client saisit `code` au checkout
+    code: Optional[str] = None
+    cible: CiblePromo = "commande"
+    cibleValeur: Optional[str] = None  # nom de categorie ou id de produit
+    montantMin: float = Field(default=0, ge=0)
+    dateDebut: Optional[str] = None
+    dateFin: Optional[str] = None
+    limiteTotale: Optional[int] = Field(default=None, ge=1)
+    limiteParClient: Optional[int] = Field(default=None, ge=1)
+    actif: bool = True
+    cumulable: bool = False  # cumul avec d'autres promotions cumulables uniquement
+
+
+class PromotionActifIn(BaseModel):
+    actif: bool
 
 
 class StatutIn(BaseModel):
@@ -2382,6 +2414,329 @@ async def ligne_yogourt(p: Dict[str, Any], i: ItemIn, compo: Dict[str, Any]) -> 
     }
 
 
+# ------------------------------------------------------------------ promotions
+# Entierement pilotees par l'admin. Le calcul de reduction se fait TOUJOURS ici,
+# a partir des lignes recalculees depuis le catalogue : le client n'envoie que
+# son panier et, eventuellement, un code. Une seule promotion par commande (la
+# plus avantageuse), sauf promotions explicitement cumulables entre elles.
+CODE_PROMO = re.compile(r"^[A-Z0-9_-]{3,30}$")
+
+
+def _date_promo(v: Optional[str], champ: str) -> Optional[str]:
+    if not _texte(v):
+        return None
+    try:
+        d = datetime.fromisoformat(_texte(v).replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Date invalide : {champ}")
+    return iso(d if d.tzinfo else d.replace(tzinfo=timezone.utc))
+
+
+def _instant(v: Optional[str]) -> Optional[datetime]:
+    return datetime.fromisoformat(v) if v else None
+
+
+async def _valider_promotion(body: PromotionIn, ident: Optional[str] = None) -> Dict[str, Any]:
+    doc = body.model_dump()
+    doc.update(await _libelles(body.nom, body.nomEn))
+    if body.type == "pourcentage" and not 0 < body.valeur <= 100:
+        raise HTTPException(status_code=400, detail="Le pourcentage doit etre compris entre 1 et 100")
+    if body.type == "montant" and body.valeur <= 0:
+        raise HTTPException(status_code=400, detail="Le montant de la reduction doit etre positif")
+    doc["valeur"] = 0 if body.type == "livraison" else (round(body.valeur, 2) if body.type == "pourcentage" else en_fc(body.valeur))
+    doc["montantMin"] = en_fc(body.montantMin)
+    code = _texte(body.code).upper() or None
+    if body.automatique:
+        code = None
+    else:
+        if not code or not CODE_PROMO.match(code):
+            raise HTTPException(status_code=400, detail="Code promo : 3 a 30 lettres, chiffres, - ou _")
+        filtre: Dict[str, Any] = {"code": code}
+        if ident:
+            filtre["id"] = {"$ne": ident}
+        if await db.promotions.find_one(filtre):
+            raise HTTPException(status_code=400, detail="Ce code promo existe deja")
+    doc["code"] = code
+    if body.cible == "categorie":
+        if not await db.categories.find_one({"nom": _texte(body.cibleValeur)}):
+            raise HTTPException(status_code=400, detail="Categorie ciblee introuvable")
+    elif body.cible == "produit":
+        if not await db.produits.find_one({"id": _texte(body.cibleValeur)}):
+            raise HTTPException(status_code=400, detail="Produit cible introuvable")
+    else:
+        doc["cibleValeur"] = None
+    doc["dateDebut"] = _date_promo(body.dateDebut, "debut")
+    doc["dateFin"] = _date_promo(body.dateFin, "fin")
+    if doc["dateDebut"] and doc["dateFin"] and doc["dateFin"] <= doc["dateDebut"]:
+        raise HTTPException(status_code=400, detail="La date de fin doit suivre la date de debut")
+    return doc
+
+
+def statut_promotion(p: Dict[str, Any], maintenant: Optional[datetime] = None) -> str:
+    maintenant = maintenant or now_utc()
+    if not p.get("actif"):
+        return "desactivee"
+    if p.get("dateFin") and maintenant > _instant(p["dateFin"]):
+        return "expiree"
+    if p.get("limiteTotale") and p.get("nombreUtilisations", 0) >= p["limiteTotale"]:
+        return "epuisee"
+    if p.get("dateDebut") and maintenant < _instant(p["dateDebut"]):
+        return "programmee"
+    return "active"
+
+
+@api_router.get("/admin/promotions")
+async def admin_promotions(_=Depends(require_admin)):
+    promos = await db.promotions.find({}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return [{**p, **await _libelle_cible(p), "statut": statut_promotion(p)} for p in promos]
+
+
+@api_router.post("/admin/promotions")
+async def creer_promotion(body: PromotionIn, _=Depends(require_admin)):
+    doc = {"id": str(uuid.uuid4()), **await _valider_promotion(body), "nombreUtilisations": 0, "createdAt": iso(now_utc())}
+    await db.promotions.insert_one(dict(doc))
+    return {**doc, "statut": statut_promotion(doc)}
+
+
+@api_router.put("/admin/promotions/{promo_id}")
+async def modifier_promotion(promo_id: str, body: PromotionIn, _=Depends(require_admin)):
+    ancien = await _introuvable(db.promotions, promo_id, "Promotion")
+    maj = await _valider_promotion(body, promo_id)
+    if maj["nom"] != ancien["nom"] and _texte(body.nomEn) == _texte(ancien.get("nomEn")):
+        maj.update(await _libelles(maj["nom"], None))
+    await db.promotions.update_one({"id": promo_id}, {"$set": maj})
+    doc = {**ancien, **maj}
+    return {**doc, "statut": statut_promotion(doc)}
+
+
+@api_router.patch("/admin/promotions/{promo_id}/actif")
+async def basculer_promotion(promo_id: str, body: PromotionActifIn, _=Depends(require_admin)):
+    ancien = await _introuvable(db.promotions, promo_id, "Promotion")
+    await db.promotions.update_one({"id": promo_id}, {"$set": {"actif": body.actif}})
+    doc = {**ancien, "actif": body.actif}
+    return {**doc, "statut": statut_promotion(doc)}
+
+
+@api_router.delete("/admin/promotions/{promo_id}")
+async def supprimer_promotion(promo_id: str, _=Depends(require_admin)):
+    """Les commandes gardent leur copie de la promotion appliquee (historique)."""
+    await _introuvable(db.promotions, promo_id, "Promotion")
+    await db.promotions.delete_one({"id": promo_id})
+    return {"ok": True}
+
+
+async def _libelle_cible(p: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    if p.get("cible") == "categorie":
+        c = await db.categories.find_one({"nom": p.get("cibleValeur")}, {"_id": 0}) or {}
+        return {"cibleLibelle": c.get("nom"), "cibleLibelleEn": c.get("nomEn")}
+    if p.get("cible") == "produit":
+        prod = await db.produits.find_one({"id": p.get("cibleValeur")}, {"_id": 0}) or {}
+        return {"cibleLibelle": prod.get("nom"), "cibleLibelleEn": prod.get("nomEn")}
+    return {"cibleLibelle": None, "cibleLibelleEn": None}
+
+
+@api_router.get("/promotions/actives")
+async def promotions_actives():
+    """Bannière client : promotions automatiques en cours (les codes restent a saisir)."""
+    promos = await db.promotions.find({"automatique": True, "actif": True}, {"_id": 0}).to_list(100)
+    visibles = []
+    for p in promos:
+        if statut_promotion(p) != "active":
+            continue
+        visibles.append({
+            **{k: p.get(k) for k in ("id", "nom", "nomEn", "type", "valeur", "cible", "montantMin", "dateFin")},
+            **await _libelle_cible(p),
+        })
+    return JSONResponse(visibles, headers={"Cache-Control": "no-store"})
+
+
+async def _contexte_client(user_id: str) -> Tuple[bool, Dict[str, int]]:
+    """Premiere commande ? et nombre d'utilisations de chaque promotion par ce
+    client (commandes annulees exclues)."""
+    cmds = await db.commandes.find(
+        {"userId": user_id, "statut": {"$ne": "annulee"}}, {"_id": 0, "promotions": 1}
+    ).to_list(5000)
+    utilisations: Dict[str, int] = {}
+    for c in cmds:
+        for pr in c.get("promotions") or []:
+            utilisations[pr["id"]] = utilisations.get(pr["id"], 0) + 1
+    return not cmds, utilisations
+
+
+def _appliquer(p: Dict[str, Any], lignes: List[Dict[str, Any]], sous_total: int, frais: int,
+               premiere: bool, utilisations: Dict[str, int]) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """Reduction qu'apporterait `p`, ou la raison de son ineligibilite."""
+    statut = statut_promotion(p)
+    if statut == "desactivee":
+        return None, "invalide"
+    if statut in ("expiree", "programmee", "epuisee"):
+        return None, statut
+    if p.get("limiteParClient") and utilisations.get(p["id"], 0) >= p["limiteParClient"]:
+        return None, "deja_utilisee"
+    if sous_total < p.get("montantMin", 0):
+        return None, "montant_min"
+    if p.get("cible") == "premiere_commande" and not premiere:
+        return None, "premiere_commande"
+    if p.get("cible") == "categorie":
+        base = sum(l["prixUnitaire"] * l["quantite"] for l in lignes if l.get("categorie") == p.get("cibleValeur"))
+    elif p.get("cible") == "produit":
+        base = sum(l["prixUnitaire"] * l["quantite"] for l in lignes if l.get("produitId") == p.get("cibleValeur"))
+    else:
+        base = sous_total
+    if base <= 0:
+        return None, "cible_absente"
+    montant, livraison = 0, 0
+    if p["type"] == "livraison":
+        livraison = frais
+    elif p["type"] == "pourcentage":
+        montant = en_fc(base * p["valeur"] / 100)
+    else:
+        montant = min(en_fc(p["valeur"]), base)
+    if montant <= 0 and livraison <= 0:
+        return None, "sans_effet"
+    return {
+        **{k: p.get(k) for k in ("id", "nom", "nomEn", "type", "valeur", "code", "cible")},
+        "cumulable": bool(p.get("cumulable")),
+        "montant": montant,
+        "livraison": livraison,
+    }, None
+
+
+def _choisir(applications: List[Dict[str, Any]], sous_total: int, code: Optional[str]) -> List[Dict[str, Any]]:
+    """Une seule promotion (la plus avantageuse ; a egalite, le code saisi), ou
+    toutes les cumulables si leur cumul rapporte davantage. Jamais de double
+    reduction : la livraison n'est offerte qu'une fois et la remise sur les
+    articles ne depasse pas le sous-total."""
+    def valeur(lot: List[Dict[str, Any]]) -> int:
+        return min(sum(a["montant"] for a in lot), sous_total) + max((a["livraison"] for a in lot), default=0)
+
+    if not applications:
+        return []
+    seule = max(applications, key=lambda a: (valeur([a]), a.get("code") == code))
+    cumul: List[Dict[str, Any]] = []
+    livraison_prise = False
+    for a in sorted((a for a in applications if a["cumulable"]), key=lambda a: -valeur([a])):
+        if a["livraison"] and livraison_prise:
+            a = {**a, "livraison": 0}
+            if not a["montant"]:
+                continue
+        livraison_prise = livraison_prise or bool(a["livraison"])
+        cumul.append(a)
+    lot = cumul if len(cumul) > 1 and valeur(cumul) > valeur([seule]) else [seule]
+    # Plafond : la remise sur les articles ne peut pas depasser le sous-total.
+    reste = sous_total
+    retenues = []
+    for a in lot:
+        montant = min(a["montant"], reste)
+        reste -= montant
+        retenues.append({**a, "montant": montant})
+    return retenues
+
+
+async def calculer_promotions(lignes: List[Dict[str, Any]], frais: int, user: Dict[str, Any],
+                              code: Optional[str]) -> Dict[str, Any]:
+    sous_total = en_fc(sum(l["prixUnitaire"] * l["quantite"] for l in lignes))
+    premiere, utilisations = await _contexte_client(user["id"])
+    code = _texte(code).upper() or None
+    applications, statut_code, promo_code = [], None, None
+    for p in await db.promotions.find({"automatique": True, "actif": True}, {"_id": 0}).to_list(200):
+        app, _raison = _appliquer(p, lignes, sous_total, frais, premiere, utilisations)
+        if app:
+            applications.append(app)
+    if code:
+        promo_code = await db.promotions.find_one({"code": code, "automatique": False}, {"_id": 0})
+        if not promo_code:
+            statut_code = "invalide"
+        else:
+            app, raison = _appliquer(promo_code, lignes, sous_total, frais, premiere, utilisations)
+            if app:
+                applications.append(app)
+            else:
+                statut_code = raison
+    retenues = _choisir(applications, sous_total, code)
+    if code and not statut_code:
+        statut_code = "applique" if any(r.get("code") == code for r in retenues) else "moins_avantageux"
+    reduction = sum(r["montant"] for r in retenues)
+    reduction_livraison = max((r["livraison"] for r in retenues), default=0)
+    return {
+        "sousTotal": sous_total,
+        "fraisLivraison": frais,
+        "reduction": reduction,
+        "reductionLivraison": reduction_livraison,
+        "total": max(0, sous_total - reduction + frais - reduction_livraison),
+        "promotions": [
+            {k: r.get(k) for k in ("id", "nom", "nomEn", "type", "valeur", "code", "cible", "montant", "livraison")}
+            for r in retenues
+        ],
+        "code": {
+            "saisi": code,
+            "statut": statut_code,
+            "montantMin": (promo_code or {}).get("montantMin"),
+        } if code else None,
+    }
+
+
+MESSAGES_CODE = {
+    "invalide": "Code promo invalide",
+    "expiree": "Ce code promo a expire",
+    "programmee": "Ce code promo n'est pas encore valable",
+    "epuisee": "Ce code promo a atteint sa limite d'utilisation",
+    "deja_utilisee": "Vous avez deja utilise ce code promo",
+    "montant_min": "Montant minimum de commande non atteint pour ce code",
+    "premiere_commande": "Ce code est reserve a la premiere commande",
+    "cible_absente": "Votre panier ne contient pas les produits concernes par ce code",
+    "sans_effet": "Ce code n'apporte aucune reduction sur ce panier",
+}
+
+
+@api_router.post("/promotions/apercu")
+async def apercu_promotions(body: ApercuPromoIn, user=Depends(get_current_user)):
+    """Recapitulatif du checkout : memes regles que la commande, sans rien reserver."""
+    if not body.items:
+        raise HTTPException(status_code=400, detail="Le panier est vide")
+    lignes = await lignes_du_catalogue(body.items)
+    frais = en_fc((await lire_config())["fraisLivraison"])
+    return await calculer_promotions(lignes, frais, user, body.codePromo)
+
+
+async def reserver_promotions(promotions: List[Dict[str, Any]]) -> List[str]:
+    """Incremente les compteurs ; echoue proprement si une limite vient d'etre
+    atteinte par une autre commande. Renvoie les ids reserves (pour annulation)."""
+    reservees: List[str] = []
+    for pr in promotions:
+        res = await db.promotions.update_one(
+            {
+                "id": pr["id"],
+                "$or": [
+                    {"limiteTotale": None},
+                    {"$expr": {"$lt": [{"$ifNull": ["$nombreUtilisations", 0]}, "$limiteTotale"]}},
+                ],
+            },
+            {"$inc": {"nombreUtilisations": 1}},
+        )
+        if res.modified_count == 0:
+            await liberer_compteurs(reservees)
+            raise HTTPException(status_code=409, detail=f"La promotion « {pr['nom']} » n'est plus disponible")
+        reservees.append(pr["id"])
+    return reservees
+
+
+async def liberer_compteurs(ids: List[str]) -> None:
+    for pid in ids:
+        await db.promotions.update_one({"id": pid, "nombreUtilisations": {"$gt": 0}}, {"$inc": {"nombreUtilisations": -1}})
+
+
+async def liberer_promotions(cmd_id: str) -> None:
+    """Commande annulee : ses promotions redeviennent disponibles (une seule fois)."""
+    cmd = await db.commandes.find_one_and_update(
+        {"id": cmd_id, "statut": "annulee", "promotionsLiberees": {"$ne": True}, "promotions.0": {"$exists": True}},
+        {"$set": {"promotionsLiberees": True}},
+        projection={"_id": 0, "promotions": 1},
+    )
+    if cmd:
+        await liberer_compteurs([pr["id"] for pr in cmd.get("promotions") or []])
+
+
 # ------------------------------------------------------------------------ zones
 @api_router.get("/zones")
 async def liste_zones():
@@ -2684,6 +3039,7 @@ async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
                 "produitId": p["id"],
                 "nom": p["nom"],
                 "nomEn": p.get("nomEn"),
+                "categorie": p.get("categorie"),
                 **await ligne_yogourt(p, i, compo),
                 "quantite": i.quantite,
                 "emoji": p.get("emoji"),
@@ -2711,6 +3067,7 @@ async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
             "produitId": p["id"],
             "nom": p["nom"],
             "nomEn": p.get("nomEn"),
+            "categorie": p.get("categorie"),
             "taille": taille["nom"] if taille else None,
             "tailleEn": taille.get("nomEn") if taille else None,
             "garnitures": garnitures,
@@ -2747,8 +3104,11 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
         adresse["lat"], adresse["lng"] = -4.325, 15.322
     await db.adresses.replace_one({"userId": user["id"], "label": adresse["label"]}, dict(adresse), upsert=True)
 
-    sous_total = sum(i["prixUnitaire"] * i["quantite"] for i in items)
     frais = en_fc((await lire_config())["fraisLivraison"])
+    calcul = await calculer_promotions(items, frais, user, body.codePromo)
+    statut_code = (calcul["code"] or {}).get("statut")
+    if statut_code and statut_code not in ("applique", "moins_avantageux"):
+        raise HTTPException(status_code=400, detail=MESSAGES_CODE.get(statut_code, "Code promo invalide"))
     numero = f"PB-{random.randint(1000, 9999)}"
     cmd = {
         "id": str(uuid.uuid4()),
@@ -2759,9 +3119,14 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
         "adresseId": adresse["id"],
         "adresse": {k: v for k, v in adresse.items() if k != "userId"},
         "items": items,
-        "sousTotal": en_fc(sous_total),
+        "sousTotal": calcul["sousTotal"],
         "fraisLivraison": frais,
-        "total": en_fc(sous_total + frais),
+        # Promotions appliquees (copie figee pour l'historique et les rapports).
+        "promotions": calcul["promotions"],
+        "reduction": calcul["reduction"],
+        "reductionLivraison": calcul["reductionLivraison"],
+        "codePromo": (calcul["code"] or {}).get("saisi"),
+        "total": calcul["total"],
         "devise": MONNAIE,
         "statut": "recue",
         "livreurId": None,
@@ -2776,7 +3141,13 @@ async def creer_commande(body: CommandeIn, user=Depends(get_current_user)):
         "createdAt": iso(now_utc()),
         "historique": [{"statut": "recue", "at": iso(now_utc())}],
     }
-    await db.commandes.insert_one(dict(cmd))
+    # Compteurs incrementes seulement pour une commande effectivement enregistree.
+    reservees = await reserver_promotions(calcul["promotions"])
+    try:
+        await db.commandes.insert_one(dict(cmd))
+    except Exception:
+        await liberer_compteurs(reservees)
+        raise
     cmd.pop("_id", None)
     await notifier_client(cmd, "recue")
     await notifier_admins(cmd)
@@ -2885,6 +3256,7 @@ async def annuler_commande(cmd_id: str, user=Depends(get_current_user)):
             "$push": {"historique": {"statut": "annulee", "at": iso(now_utc())}},
         },
     )
+    await liberer_promotions(cmd_id)
     await notifier_client(cmd, "annulee")
     return await detail_commande(cmd_id, user)
 
@@ -3055,6 +3427,8 @@ async def rapport_commandes(
             "client": c.get("clientNom") or "—",
             "adresse": f"{adr.get('commune', '')} — {adr.get('avenue', '')} {adr.get('numero', '')}".strip(" —"),
             "articles": articles,
+            "promotion": ", ".join(pr["nom"] for pr in c.get("promotions") or []) or "—",
+            "reduction": en_fc((c.get("reduction") or 0) + (c.get("reductionLivraison") or 0)),
             "total": en_fc(c.get("total", 0)),
             "statut": LIBELLES_STATUT.get(c.get("statut", ""), c.get("statut", "")),
             "paiement": resume_paiement(c)[0],
@@ -3102,6 +3476,8 @@ COLONNES_RAPPORT = [
     ("client", "Client", 20),
     ("adresse", "Adresse / commune", 30),
     ("articles", "Articles", 40),
+    ("promotion", "Promotion", 16),
+    ("reduction", "Réduction FC", 12),
     ("total", "Total FC", 12),
     ("statut", "Statut", 14),
     ("paiement", "Paiement", 18),
@@ -3209,7 +3585,7 @@ def construire_pdf(
     donnees = [[Paragraph(f"<b>{c[1]}</b>", petit) for c in colonnes]]
     for lg in lignes:
         donnees.append([
-            Paragraph(fc_txt(lg[c[0]]) if c[0] in ("total", "cash") else str(lg[c[0]]), petit)
+            Paragraph(fc_txt(lg[c[0]]) if c[0] in ("total", "cash", "reduction") else str(lg[c[0]]), petit)
             for c in colonnes
         ])
 
@@ -3281,6 +3657,8 @@ async def admin_statut(cmd_id: str, body: StatutIn, user=Depends(require_admin))
     )
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Commande introuvable")
+    if body.statut == "annulee":
+        await liberer_promotions(cmd_id)
     maj = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
     await notifier_client(maj, body.statut)
     return await detail_commande(cmd_id, user)
@@ -3513,6 +3891,8 @@ async def livreur_statut(cmd_id: str, body: StatutIn, user=Depends(require_livre
             "$push": {"historique": {"statut": body.statut, "at": iso(now_utc())}},
         },
     )
+    if body.statut == "annulee":
+        await liberer_promotions(cmd_id)
     maj = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
     await notifier_client(maj, body.statut)
     return await detail_commande(cmd_id, user)
@@ -3674,27 +4054,24 @@ CONTENANTS_MENU = [
 ]
 
 
-def _cat(nom: str, nom_en: str, *garnitures: tuple) -> Dict[str, Any]:
-    return {"nom": nom, "nomEn": nom_en, "garnitures": [{"nom": g, "nomEn": e} for g, e in garnitures]}
+def _cat(nom: str, nom_en: str, *garnitures: str) -> Dict[str, Any]:
+    # Les garnitures portent leur nom de carte Pinkberry, identique en FR et en EN
+    # (l'admin peut saisir un nom francais dans « Composition »).
+    return {"nom": nom, "nomEn": nom_en, "garnitures": [{"nom": g, "nomEn": g} for g in garnitures]}
 
 
-# Garnitures de depart, a ajuster par l'admin (« Coup de cœur local » est a remplir).
+# Carte des garnitures Pinkberry, dans l'ordre d'affichage.
 GARNITURES_MENU = [
-    _cat("Produits Boulangers", "Bakery", ("Brownie", "Brownie"), ("Cheesecake", "Cheesecake"),
-         ("Pâte à cookie", "Cookie dough")),
-    _cat("Bonbons", "Candy", ("Oursons gélifiés", "Gummy bears"), ("Guimauves", "Marshmallows"),
-         ("Bonbons acidulés", "Sour candy")),
-    _cat("Céréales", "Cereal", ("Pétales de maïs", "Corn flakes"), ("Riz soufflé", "Puffed rice"),
-         ("Céréales fruitées", "Fruity cereal")),
-    _cat("Chocolat", "Chocolate", ("Pépites de chocolat", "Chocolate chips"), ("Chocolat blanc", "White chocolate"),
-         ("Copeaux de chocolat noir", "Dark chocolate shavings")),
-    _cat("Cookies", "Cookies", ("Cookie aux pépites", "Chocolate chip cookie"), ("Speculoos", "Speculoos"),
-         ("Biscuit au chocolat", "Chocolate biscuit")),
-    _cat("Granola", "Granola", ("Granola nature", "Plain granola"), ("Granola au miel", "Honey granola"),
-         ("Granola aux fruits rouges", "Berry granola")),
-    _cat("Noix", "Nuts", ("Amandes", "Almonds"), ("Cacahuètes", "Peanuts"), ("Noix de cajou", "Cashews")),
-    _cat("Liquide", "Liquid", ("Sauce chocolat", "Chocolate sauce"), ("Caramel", "Caramel"), ("Miel", "Honey")),
-    _cat("Coup de cœur local", "Local favorite"),
+    _cat("Produits Boulangers", "Baked goods", "Brownie bites", "Cheesecake bites", "Crispy crepes", "Mochi"),
+    _cat("Bonbon", "Candy", "Mini gems", "Fruit bears", "Rainbow sprinkles"),
+    _cat("Céréales", "Cereal", "Fruity pebbles", "Cap'n Crunch"),
+    _cat("Chocolat", "Chocolate", "Chocolate curls", "Chocolate crisps"),
+    _cat("Cookies", "Cookies", "Cookies & cream", "Cookie wafers", "Vanilla wafers",
+         "Chocolate hazelnut wafer rolls", "Waffle cookies"),
+    _cat("Granola", "Granola", "Honey almond granola"),
+    _cat("Noix", "Nuts", "Toasted almonds", "Candied pecans"),
+    _cat("Liquide", "Liquid", "Chocolate sauce", "Caramel sauce", "Honey"),
+    _cat("Coup de cœur local", "Local favorite", "Coconut", "Yogurt chips", "Dates", "Mini marshmallow"),
 ]
 
 
@@ -3738,7 +4115,9 @@ TRADUCTIONS_MENU = {
 
 
 async def seed_composition() -> None:
-    """Chaque collection n'est amorcee que si elle est vide : l'admin garde la main."""
+    """Carte de depart du frozen yogurt, tout disponible. Non destructif : chaque
+    collection n'est amorcee que si elle est vide, et la regle seulement si elle
+    n'existe pas. Rien de ce que l'admin a cree ou modifie n'est jamais ecrase."""
     if await db.tailles.count_documents({}) == 0:
         for n, t in enumerate(TAILLES_MENU):
             await db.tailles.insert_one({"id": str(uuid.uuid4()), **t, "ordre": n})
