@@ -1,6 +1,6 @@
 // Service worker minimal : rend l'app installable (PWA) et sert la coquille
 // applicative hors ligne. Les requêtes /api/* passent toujours par le réseau.
-const CACHE = "pinkberry-v3";
+const CACHE = "pinkberry-v4";
 const COQUILLE = ["/", "/manifest.json", "/icones/icon-192.png", "/icones/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -62,7 +62,16 @@ self.addEventListener("push", (event) => {
     renotify: true,
   };
 
-  event.waitUntil(self.registration.showNotification(titre, options));
+  event.waitUntil(
+    (async () => {
+      // App ouverte et visible : pas de notification système en double, la page
+      // affiche la notification interne (toast) et met son centre à jour.
+      const fenetres = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      fenetres.forEach((c) => c.postMessage({ type: "notification", tag: options.tag }));
+      if (fenetres.some((c) => c.visibilityState === "visible")) return;
+      await self.registration.showNotification(titre, options);
+    })(),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

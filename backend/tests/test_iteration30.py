@@ -218,7 +218,7 @@ class TestPutAbonnement:
         # Nettoie l'etat initial pour ce endpoint precis (isolation xdist :
         # on n'utilise pas /etat car un autre worker peut manipuler d'autres
         # abonnements du meme user).
-        mongo.push_web.delete_many({"endpoint": endpoint})
+        mongo.push_subscriptions.delete_many({"endpoint": endpoint})
 
         # PUT 1
         r1 = sess.put(
@@ -229,7 +229,7 @@ class TestPutAbonnement:
         )
         assert r1.status_code == 200, r1.text[:200]
         assert r1.json().get("ok") is True
-        assert mongo.push_web.count_documents({"endpoint": endpoint}) == 1
+        assert mongo.push_subscriptions.count_documents({"endpoint": endpoint}) == 1
 
         # /etat doit compter au moins 1 abonnement pour ce user
         e1 = sess.get(
@@ -247,11 +247,11 @@ class TestPutAbonnement:
         )
         assert r2.status_code == 200
         assert (
-            mongo.push_web.count_documents({"endpoint": endpoint}) == 1
+            mongo.push_subscriptions.count_documents({"endpoint": endpoint}) == 1
         ), "idempotence rompue : le meme endpoint a cree un 2eme document"
 
         # Cleanup
-        mongo.push_web.delete_many({"endpoint": endpoint})
+        mongo.push_subscriptions.delete_many({"endpoint": endpoint})
 
 
 # ============================================= 3. DELETE + cloisonnement + etat
@@ -290,7 +290,7 @@ class TestDeleteEtCloisonnement:
         assert e1 == e0 - 1
 
         mongo = _mongo()
-        assert mongo.push_web.count_documents({"endpoint": endpoint}) == 0
+        assert mongo.push_subscriptions.count_documents({"endpoint": endpoint}) == 0
 
     def test_delete_cloisonne_entre_users(self, sess, tokens):
         """Un autre user (livreur) ne doit pas pouvoir supprimer l'abonnement du client."""
@@ -309,7 +309,7 @@ class TestDeleteEtCloisonnement:
         assert r.status_code == 200
 
         mongo = _mongo()
-        assert mongo.push_web.count_documents({"endpoint": endpoint}) == 1
+        assert mongo.push_subscriptions.count_documents({"endpoint": endpoint}) == 1
 
         # L'autre user tente de supprimer
         rd = sess.delete(
@@ -321,7 +321,7 @@ class TestDeleteEtCloisonnement:
         # Reponse OK cote API (par defaut) mais le doc doit rester
         assert rd.status_code in (200, 204, 403, 404)
         assert (
-            mongo.push_web.count_documents({"endpoint": endpoint}) == 1
+            mongo.push_subscriptions.count_documents({"endpoint": endpoint}) == 1
         ), "cloisonnement rompu : l'abonnement de A a ete supprime par B"
 
         # Le proprietaire supprime bien
@@ -332,13 +332,13 @@ class TestDeleteEtCloisonnement:
             timeout=15,
         )
         assert rd2.status_code == 200
-        assert mongo.push_web.count_documents({"endpoint": endpoint}) == 0
+        assert mongo.push_subscriptions.count_documents({"endpoint": endpoint}) == 0
 
     def test_etat_zero_sans_abonnement(self, sess, tokens):
         # Nettoie tout ce que le client aurait pu laisser dans les autres tests
         mongo = _mongo()
         user_id = mongo.users.find_one({"telephone": CLIENT[0]}, {"_id": 0, "id": 1})["id"]
-        mongo.push_web.delete_many({"userId": user_id})
+        mongo.push_subscriptions.delete_many({"userId": user_id})
 
         h = {"Authorization": f"Bearer {tokens['client']}"}
         e = sess.get(f"{BASE_URL}/api/push/web/etat", headers=h, timeout=15).json()
@@ -356,7 +356,7 @@ class TestDeclenchementSurEvenements:
         client_user = mongo.users.find_one({"telephone": CLIENT[0]}, {"_id": 0})
         assert client_user is not None
         # Nettoyage prealable
-        mongo.push_web.delete_many({"userId": client_user["id"]})
+        mongo.push_subscriptions.delete_many({"userId": client_user["id"]})
 
         endpoint = _endpoint_fcm("trigger")
         keys = {"p256dh": _new_p256dh(), "auth": _new_auth()}
@@ -371,7 +371,7 @@ class TestDeclenchementSurEvenements:
             timeout=15,
         )
         assert r.status_code == 200, r.text[:200]
-        assert mongo.push_web.count_documents({"endpoint": endpoint}) == 1
+        assert mongo.push_subscriptions.count_documents({"endpoint": endpoint}) == 1
 
         # 2. creation commande client (cash) -> notifier_admins + potentiellement notifier_client
         cmd = _creer_commande(sess, tokens["client"], label=f"{LABEL_PREFIX}_trigger")
@@ -414,7 +414,7 @@ class TestDeclenchementSurEvenements:
         deadline = time.time() + 25
         restant = None
         while time.time() < deadline:
-            restant = mongo.push_web.count_documents({"endpoint": endpoint})
+            restant = mongo.push_subscriptions.count_documents({"endpoint": endpoint})
             if restant == 0:
                 break
             time.sleep(1.0)
@@ -485,4 +485,4 @@ def teardown_module(_module):
     push factices restants."""
     mongo = _mongo()
     mongo.commandes.delete_many({"adresse.label": {"$regex": f"^{LABEL_PREFIX}"}})
-    mongo.push_web.delete_many({"endpoint": {"$regex": "faux-test-iter30"}})
+    mongo.push_subscriptions.delete_many({"endpoint": {"$regex": "faux-test-iter30"}})

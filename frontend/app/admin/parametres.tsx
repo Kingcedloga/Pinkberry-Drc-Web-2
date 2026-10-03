@@ -11,6 +11,7 @@ import { Champ } from "@/src/components/Champ";
 import { ChoixTheme } from "@/src/components/ChoixTheme";
 import { Icone, type NomIcone } from "@/src/components/Icone";
 import { LiensLegaux } from "@/src/components/LiensLegaux";
+import { ReglagesNotifications } from "@/src/components/ReglagesNotifications";
 import { useLangue, type Langue } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -216,6 +217,11 @@ export default function Parametres() {
                 })}
               </View>
             </Section>
+
+            <ReglagesNotifications
+              invite={t("admin.notifications")}
+              types={[{ cle: "notifCommandes", label: "notifs.typeCommandes", detail: "notifs.typeCommandesDetail" }]}
+            />
 
             <Section titre={t("params.monCompte")}>
               <Ligne

@@ -34,6 +34,10 @@ export type Preferences = {
   notifSuivi: boolean;
   notifPromos: boolean;
   notifNouveautes: boolean;
+  /** Admin : nouvelles commandes et annulations. */
+  notifCommandes: boolean;
+  /** Livreur : courses assignées. */
+  notifCourses: boolean;
 };
 
 export const PREFS_DEFAUT: Preferences = {
@@ -42,6 +46,8 @@ export const PREFS_DEFAUT: Preferences = {
   notifSuivi: true,
   notifPromos: true,
   notifNouveautes: true,
+  notifCommandes: true,
+  notifCourses: true,
 };
 
 type LangueValue = {

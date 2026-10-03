@@ -29,6 +29,34 @@ export function pushWebDisponible(): boolean {
   );
 }
 
+/** iPhone / iPad (y compris iPadOS qui se présente comme un Mac tactile). */
+export function estIOS(): boolean {
+  if (Platform.OS !== "web" || typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+/** Lancée depuis l'écran d'accueil (PWA installée). */
+export function estInstallee(): boolean {
+  if (Platform.OS !== "web" || typeof window === "undefined") return false;
+  return window.matchMedia?.("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+}
+
+/**
+ * Sur iPhone, le push web n'existe que pour une PWA installée (iOS ≥ 16.4) :
+ * dans Safari, l'API Push est absente. Android et ordinateur : aucun prérequis.
+ */
+export function iosSansInstallation(): boolean {
+  return estIOS() && !estInstallee();
+}
+
+/** « Chrome · Android » : aide l'utilisateur à reconnaître ses appareils abonnés. */
+function decrireAppareil(): string {
+  const ua = navigator.userAgent;
+  const navigateur = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Navigateur";
+  const systeme = /Android/.test(ua) ? "Android" : estIOS() ? "iOS" : /Windows/.test(ua) ? "Windows" : /Mac OS X/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
+  return [navigateur, systeme].filter(Boolean).join(" · ");
+}
+
 function base64UrlVersOctets(valeur: string): Uint8Array {
   const bourrage = "=".repeat((4 - (valeur.length % 4)) % 4);
   const base64 = (valeur + bourrage).replace(/-/g, "+").replace(/_/g, "/");
@@ -92,7 +120,7 @@ export async function abonnerPushWeb(): Promise<EtatPushWeb> {
   const brut = abo.toJSON() as { endpoint?: string; keys?: Record<string, string> };
   await apiFetch("/push/web/abonnement", {
     method: "PUT",
-    body: { endpoint: brut.endpoint, keys: brut.keys, expirationTime: null },
+    body: { endpoint: brut.endpoint, keys: brut.keys, expirationTime: null, appareil: decrireAppareil() },
   });
 
   return { supporte: true, permission: "granted", abonne: true };
@@ -129,7 +157,7 @@ export async function synchroniserPushWeb(): Promise<void> {
     const brut = abo.toJSON() as { endpoint?: string; keys?: Record<string, string> };
     await apiFetch("/push/web/abonnement", {
       method: "PUT",
-      body: { endpoint: brut.endpoint, keys: brut.keys, expirationTime: null },
+      body: { endpoint: brut.endpoint, keys: brut.keys, expirationTime: null, appareil: decrireAppareil() },
     });
   } catch {
     // silencieux

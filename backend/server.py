@@ -304,9 +304,11 @@ async def require_livreur(user=Depends(get_current_user)) -> Dict[str, Any]:
 PREFS_DEFAUT = {
     "langue": "fr",
     "theme": "systeme",
-    "notifSuivi": True,
-    "notifPromos": True,
+    "notifSuivi": True,  # client : suivi de commande et paiement
+    "notifPromos": True,  # client : promotions
     "notifNouveautes": True,
+    "notifCommandes": True,  # admin : nouvelles commandes et annulations
+    "notifCourses": True,  # livreur : courses assignees
 }
 
 
@@ -444,6 +446,7 @@ class PromotionIn(BaseModel):
     limiteParClient: Optional[int] = Field(default=None, ge=1)
     actif: bool = True
     cumulable: bool = False  # cumul avec d'autres promotions cumulables uniquement
+    notifierClients: bool = True  # annonce (notification + push) aux clients eligibles a l'activation
 
 
 class PromotionActifIn(BaseModel):
@@ -530,6 +533,8 @@ class PreferencesIn(BaseModel):
     notifSuivi: bool = True
     notifPromos: bool = True
     notifNouveautes: bool = True
+    notifCommandes: bool = True
+    notifCourses: bool = True
 
 
 class AssignIn(BaseModel):
@@ -1600,7 +1605,7 @@ async def send_push(recipients: List[str], data: Dict[str, Any], idempotency_key
 
 
 async def ids_admins() -> List[str]:
-    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(50)
+    admins = await db.users.find({"role": {"$in": ["admin", "superadmin"]}}, {"_id": 0, "id": 1}).to_list(50)
     return [a["id"] for a in admins]
 
 
@@ -1611,40 +1616,151 @@ async def id_user_livreur(livreur_id: Optional[str]) -> Optional[str]:
     return u["id"] if u else None
 
 
-MESSAGES_PUSH = {
-    "recue": ("Commande reçue", "Nous avons bien reçu votre commande {numero}."),
-    "en_preparation": ("En préparation", "Votre commande {numero} est en préparation."),
-    "recuperee": ("Commande récupérée", "Le livreur a récupéré votre commande {numero}."),
-    "en_route": ("Livreur en route", "Votre livreur arrive, suivez-le sur la carte."),
-    "arrivee": ("Livreur arrivé", "Votre livreur est arrivé à l'adresse de livraison."),
-    "livree": ("Commande livrée", "Bon appétit ! Merci pour votre commande {numero}."),
-    "annulee": ("Commande annulée", "Votre commande {numero} a été annulée."),
+# ---------------------------------------------------------------- notifications
+# Deux canaux pour chaque evenement metier :
+#  - notification interne (collection `notifications`) : toast quand l'app est
+#    ouverte + centre de notifications consultable ;
+#  - push systeme (web push VAPID + relais natif) : recu meme app fermee.
+# Les preferences de l'utilisateur (type de notification) filtrent les deux, et
+# le texte suit sa langue. Les envois ne bloquent jamais la requete metier.
+PREF_PAR_TYPE = {
+    "commande": "notifSuivi",
+    "paiement": "notifSuivi",
+    "promotion": "notifPromos",
+    "admin": "notifCommandes",
+    "course": "notifCourses",
 }
+
+MESSAGES_NOTIF: Dict[str, Dict[str, Tuple[str, str]]] = {
+    "statut_recue": {
+        "fr": ("Commande reçue", "Nous avons bien reçu votre commande {numero}."),
+        "en": ("Order received", "We've received your order {numero}."),
+    },
+    "statut_en_preparation": {
+        "fr": ("En préparation", "Votre commande {numero} est en préparation."),
+        "en": ("Being prepared", "Your order {numero} is being prepared."),
+    },
+    "statut_recuperee": {
+        "fr": ("Commande récupérée", "Le livreur a récupéré votre commande {numero}."),
+        "en": ("Order picked up", "The rider has picked up your order {numero}."),
+    },
+    "statut_en_route": {
+        "fr": ("Livreur en route", "Votre livreur arrive, suivez-le sur la carte."),
+        "en": ("Rider on the way", "Your rider is on the way, follow them on the map."),
+    },
+    "statut_arrivee": {
+        "fr": ("Livreur arrivé", "Votre livreur est arrivé à l'adresse de livraison."),
+        "en": ("Rider has arrived", "Your rider has arrived at the delivery address."),
+    },
+    "statut_livree": {
+        "fr": ("Commande livrée", "Bon appétit ! Merci pour votre commande {numero}."),
+        "en": ("Order delivered", "Enjoy! Thank you for your order {numero}."),
+    },
+    "statut_annulee": {
+        "fr": ("Commande annulée", "Votre commande {numero} a été annulée."),
+        "en": ("Order cancelled", "Your order {numero} has been cancelled."),
+    },
+    "paiement_ok": {
+        "fr": ("Paiement confirmé", "Votre paiement de {total} pour {numero} est confirmé."),
+        "en": ("Payment confirmed", "Your payment of {total} for {numero} is confirmed."),
+    },
+    "paiement_ko": {
+        "fr": ("Paiement échoué", "Le paiement de {numero} n'a pas abouti, vous pouvez réessayer."),
+        "en": ("Payment failed", "The payment for {numero} didn't go through, you can try again."),
+    },
+    "admin_nouvelle": {
+        "fr": ("Nouvelle commande", "{client} · {numero} · {total}"),
+        "en": ("New order", "{client} · {numero} · {total}"),
+    },
+    "admin_annulee": {
+        "fr": ("Commande annulée", "{client} a annulé la commande {numero}."),
+        "en": ("Order cancelled", "{client} cancelled order {numero}."),
+    },
+    "course": {
+        "fr": ("Nouvelle course", "{numero} · {commune} · {total} à encaisser"),
+        "en": ("New delivery", "{numero} · {commune} · {total} to collect"),
+    },
+    "promotion": {
+        "fr": ("Nouvelle promotion", "{nom} : {remise}"),
+        "en": ("New offer", "{nom}: {remise}"),
+    },
+}
+
+_taches_notif: set = set()
+
+
+def _langue(prefs: Dict[str, Any]) -> str:
+    return prefs.get("langue") if prefs.get("langue") in ("fr", "en") else "fr"
+
+
+async def notifier(
+    user_ids: List[str],
+    type_notif: str,
+    cle: str,
+    lien: str,
+    tag: str,
+    params: Optional[Dict[str, Any]] = None,
+    params_par_langue: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> int:
+    """Cree les notifications internes puis lance les push en tache de fond.
+    Renvoie le nombre de destinataires retenus (preferences respectees)."""
+    ids = list(dict.fromkeys(u for u in user_ids if u))
+    if not ids:
+        return 0
+    pref = PREF_PAR_TYPE[type_notif]
+    users = await db.users.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "preferences": 1}).to_list(len(ids))
+    maintenant = now_utc()
+    docs = []
+    for u in users:
+        prefs = {**PREFS_DEFAUT, **(u.get("preferences") or {})}
+        if not prefs.get(pref, True):
+            continue
+        langue = _langue(prefs)
+        titre, modele = MESSAGES_NOTIF[cle][langue]
+        valeurs = {**(params or {}), **((params_par_langue or {}).get(langue) or {})}
+        docs.append({
+            "id": str(uuid.uuid4()),
+            "userId": u["id"],
+            "type": type_notif,
+            "titre": titre,
+            "message": modele.format(**valeurs),
+            "lien": lien,
+            "tag": tag,
+            "lu": False,
+            "createdAt": iso(maintenant),
+            "expireAt": maintenant + timedelta(days=60),  # purge automatique (index TTL)
+        })
+    if not docs:
+        return 0
+    await db.notifications.insert_many([dict(d) for d in docs])
+    tache = asyncio.create_task(_pousser(docs))
+    _taches_notif.add(tache)
+    tache.add_done_callback(_taches_notif.discard)
+    return len(docs)
+
+
+async def _pousser(docs: List[Dict[str, Any]]) -> None:
+    """Push systeme de chaque notification : web push + relais des apps natives."""
+    for d in docs:
+        try:
+            await envoyer_webpush([d["userId"]], d["titre"], d["message"], d["lien"], tag=d["tag"])
+        except Exception as e:
+            logger.warning(f"Web push non bloquant: {e!r}")
+        try:
+            await send_push(
+                recipients=[d["userId"]],
+                data={"title": d["titre"], "message": d["message"], "action_url": d["lien"]},
+                idempotency_key=f"{d['tag']}-{d['userId']}",
+            )
+        except Exception as e:
+            logger.warning(f"Push natif non bloquant: {e!r}")
 
 
 async def notifier_client(cmd: Dict[str, Any], statut: str) -> None:
-    modele = MESSAGES_PUSH.get(statut)
-    if not modele:
+    if f"statut_{statut}" not in MESSAGES_NOTIF:
         return
-    dest = await db.users.find_one({"id": cmd["userId"]}, {"_id": 0, "preferences": 1})
-    prefs = {**PREFS_DEFAUT, **((dest or {}).get("preferences") or {})}
-    if not prefs.get("notifSuivi", True):
-        return
-    titre, message = modele
-    texte = message.format(numero=cmd.get("numero", ""))
-    lien = f"/suivi/{cmd['id']}"
-    try:
-        await send_push(
-            recipients=[cmd["userId"]],
-            data={"title": titre, "message": texte, "action_url": lien},
-            idempotency_key=f"{cmd['id']}-{statut}",
-        )
-    except Exception as e:
-        logger.warning(f"Push client non bloquant: {e}")
-    try:
-        await envoyer_webpush([cmd["userId"]], titre, texte, lien, tag=f"cmd-{cmd['id']}")
-    except Exception as e:
-        logger.warning(f"Web push client non bloquant: {e}")
+    await notifier([cmd["userId"]], "commande", f"statut_{statut}", f"/suivi/{cmd['id']}",
+                   tag=f"cmd-{cmd['id']}-{statut}", params={"numero": cmd.get("numero", "")})
 
 
 async def notifier_paiement(commande_id: str, paye: bool) -> None:
@@ -1652,61 +1768,49 @@ async def notifier_paiement(commande_id: str, paye: bool) -> None:
     cmd = await db.commandes.find_one({"id": commande_id}, {"_id": 0})
     if not cmd:
         return
-    titre = "Paiement confirmé" if paye else "Paiement échoué"
-    texte = (
-        f"Votre paiement de ${cmd.get('total')} pour {cmd.get('numero')} est confirmé."
-        if paye
-        else f"Le paiement de {cmd.get('numero')} n'a pas abouti, vous pouvez réessayer."
-    )
-    lien = f"/suivi/{commande_id}"
-    try:
-        await send_push(
-            recipients=[cmd["userId"]],
-            data={"title": titre, "message": texte, "action_url": lien},
-            idempotency_key=f"{commande_id}-paiement-{'ok' if paye else 'ko'}",
-        )
-    except Exception as e:
-        logger.warning(f"Push paiement non bloquant: {e}")
-    try:
-        await envoyer_webpush([cmd["userId"]], titre, texte, lien, tag=f"paiement-{commande_id}")
-    except Exception as e:
-        logger.warning(f"Web push paiement non bloquant: {e}")
+    await notifier([cmd["userId"]], "paiement", "paiement_ok" if paye else "paiement_ko", f"/suivi/{commande_id}",
+                   tag=f"paiement-{commande_id}-{'ok' if paye else 'ko'}",
+                   params={"numero": cmd.get("numero", ""), "total": fc_txt(cmd.get("total"))})
 
 
-async def notifier_admins(cmd: Dict[str, Any]) -> None:
-    texte = f"{cmd.get('clientNom')} · {cmd.get('numero')} · ${cmd.get('total')}"
-    admins = await ids_admins()
-    try:
-        await send_push(
-            recipients=admins,
-            data={"title": "Nouvelle commande", "message": texte, "action_url": "/admin"},
-            idempotency_key=f"{cmd['id']}-admin",
-        )
-    except Exception as e:
-        logger.warning(f"Push admin non bloquant: {e}")
-    try:
-        await envoyer_webpush(admins, "Nouvelle commande", texte, "/admin", tag=f"admin-{cmd['id']}")
-    except Exception as e:
-        logger.warning(f"Web push admin non bloquant: {e}")
+async def notifier_admins(cmd: Dict[str, Any], cle: str = "admin_nouvelle") -> None:
+    await notifier(await ids_admins(), "admin", cle, "/admin", tag=f"{cle}-{cmd['id']}",
+                   params={"client": cmd.get("clientNom") or "—", "numero": cmd.get("numero", ""),
+                           "total": fc_txt(cmd.get("total"))})
 
 
 async def notifier_livreur(cmd: Dict[str, Any]) -> None:
-    try:
-        cible = await id_user_livreur(cmd.get("livreurId"))
-        if not cible:
-            return
-        texte = f"{cmd.get('numero')} · {cmd.get('adresse', {}).get('commune')} · ${cmd.get('total')} à encaisser"
-        lien = f"/livreur/course/{cmd['id']}"
-        await send_push(
-            recipients=[cible],
-            data={"title": "Nouvelle course", "message": texte, "action_url": lien},
-            idempotency_key=f"{cmd['id']}-livreur-{cmd.get('livreurId')}",
-        )
-        await envoyer_webpush([cible], "Nouvelle course", texte, lien, tag=f"course-{cmd['id']}")
-    except Exception as e:
-        logger.warning(f"Push livreur non bloquant: {e}")
+    cible = await id_user_livreur(cmd.get("livreurId"))
+    await notifier([cible] if cible else [], "course", "course", f"/livreur/course/{cmd['id']}",
+                   tag=f"course-{cmd['id']}-{cmd.get('livreurId')}",
+                   params={"numero": cmd.get("numero", ""), "commune": (cmd.get("adresse") or {}).get("commune", ""),
+                           "total": fc_txt(cmd.get("total"))})
 
 
+class NotificationsLuesIn(BaseModel):
+    ids: Optional[List[str]] = None  # absent : tout marquer comme lu
+
+
+@api_router.get("/notifications")
+async def mes_notifications(limite: int = 30, user=Depends(get_current_user)):
+    """Centre de notifications de l'utilisateur connecte (tous roles)."""
+    limite = max(1, min(limite, 100))
+    notifs = (
+        await db.notifications.find({"userId": user["id"]}, {"_id": 0, "expireAt": 0})
+        .sort("createdAt", -1)
+        .to_list(limite)
+    )
+    non_lues = await db.notifications.count_documents({"userId": user["id"], "lu": False})
+    return JSONResponse({"notifications": notifs, "nonLues": non_lues}, headers={"Cache-Control": "no-store"})
+
+
+@api_router.post("/notifications/lues")
+async def marquer_notifications_lues(body: NotificationsLuesIn, user=Depends(get_current_user)):
+    filtre: Dict[str, Any] = {"userId": user["id"], "lu": False}
+    if body.ids is not None:
+        filtre["id"] = {"$in": body.ids}
+    res = await db.notifications.update_many(filtre, {"$set": {"lu": True}})
+    return {"ok": True, "marquees": res.modified_count}
 
 # --------------------------------------------- notifications push web (VAPID)
 # Push navigateur (systeme) : recues meme onglet ferme. Les pop-ups internes de
@@ -1720,6 +1824,7 @@ class AbonnementWebBody(BaseModel):
     endpoint: str
     keys: Dict[str, str] = Field(default_factory=dict)
     expirationTime: Optional[int] = None
+    appareil: Optional[str] = Field(default=None, max_length=120)  # ex. « Chrome · Android »
 
 
 @api_router.get("/push/web/cle-publique")
@@ -1734,13 +1839,14 @@ async def enregistrer_abonnement_web(
 ):
     if set(body.keys) != {"p256dh", "auth"} or not body.endpoint.startswith("https://"):
         raise HTTPException(status_code=400, detail="Abonnement invalide")
-    await db.push_web.update_one(
+    await db.push_subscriptions.update_one(
         {"endpoint": body.endpoint},
         {
             "$set": {
                 "userId": user["id"],
                 "endpoint": body.endpoint,
                 "keys": body.keys,
+                "appareil": _texte(body.appareil) or None,
                 "expirationTime": body.expirationTime,
                 "updatedAt": iso(now_utc()),
             },
@@ -1755,13 +1861,13 @@ async def enregistrer_abonnement_web(
 async def supprimer_abonnement_web(
     body: AbonnementWebBody, user: Dict[str, Any] = Depends(get_current_user)
 ):
-    await db.push_web.delete_one({"endpoint": body.endpoint, "userId": user["id"]})
+    await db.push_subscriptions.delete_one({"endpoint": body.endpoint, "userId": user["id"]})
     return {"ok": True}
 
 
 @api_router.get("/push/web/etat")
 async def etat_abonnement_web(user: Dict[str, Any] = Depends(get_current_user)):
-    n = await db.push_web.count_documents({"userId": user["id"]})
+    n = await db.push_subscriptions.count_documents({"userId": user["id"]})
     return {"abonnements": n}
 
 
@@ -1787,7 +1893,7 @@ async def envoyer_webpush(
     cibles = [u for u in user_ids if u]
     if not cibles or not (VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY):
         return 0
-    abonnements = await db.push_web.find({"userId": {"$in": cibles}}, {"_id": 0}).to_list(200)
+    abonnements = await db.push_subscriptions.find({"userId": {"$in": cibles}}, {"_id": 0}).to_list(200)
     if not abonnements:
         return 0
     charge = json.dumps(
@@ -1807,7 +1913,7 @@ async def envoyer_webpush(
             envoyes += 1
         elif code in (404, 410):
             # Abonnement expire cote navigateur : on nettoie.
-            await db.push_web.delete_one({"endpoint": abo["endpoint"]})
+            await db.push_subscriptions.delete_one({"endpoint": abo["endpoint"]})
         else:
             logger.warning(f"Web push echoue ({code})")
     return envoyes
@@ -2495,6 +2601,7 @@ async def admin_promotions(_=Depends(require_admin)):
 async def creer_promotion(body: PromotionIn, _=Depends(require_admin)):
     doc = {"id": str(uuid.uuid4()), **await _valider_promotion(body), "nombreUtilisations": 0, "createdAt": iso(now_utc())}
     await db.promotions.insert_one(dict(doc))
+    await annoncer_promotion(doc)
     return {**doc, "statut": statut_promotion(doc)}
 
 
@@ -2506,6 +2613,7 @@ async def modifier_promotion(promo_id: str, body: PromotionIn, _=Depends(require
         maj.update(await _libelles(maj["nom"], None))
     await db.promotions.update_one({"id": promo_id}, {"$set": maj})
     doc = {**ancien, **maj}
+    await annoncer_promotion(doc)
     return {**doc, "statut": statut_promotion(doc)}
 
 
@@ -2514,6 +2622,7 @@ async def basculer_promotion(promo_id: str, body: PromotionActifIn, _=Depends(re
     ancien = await _introuvable(db.promotions, promo_id, "Promotion")
     await db.promotions.update_one({"id": promo_id}, {"$set": {"actif": body.actif}})
     doc = {**ancien, "actif": body.actif}
+    await annoncer_promotion(doc)
     return {**doc, "statut": statut_promotion(doc)}
 
 
@@ -2533,6 +2642,54 @@ async def _libelle_cible(p: Dict[str, Any]) -> Dict[str, Optional[str]]:
         prod = await db.produits.find_one({"id": p.get("cibleValeur")}, {"_id": 0}) or {}
         return {"cibleLibelle": prod.get("nom"), "cibleLibelleEn": prod.get("nomEn")}
     return {"cibleLibelle": None, "cibleLibelleEn": None}
+
+
+def decrire_promo(p: Dict[str, Any], cible: Dict[str, Optional[str]], langue: str) -> str:
+    """« −20 % sur Boissons dès 30 000 FC » / « −20% on Drinks from 30 000 FC »."""
+    en = langue == "en"
+    v = p.get("valeur") or 0
+    v = int(v) if float(v).is_integer() else v
+    if p["type"] == "livraison":
+        remise = "free delivery" if en else "livraison offerte"
+    elif p["type"] == "pourcentage":
+        remise = f"−{v}%" if en else f"−{v} %"
+    else:
+        remise = f"−{fc_txt(v)}"
+    libelle = (cible.get("cibleLibelleEn") if en else None) or cible.get("cibleLibelle")
+    if p.get("cible") == "premiere_commande":
+        remise += " on your first order" if en else " sur votre première commande"
+    elif libelle:
+        remise += f" on {libelle}" if en else f" sur {libelle}"
+    if p.get("montantMin"):
+        remise += f" from {fc_txt(p['montantMin'])}" if en else f" dès {fc_txt(p['montantMin'])}"
+    return remise
+
+
+async def annoncer_promotion(p: Dict[str, Any]) -> int:
+    """Promotion automatique en cours : prevenir une seule fois les clients
+    eligibles (preference « promotions » respectee par `notifier`)."""
+    if not p.get("automatique") or not p.get("notifierClients", True) or statut_promotion(p) != "active":
+        return 0
+    res = await db.promotions.update_one(
+        {"id": p["id"], "annonceeAt": {"$exists": False}}, {"$set": {"annonceeAt": iso(now_utc())}}
+    )
+    if not res.modified_count:
+        return 0
+    ids = [u["id"] for u in await db.users.find({"role": "client"}, {"_id": 0, "id": 1}).to_list(20000)]
+    if p.get("cible") == "premiere_commande":
+        deja = set(await db.commandes.distinct("userId", {"statut": {"$ne": "annulee"}}))
+        ids = [i for i in ids if i not in deja]
+    cible = await _libelle_cible(p)
+    return await notifier(
+        ids, "promotion", "promotion", "/menu", tag=f"promo-{p['id']}",
+        params_par_langue={
+            langue: {
+                "nom": (p.get("nomEn") if langue == "en" else None) or p["nom"],
+                "remise": decrire_promo(p, cible, langue),
+            }
+            for langue in ("fr", "en")
+        },
+    )
 
 
 @api_router.get("/promotions/actives")
@@ -3258,6 +3415,8 @@ async def annuler_commande(cmd_id: str, user=Depends(get_current_user)):
     )
     await liberer_promotions(cmd_id)
     await notifier_client(cmd, "annulee")
+    if cmd["userId"] == user["id"] and not est_admin(user):
+        await notifier_admins(cmd, "admin_annulee")
     return await detail_commande(cmd_id, user)
 
 
@@ -3914,6 +4073,9 @@ async def livreur_encaisser(cmd_id: str, user=Depends(require_livreur)):
     return await detail_commande(cmd_id, user)
 
 
+ARRIVEE_KM = 0.2
+
+
 @api_router.post("/livreur/position")
 async def livreur_position(body: PositionIn, user=Depends(require_livreur)):
     await db.positions_livreurs.replace_one(
@@ -3921,6 +4083,18 @@ async def livreur_position(body: PositionIn, user=Depends(require_livreur)):
         {"livreurId": user.get("livreurId"), "lat": body.lat, "lng": body.lng, "updatedAt": iso(now_utc())},
         upsert=True,
     )
+    # A moins de ARRIVEE_KM de l'adresse : « livreur arrive », une seule fois par commande.
+    async for cmd in db.commandes.find(
+        {"livreurId": user.get("livreurId"), "statut": "en_route", "arriveeNotifiee": {"$ne": True}}, {"_id": 0}
+    ):
+        adr = cmd.get("adresse") or {}
+        if adr.get("lat") is None or haversine(body.lat, body.lng, adr["lat"], adr.get("lng", 0)) > ARRIVEE_KM:
+            continue
+        res = await db.commandes.update_one(
+            {"id": cmd["id"], "arriveeNotifiee": {"$ne": True}}, {"$set": {"arriveeNotifiee": True}}
+        )
+        if res.modified_count:
+            await notifier_client(cmd, "arrivee")
     return {"ok": True}
 
 
@@ -4153,8 +4327,15 @@ async def seed():
         unique=True,
         partialFilterExpression={"telephone": {"$type": "string"}},
     )
-    await db.push_web.create_index("endpoint", unique=True)
-    await db.push_web.create_index("userId")
+    # Abonnements push : anciennement `push_web`, repris une seule fois.
+    if "push_web" in await db.list_collection_names():
+        async for abo in db.push_web.find({}, {"_id": 0}):
+            await db.push_subscriptions.update_one({"endpoint": abo["endpoint"]}, {"$setOnInsert": abo}, upsert=True)
+        await db.push_web.drop()
+    await db.push_subscriptions.create_index("endpoint", unique=True)
+    await db.push_subscriptions.create_index("userId")
+    await db.notifications.create_index([("userId", 1), ("createdAt", -1)])
+    await db.notifications.create_index("expireAt", expireAfterSeconds=0)
 
     # Normalise les produits anterieurs a l'ajout de la mise en avant.
     await db.produits.update_many({"enAvant": {"$exists": False}}, {"$set": {"enAvant": False}})

@@ -33,6 +33,8 @@ export type Promotion = {
   nombreUtilisations?: number;
   actif: boolean;
   cumulable: boolean;
+  /** Annonce (notification + push) aux clients éligibles quand la promotion devient active. */
+  notifierClients?: boolean;
   statut?: "active" | "programmee" | "expiree" | "epuisee" | "desactivee";
 };
 

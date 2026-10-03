@@ -34,6 +34,7 @@ type Formulaire = {
   limiteParClient: string;
   cumulable: boolean;
   actif: boolean;
+  notifierClients: boolean;
 };
 
 const VIDE: Formulaire = {
@@ -52,6 +53,7 @@ const VIDE: Formulaire = {
   limiteParClient: "",
   cumulable: false,
   actif: true,
+  notifierClients: true,
 };
 
 const TYPES: TypePromo[] = ["pourcentage", "montant", "livraison"];
@@ -200,6 +202,7 @@ export default function PromotionsAdmin() {
             limiteParClient: p.limiteParClient ? String(p.limiteParClient) : "",
             cumulable: p.cumulable,
             actif: p.actif,
+            notifierClients: p.notifierClients !== false,
           }
         : VIDE,
     );
@@ -228,6 +231,7 @@ export default function PromotionsAdmin() {
       limiteParClient: entier(f.limiteParClient),
       cumulable: f.cumulable,
       actif: f.actif,
+      notifierClients: f.notifierClients,
     };
     setEnvoi(true);
     try {
@@ -516,6 +520,15 @@ export default function PromotionsAdmin() {
                 value={f.cumulable}
                 onChange={(v) => maj({ cumulable: v })}
               />
+              {f.automatique ? (
+                <Interrupteur
+                  testID="switch-promo-notifier"
+                  label={t("promotions.notifierClients")}
+                  aide={t("promotions.notifierClientsAide")}
+                  value={f.notifierClients}
+                  onChange={(v) => maj({ notifierClients: v })}
+                />
+              ) : null}
               <Interrupteur
                 testID="switch-promo-actif"
                 label={t("promotions.actif")}

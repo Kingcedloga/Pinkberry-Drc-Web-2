@@ -13,7 +13,7 @@ import { AuthProvider } from "@/src/auth";
 import { EcranDemarrage } from "@/src/components/EcranDemarrage";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { GestionPush, ouvrirDepuisNotification } from "@/src/components/GestionPush";
-import { SurveillanceCommandes } from "@/src/components/SurveillanceCommandes";
+import { NotificationsInternes } from "@/src/components/NotificationsInternes";
 import "@/src/gras";
 import { LangueProvider } from "@/src/i18n";
 import { PanierProvider } from "@/src/panier";
@@ -111,7 +111,7 @@ export default function RootLayout() {
                   <PanierProvider>
                     <ToastProvider>
                       <TauxProvider>
-                        <SurveillanceCommandes />
+                        <NotificationsInternes />
                         <GestionPush />
                         <PileEcrans />
                       </TauxProvider>

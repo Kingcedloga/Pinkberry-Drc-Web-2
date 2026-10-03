@@ -49,7 +49,9 @@ def promos(admin):
     creees = []
 
     def creer(**champs):
-        body = {"nom": f"TEST_Promo {uuid.uuid4().hex[:4]}", "nomEn": "TEST", "type": "pourcentage", "valeur": 10, **champs}
+        # notifierClients=False : un test ne doit jamais prevenir de vrais clients.
+        body = {"nom": f"TEST_Promo {uuid.uuid4().hex[:4]}", "nomEn": "TEST", "type": "pourcentage", "valeur": 10,
+                "notifierClients": False, **champs}
         r = requests.post(f"{API}/admin/promotions", json=body, headers=admin, timeout=60)
         assert r.status_code == 200, r.text
         creees.append(r.json()["id"])
@@ -210,3 +212,10 @@ def test_premiere_commande_uniquement(client, produit, promos):
     code = f"TESTNEW{uuid.uuid4().hex[:4].upper()}"
     promos(type="pourcentage", valeur=15, automatique=False, code=code, cible="premiere_commande")
     assert _apercu(client, produit, code)["code"]["statut"] == "premiere_commande"
+
+
+def test_pas_d_annonce_sans_notifier_clients(client, produit, promos):
+    """L'annonce aux clients est un choix explicite de l'admin (`notifierClients`)."""
+    promo = promos(type="pourcentage", valeur=5, cible="produit", cibleValeur=produit["id"])  # notifierClients=False
+    notifs = requests.get(f"{API}/notifications", headers=client, timeout=15).json()["notifications"]
+    assert all(n["tag"] != f"promo-{promo['id']}" for n in notifs)

@@ -1,151 +1,202 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Linking, Platform, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
+import { useT } from "@/src/i18n";
 import { demanderPush, etatPush, type EtatPush } from "@/src/push";
 import {
   abonnerPushWeb,
   desabonnerPushWeb,
   etatPushWeb,
+  iosSansInstallation,
   pushWebDisponible,
   type EtatPushWeb,
 } from "@/src/push-web";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useToast } from "@/src/toast";
+import { storage } from "@/src/utils/storage";
+
+const CLE_INVITE = "invite-notifications-masquee-jusqua";
+const SEPT_JOURS = 7 * 24 * 3600 * 1000;
 
 /**
- * Invite maison « Notifications » : explique le bénéfice AVANT la popup du
- * système / navigateur, puis demande l'autorisation sur un geste utilisateur.
- * Web = API Push + service worker (notifications reçues app fermée).
- * Natif = expo-notifications.
+ * Invite maison « Notifications » : explique le bénéfice AVANT la demande du
+ * système / navigateur, qui n'est déclenchée que si l'utilisateur accepte.
+ * Gère les états default / granted / denied, l'iPhone non installé (push web
+ * réservé aux PWA ajoutées à l'écran d'accueil) et la désactivation (abonnement
+ * supprimé côté serveur). `masquable` : bouton « Plus tard » (7 jours).
  */
-export function CarteNotifications({ texte }: { texte: string }) {
+export function CarteNotifications({ texte, masquable = true }: { texte: string; masquable?: boolean }) {
   const { user } = useAuth();
+  const t = useT();
   const toast = useToast();
   const web = Platform.OS === "web";
+  const iosAInstaller = web && iosSansInstallation();
   const [etat, setEtat] = useState<EtatPush | null>(null);
   const [etatWeb, setEtatWeb] = useState<EtatPushWeb | null>(null);
-
-  const lire = useCallback(async () => {
-    if (web) setEtatWeb(await etatPushWeb());
-    else setEtat(await etatPush());
-  }, [web]);
+  const [aideIOS, setAideIOS] = useState(false);
+  const [masquee, setMasquee] = useState(masquable);
 
   useEffect(() => {
-    lire();
-  }, [lire]);
+    let monte = true;
+    (async () => {
+      if (web) {
+        const e = await etatPushWeb();
+        if (monte) setEtatWeb(e);
+      } else {
+        const e = await etatPush();
+        if (monte) setEtat(e);
+      }
+      if (masquable) {
+        const jusqua = await storage.getItem<number>(CLE_INVITE, 0).catch(() => 0);
+        if (monte) setMasquee(Number(jusqua) > Date.now());
+      }
+    })();
+    return () => {
+      monte = false;
+    };
+  }, [web, masquable]);
 
   if (!user) return null;
 
+  const plusTard = () => {
+    setMasquee(true);
+    storage.setItem(CLE_INVITE, Date.now() + SEPT_JOURS).catch(() => undefined);
+  };
+
+  const carte = (
+    actif: boolean,
+    titre: string,
+    message: string,
+    actions: React.ReactNode,
+    testID = "carte-notifications",
+  ) => (
+    <View testID={testID} style={[styles.carte, actif && styles.carteOk]}>
+      <View style={styles.ligne}>
+        <Icone name={actif ? "check-circle" : "bell"} size={20} color={actif ? colors.success : colors.brandPrimary} />
+        <Text style={styles.titre}>{titre}</Text>
+      </View>
+      <Text style={styles.texte}>{message}</Text>
+      {actions}
+    </View>
+  );
+
+  const boutonPlusTard =
+    masquable ? (
+      <Pressable testID="btn-notifications-plus-tard" onPress={plusTard} hitSlop={6}>
+        <Text style={styles.plusTard}>{t("notifs.plusTard")}</Text>
+      </Pressable>
+    ) : null;
+
   // ------------------------------------------------------------------- web
   if (web) {
-    if (!pushWebDisponible() || !etatWeb || !etatWeb.supporte) return null;
+    // iPhone dans Safari : l'API Push n'existe qu'une fois l'app installée.
+    if (iosAInstaller) {
+      if (masquee) return null;
+      return carte(
+        false,
+        t("notifs.inviteTitre"),
+        aideIOS ? t("notifs.iosInstaller") : texte,
+        aideIOS ? (
+          <Text testID="aide-ios-notifications" style={styles.etapes}>
+            {t("notifs.iosEtapes")}
+          </Text>
+        ) : (
+          <View style={styles.actions}>
+            <Bouton
+              testID="btn-activer-notifications"
+              label={t("notifs.activer")}
+              variant="secondaire"
+              onPress={() => setAideIOS(true)}
+            />
+            {boutonPlusTard}
+          </View>
+        ),
+      );
+    }
+
+    if (!pushWebDisponible() || !etatWeb || !etatWeb.supporte) {
+      return masquable ? null : carte(false, t("notifs.inviteTitre"), t("notifs.nonSupporte"), null);
+    }
 
     const activer = async () => {
       try {
         const apres = await abonnerPushWeb();
         setEtatWeb(apres);
-        if (apres.abonne) toast.show("Notifications activées", "succes");
-        else if (apres.permission === "denied")
-          toast.show("Autorisez les notifications dans votre navigateur", "info");
+        if (apres.abonne) toast.show(t("notifs.activees"), "succes");
+        else if (apres.permission === "denied") toast.show(t("notifs.refusees"), "info");
       } catch {
-        toast.show("Impossible d'activer les notifications", "erreur");
+        toast.show(t("notifs.impossible"), "erreur");
       }
     };
 
     const couper = async () => {
       setEtatWeb(await desabonnerPushWeb());
-      toast.show("Notifications désactivées", "info");
+      toast.show(t("notifs.desactivees"), "info");
     };
 
     if (etatWeb.abonne) {
-      return (
-        <View testID="carte-notifications" style={[styles.carte, styles.carteOk]}>
-          <View style={styles.ligne}>
-            <Icone name="check-circle" size={20} color={colors.success} />
-            <Text style={styles.titre}>Notifications activées</Text>
-          </View>
-          <Text style={styles.texte}>
-            Vous serez prévenu même si l&apos;onglet ou l&apos;application est fermé.
-          </Text>
-          <Bouton
-            testID="btn-couper-notifications"
-            label="Désactiver"
-            variant="secondaire"
-            onPress={couper}
-          />
-        </View>
+      // Invite contextuelle : rien à proposer une fois activées (sauf dans les paramètres).
+      if (masquable) return null;
+      return carte(
+        true,
+        t("notifs.activeesTitre"),
+        t("notifs.activeesTexte"),
+        <Bouton testID="btn-couper-notifications" label={t("notifs.desactiver")} variant="secondaire" onPress={couper} />,
       );
     }
 
-    return (
-      <View testID="carte-notifications" style={styles.carte}>
-        <View style={styles.ligne}>
-          <Icone name="alert-circle" size={20} color={colors.brandPrimary} />
-          <Text style={styles.titre}>Notifications désactivées</Text>
-        </View>
-        <Text style={styles.texte}>{texte}</Text>
-        {etatWeb.permission === "denied" ? (
-          <Text style={styles.texte}>
-            Votre navigateur bloque les notifications : ouvrez le cadenas dans la barre
-            d&apos;adresse et autorisez les notifications pour ce site.
-          </Text>
-        ) : (
-          <Bouton
-            testID="btn-activer-notifications"
-            label="Activer les notifications"
-            variant="secondaire"
-            onPress={activer}
-          />
-        )}
-      </View>
+    if (etatWeb.permission === "denied") {
+      return masquee
+        ? null
+        : carte(false, t("notifs.bloqueesTitre"), t("notifs.bloqueesTexte"), boutonPlusTard);
+    }
+
+    if (masquee) return null;
+    return carte(
+      false,
+      t("notifs.inviteTitre"),
+      texte,
+      <View style={styles.actions}>
+        <Bouton testID="btn-activer-notifications" label={t("notifs.activer")} variant="secondaire" onPress={activer} />
+        {boutonPlusTard}
+      </View>,
     );
   }
 
   // ----------------------------------------------------------------- natif
   if (!etat) return null;
+  const accorde = etat.statut === "granted";
+  if (accorde && masquable) return null;
+  if (!accorde && masquee) return null;
+  const bloque = !accorde && !etat.peutRedemander;
 
   const activerNatif = async () => {
     const apres = await demanderPush(user.id);
     setEtat(apres);
-    if (apres.statut === "granted") toast.show("Notifications activées", "succes");
-    else if (!apres.peutRedemander) toast.show("Autorisez les notifications dans les réglages", "info");
+    if (apres.statut === "granted") toast.show(t("notifs.activees"), "succes");
+    else if (!apres.peutRedemander) toast.show(t("notifs.refuseesNatif"), "info");
   };
 
-  const accorde = etat.statut === "granted";
-  const bloque = etat.statut !== "granted" && !etat.peutRedemander;
-
-  return (
-    <View testID="carte-notifications" style={[styles.carte, accorde && styles.carteOk]}>
-      <View style={styles.ligne}>
-        <Icone
-          name={accorde ? "check-circle" : "alert-circle"}
-          size={20}
-          color={accorde ? colors.success : colors.brandPrimary}
-        />
-        <Text style={styles.titre}>{accorde ? "Notifications activées" : "Notifications désactivées"}</Text>
+  return carte(
+    accorde,
+    accorde ? t("notifs.activeesTitre") : bloque ? t("notifs.bloqueesTitre") : t("notifs.inviteTitre"),
+    accorde ? t("notifs.activeesTexte") : bloque ? t("notifs.bloqueesNatif") : texte,
+    accorde ? null : bloque ? (
+      <Bouton
+        testID="btn-reglages-notifications"
+        label={t("notifs.ouvrirReglages")}
+        variant="secondaire"
+        onPress={() => Linking.openSettings()}
+      />
+    ) : (
+      <View style={styles.actions}>
+        <Bouton testID="btn-activer-notifications" label={t("notifs.activer")} variant="secondaire" onPress={activerNatif} />
+        {boutonPlusTard}
       </View>
-      <Text style={styles.texte}>
-        {accorde ? "Vous serez prévenu même si l'app est fermée." : texte}
-      </Text>
-      {accorde ? null : bloque ? (
-        <Bouton
-          testID="btn-reglages-notifications"
-          label="Ouvrir les réglages"
-          variant="secondaire"
-          onPress={() => Linking.openSettings()}
-        />
-      ) : (
-        <Bouton
-          testID="btn-activer-notifications"
-          label="Activer les notifications"
-          variant="secondaire"
-          onPress={activerNatif}
-        />
-      )}
-    </View>
+    ),
   );
 }
 
@@ -161,5 +212,8 @@ const styles = stylesDynamiques(() =>
     ligne: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     titre: { flex: 1, fontFamily: fonts.display, fontSize: 16, color: colors.onSurface },
     texte: { fontFamily: fonts.text, fontSize: 13, color: colors.muted },
+    etapes: { fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.onSurface },
+    actions: { gap: spacing.sm, alignItems: "stretch" },
+    plusTard: { textAlign: "center", fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.muted },
   }),
 );

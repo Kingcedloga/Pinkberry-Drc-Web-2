@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth";
 import { Icone } from "@/src/components/Icone";
+import { CentreNotifications } from "@/src/components/CentreNotifications";
 import { Logo } from "@/src/components/Logo";
 import { LienNav, lienActif } from "@/src/nav-web";
 import { usePanier } from "@/src/panier";
@@ -112,6 +113,7 @@ function EnteteWeb({
         </View>
 
         <View style={styles.enteteActions}>
+          <CentreNotifications />
           {avecPanier ? <BoutonPanier /> : null}
           <BoutonDeconnexion compact />
         </View>
@@ -131,6 +133,7 @@ function EnteteCompacte({ avecPanier, accueil }: { avecPanier: boolean; accueil:
         <Logo taille={19} />
       </Pressable>
       <View style={styles.enteteActions}>
+        <CentreNotifications />
         {avecPanier ? <BoutonPanier /> : null}
         <BoutonDeconnexion compact />
       </View>
@@ -206,10 +209,13 @@ function BarreLaterale({
 
   return (
     <View testID="barre-laterale" style={styles.laterale}>
-      <Pressable testID="btn-marque" onPress={() => router.push(accueil as any)} style={styles.marque}>
-        <Logo taille={19} />
-        {sousTitre ? <Text style={styles.marqueSous}>{sousTitre}</Text> : null}
-      </Pressable>
+      <View style={styles.marqueLigne}>
+        <Pressable testID="btn-marque" onPress={() => router.push(accueil as any)} style={styles.marque}>
+          <Logo taille={19} />
+          {sousTitre ? <Text style={styles.marqueSous}>{sousTitre}</Text> : null}
+        </Pressable>
+        <CentreNotifications cote="gauche" />
+      </View>
 
       <ScrollView contentContainerStyle={styles.lateraleLiens} showsVerticalScrollIndicator={false}>
         {liens.map((l) => rendre(l))}
@@ -276,6 +282,7 @@ const styles = stylesDynamiques(() =>
   StyleSheet.create({
     rangee: { flex: 1, flexDirection: "row", backgroundColor: colors.surfaceSecondary },
     colonne: { flex: 1, backgroundColor: colors.surfaceSecondary },
+    marqueLigne: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
     contenu: { flex: 1, minWidth: 0 },
 
     entete: {

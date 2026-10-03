@@ -9,7 +9,7 @@ type Type = "succes" | "erreur" | "info";
 type Notification = { id: number; message: string; type: Type; titre?: string };
 type ToastValue = { show: (message: string, type?: Type, titre?: string) => void };
 
-const DUREE = 3000;
+const DUREE = 3500;
 const MAX_VISIBLES = 3;
 
 const ToastContext = createContext<ToastValue | null>(null);
