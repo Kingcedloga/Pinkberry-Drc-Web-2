@@ -447,6 +447,7 @@ class PromotionIn(BaseModel):
     actif: bool = True
     cumulable: bool = False  # cumul avec d'autres promotions cumulables uniquement
     notifierClients: bool = True  # annonce (notification + push) aux clients eligibles a l'activation
+    afficherBanniere: bool = True  # visible dans la banniere client ; False = code prive (distribue a part)
 
 
 class PromotionActifIn(BaseModel):
@@ -2668,7 +2669,7 @@ def decrire_promo(p: Dict[str, Any], cible: Dict[str, Optional[str]], langue: st
 async def annoncer_promotion(p: Dict[str, Any]) -> int:
     """Promotion automatique en cours : prevenir une seule fois les clients
     eligibles (preference « promotions » respectee par `notifier`)."""
-    if not p.get("automatique") or not p.get("notifierClients", True) or statut_promotion(p) != "active":
+    if not promo_publique(p) or not p.get("notifierClients", True) or statut_promotion(p) != "active":
         return 0
     res = await db.promotions.update_one(
         {"id": p["id"], "annonceeAt": {"$exists": False}}, {"$set": {"annonceeAt": iso(now_utc())}}
@@ -2685,23 +2686,32 @@ async def annoncer_promotion(p: Dict[str, Any]) -> int:
         params_par_langue={
             langue: {
                 "nom": (p.get("nomEn") if langue == "en" else None) or p["nom"],
-                "remise": decrire_promo(p, cible, langue),
+                "remise": decrire_promo(p, cible, langue)
+                + (f" (code {p['code']})" if p.get("code") else ""),
             }
             for langue in ("fr", "en")
         },
     )
 
 
+def promo_publique(p: Dict[str, Any]) -> bool:
+    """Visible des clients (banniere, annonce) : une promotion automatique, ou un
+    code que l'admin n'a pas marque comme prive. Absent = visible."""
+    return p.get("afficherBanniere", True) is not False
+
+
 @api_router.get("/promotions/actives")
 async def promotions_actives():
-    """Bannière client : promotions automatiques en cours (les codes restent a saisir)."""
-    promos = await db.promotions.find({"automatique": True, "actif": True}, {"_id": 0}).to_list(100)
+    """Banniere client : promotions en cours visibles, codes publics compris (le
+    client peut ainsi les reprendre au paiement)."""
+    promos = await db.promotions.find({"actif": True}, {"_id": 0}).to_list(100)
     visibles = []
     for p in promos:
-        if statut_promotion(p) != "active":
+        if statut_promotion(p) != "active" or not promo_publique(p):
             continue
         visibles.append({
-            **{k: p.get(k) for k in ("id", "nom", "nomEn", "type", "valeur", "cible", "montantMin", "dateFin")},
+            **{k: p.get(k) for k in ("id", "nom", "nomEn", "type", "valeur", "cible", "montantMin", "dateFin",
+                                     "automatique", "code")},
             **await _libelle_cible(p),
         })
     return JSONResponse(visibles, headers={"Cache-Control": "no-store"})

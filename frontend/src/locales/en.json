@@ -619,7 +619,13 @@
     "code_montant_min": "Conditions not met: minimum order of {{montant}}",
     "code_premiere_commande": "Conditions not met: this code is for first orders only",
     "code_cible_absente": "Conditions not met: your cart doesn't contain the eligible products",
-    "code_sans_effet": "This code gives no discount on this cart"
+    "code_sans_effet": "This code gives no discount on this cart",
+    "codeAjoute": "Code {{code}} added",
+    "codeAjouteTexte": "It will be applied automatically at checkout.",
+    "utiliserCode": "Use code {{code}}",
+    "codeChoisi": "Added to cart",
+    "toucherPourUtiliser": "Tap to use it",
+    "automatique": "Applied automatically at checkout"
   },
   "promotions": {
     "titre": "Promotions",
@@ -670,7 +676,10 @@
     "statut_epuisee": "Used up",
     "statut_desactivee": "Disabled",
     "notifierClients": "Notify customers",
-    "notifierClientsAide": "Notification and push to eligible customers, once, when the promotion becomes active (per their preferences)."
+    "notifierClientsAide": "Notification and push to eligible customers, once, when the promotion becomes active (per their preferences).",
+    "afficherBanniere": "Show in the banner",
+    "afficherBanniereAide": "The code appears in the customer banner, where it can be added in one tap. Turn off for a private code shared separately.",
+    "codePrive": "Private code"
   },
   "notifs": {
     "titre": "Notifications",

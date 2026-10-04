@@ -219,3 +219,14 @@ def test_pas_d_annonce_sans_notifier_clients(client, produit, promos):
     promo = promos(type="pourcentage", valeur=5, cible="produit", cibleValeur=produit["id"])  # notifierClients=False
     notifs = requests.get(f"{API}/notifications", headers=client, timeout=15).json()["notifications"]
     assert all(n["tag"] != f"promo-{promo['id']}" for n in notifs)
+
+
+def test_banniere_codes_publics_et_prives(promos):
+    """Un code est visible dans la banniere (avec son code) sauf s'il est prive."""
+    public = f"TESTPUB{uuid.uuid4().hex[:4].upper()}"
+    prive = f"TESTPRV{uuid.uuid4().hex[:4].upper()}"
+    p_public = promos(type="montant", valeur=1000, automatique=False, code=public)
+    p_prive = promos(type="montant", valeur=1000, automatique=False, code=prive, afficherBanniere=False)
+    actives = {p["id"]: p for p in requests.get(f"{API}/promotions/actives", timeout=15).json()}
+    assert actives[p_public["id"]]["code"] == public
+    assert p_prive["id"] not in actives

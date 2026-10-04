@@ -45,6 +45,9 @@ type PanierValue = {
   changerQuantite: (cle: string, delta: number) => void;
   retirer: (cle: string) => void;
   vider: () => void;
+  /** Code promo choisi (bannière) : appliqué automatiquement au paiement. */
+  codePromo: string | null;
+  setCodePromo: (code: string | null) => void;
   nbArticles: number;
   sousTotal: number;
 };
@@ -59,6 +62,7 @@ function cleDe(a: Omit<ArticlePanier, "cle">) {
 export function PanierProvider({ children }: { children: React.ReactNode }) {
   const [articles, setArticles] = useState<ArticlePanier[]>([]);
   const [adresse, setAdresse] = useState<Adresse | null>(null);
+  const [codePromo, setCodePromo] = useState<string | null>(null);
 
   const ajouter = useCallback((a: Omit<ArticlePanier, "cle">) => {
     const cle = cleDe(a);
@@ -85,14 +89,29 @@ export function PanierProvider({ children }: { children: React.ReactNode }) {
     setArticles((prev) => prev.filter((x) => x.cle !== cle));
   }, []);
 
-  const vider = useCallback(() => setArticles([]), []);
+  const vider = useCallback(() => {
+    setArticles([]);
+    setCodePromo(null);
+  }, []);
 
   const nbArticles = articles.reduce((s, a) => s + a.quantite, 0);
   const sousTotal = articles.reduce((s, a) => s + a.quantite * a.prixUnitaire, 0);
 
   const value = useMemo(
-    () => ({ articles, adresse, setAdresse, ajouter, changerQuantite, retirer, vider, nbArticles, sousTotal }),
-    [articles, adresse, ajouter, changerQuantite, retirer, vider, nbArticles, sousTotal],
+    () => ({
+      articles,
+      adresse,
+      setAdresse,
+      ajouter,
+      changerQuantite,
+      retirer,
+      vider,
+      codePromo,
+      setCodePromo,
+      nbArticles,
+      sousTotal,
+    }),
+    [articles, adresse, ajouter, changerQuantite, retirer, vider, codePromo, nbArticles, sousTotal],
   );
 
   return <PanierContext.Provider value={value}>{children}</PanierContext.Provider>;

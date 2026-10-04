@@ -619,7 +619,13 @@
     "code_montant_min": "Conditions non remplies : commande minimum de {{montant}}",
     "code_premiere_commande": "Conditions non remplies : code réservé à la première commande",
     "code_cible_absente": "Conditions non remplies : votre panier ne contient pas les produits concernés",
-    "code_sans_effet": "Ce code n'apporte aucune réduction sur ce panier"
+    "code_sans_effet": "Ce code n'apporte aucune réduction sur ce panier",
+    "codeAjoute": "Code {{code}} ajouté",
+    "codeAjouteTexte": "Il sera appliqué automatiquement au paiement.",
+    "utiliserCode": "Utiliser le code {{code}}",
+    "codeChoisi": "Ajouté au panier",
+    "toucherPourUtiliser": "Touchez pour l'utiliser",
+    "automatique": "Appliquée automatiquement au paiement"
   },
   "promotions": {
     "titre": "Promotions",
@@ -670,7 +676,10 @@
     "statut_epuisee": "Épuisée",
     "statut_desactivee": "Désactivée",
     "notifierClients": "Prévenir les clients",
-    "notifierClientsAide": "Notification et push aux clients concernés, une seule fois, quand la promotion devient active (selon leurs préférences)."
+    "notifierClientsAide": "Notification et push aux clients concernés, une seule fois, quand la promotion devient active (selon leurs préférences).",
+    "afficherBanniere": "Afficher dans la bannière",
+    "afficherBanniereAide": "Le code apparaît dans la bannière des clients, qui peuvent l'ajouter d'un geste. Désactivez pour un code privé, distribué à part.",
+    "codePrive": "Code privé"
   },
   "notifs": {
     "titre": "Notifications",

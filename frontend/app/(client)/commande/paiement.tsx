@@ -34,7 +34,7 @@ export default function Confirmation() {
   const libelle = useLibelle();
   const { usd, fc, prix } = useMontant();
   const { fraisLivraison: FRAIS } = useConfigApp();
-  const { articles, adresse, sousTotal, vider } = usePanier();
+  const { articles, adresse, sousTotal, vider, codePromo, setCodePromo } = usePanier();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<ModePaiement>("cash");
@@ -49,8 +49,9 @@ export default function Confirmation() {
   } | null>(null);
 
   // Code saisi par le client, puis code soumis au serveur (bouton « Appliquer »).
-  const [codeSaisi, setCodeSaisi] = useState("");
-  const [codeApplique, setCodeApplique] = useState<string | null>(null);
+  // Un code choisi dans la bannière est repris et appliqué dès l'arrivée.
+  const [codeSaisi, setCodeSaisi] = useState(codePromo ?? "");
+  const [codeApplique, setCodeApplique] = useState<string | null>(codePromo);
   const messageCode = useMessageCode();
 
   const itemsCommande = articles.map((a) => ({
@@ -77,10 +78,15 @@ export default function Confirmation() {
   const total = totaux.total;
   const resultatCode = apercuQ.data?.code ?? null;
   const codeAccepte = !!resultatCode && ["applique", "moins_avantageux"].includes(resultatCode.statut);
-  const appliquerCode = () => setCodeApplique(codeSaisi.trim().toUpperCase() || null);
+  const appliquerCode = () => {
+    const code = codeSaisi.trim().toUpperCase() || null;
+    setCodeApplique(code);
+    setCodePromo(code);
+  };
   const retirerCode = () => {
     setCodeApplique(null);
     setCodeSaisi("");
+    setCodePromo(null);
   };
 
   const lancerPaiement = async (commandeId: string) => {

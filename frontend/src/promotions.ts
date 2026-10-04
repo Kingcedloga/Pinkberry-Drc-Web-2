@@ -35,6 +35,8 @@ export type Promotion = {
   cumulable: boolean;
   /** Annonce (notification + push) aux clients éligibles quand la promotion devient active. */
   notifierClients?: boolean;
+  /** Visible dans la bannière client (un code peut rester privé). */
+  afficherBanniere?: boolean;
   statut?: "active" | "programmee" | "expiree" | "epuisee" | "desactivee";
 };
 

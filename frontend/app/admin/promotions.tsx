@@ -35,6 +35,7 @@ type Formulaire = {
   cumulable: boolean;
   actif: boolean;
   notifierClients: boolean;
+  afficherBanniere: boolean;
 };
 
 const VIDE: Formulaire = {
@@ -54,6 +55,7 @@ const VIDE: Formulaire = {
   cumulable: false,
   actif: true,
   notifierClients: true,
+  afficherBanniere: true,
 };
 
 const TYPES: TypePromo[] = ["pourcentage", "montant", "livraison"];
@@ -203,6 +205,7 @@ export default function PromotionsAdmin() {
             cumulable: p.cumulable,
             actif: p.actif,
             notifierClients: p.notifierClients !== false,
+            afficherBanniere: p.afficherBanniere !== false,
           }
         : VIDE,
     );
@@ -232,6 +235,7 @@ export default function PromotionsAdmin() {
       cumulable: f.cumulable,
       actif: f.actif,
       notifierClients: f.notifierClients,
+      afficherBanniere: f.automatique || f.afficherBanniere,
     };
     setEnvoi(true);
     try {
@@ -308,6 +312,9 @@ export default function PromotionsAdmin() {
           <Text style={styles.badgeNeutre}>
             {p.automatique ? t("promotions.automatique") : t("promotions.codeBadge", { code: p.code ?? "" })}
           </Text>
+          {!p.automatique && p.afficherBanniere === false ? (
+            <Text style={styles.badgeNeutre}>{t("promotions.codePrive")}</Text>
+          ) : null}
           {p.cumulable ? <Text style={styles.badgeNeutre}>{t("promotions.cumulable")}</Text> : null}
         </View>
         <Text style={styles.details}>
@@ -520,7 +527,16 @@ export default function PromotionsAdmin() {
                 value={f.cumulable}
                 onChange={(v) => maj({ cumulable: v })}
               />
-              {f.automatique ? (
+              {!f.automatique ? (
+                <Interrupteur
+                  testID="switch-promo-banniere"
+                  label={t("promotions.afficherBanniere")}
+                  aide={t("promotions.afficherBanniereAide")}
+                  value={f.afficherBanniere}
+                  onChange={(v) => maj({ afficherBanniere: v })}
+                />
+              ) : null}
+              {f.automatique || f.afficherBanniere ? (
                 <Interrupteur
                   testID="switch-promo-notifier"
                   label={t("promotions.notifierClients")}
