@@ -12,6 +12,8 @@ import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { TitrePage } from "@/src/components/TitrePage";
 import { useLangue, useT, type CleTexte } from "@/src/i18n";
+import { versIso, versLocal } from "@/src/dates";
+import { Choix, Interrupteur } from "@/src/components/ChoixAdmin";
 import { useDescriptionPromo, type CiblePromo, type Promotion, type TypePromo } from "@/src/promotions";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
@@ -61,21 +63,6 @@ const VIDE: Formulaire = {
 const TYPES: TypePromo[] = ["pourcentage", "montant", "livraison"];
 const CIBLES: CiblePromo[] = ["commande", "categorie", "produit", "premiere_commande"];
 
-const deux = (n: number) => String(n).padStart(2, "0");
-/** ISO (UTC) → « AAAA-MM-JJ HH:MM » à l'heure locale de l'admin. */
-const versLocal = (iso?: string | null) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())} ${deux(d.getHours())}:${deux(d.getMinutes())}`;
-};
-/** « AAAA-MM-JJ [HH:MM] » local → ISO ; `undefined` si la saisie est invalide. */
-const versIso = (v: string): string | null | undefined => {
-  if (!v.trim()) return null;
-  const m = v.trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?$/);
-  if (!m) return undefined;
-  const d = new Date(+m[1], +m[2] - 1, +m[3], +(m[4] ?? 0), +(m[5] ?? 0));
-  return isNaN(d.getTime()) ? undefined : d.toISOString();
-};
 const entier = (v: string) => {
   const n = parseInt(v.replace(/\s/g, ""), 10);
   return isNaN(n) ? null : n;
@@ -88,65 +75,6 @@ const COULEURS_STATUT = () => ({
   epuisee: { fond: colors.surfaceSecondary, texte: colors.muted },
   desactivee: { fond: colors.errorSoft, texte: colors.error },
 });
-
-/** Pastilles de choix exclusif (type, mode, cible…). */
-function Choix<T extends string>({
-  options,
-  valeur,
-  onChange,
-  libelle,
-  testID,
-}: {
-  options: T[];
-  valeur: T;
-  onChange: (v: T) => void;
-  libelle: (v: T) => string;
-  testID: string;
-}) {
-  return (
-    <View style={styles.chips} accessibilityRole="radiogroup">
-      {options.map((o) => {
-        const actif = o === valeur;
-        return (
-          <Pressable
-            key={o}
-            testID={`${testID}-${o}`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: actif }}
-            onPress={() => onChange(o)}
-            style={[styles.chip, actif && styles.chipActif]}
-          >
-            <Text style={[styles.chipTexte, actif && { color: colors.onBrandPrimary }]}>{libelle(o)}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-function Interrupteur({
-  label,
-  aide,
-  value,
-  onChange,
-  testID,
-}: {
-  label: string;
-  aide?: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-  testID: string;
-}) {
-  return (
-    <View style={styles.switchRow}>
-      <View style={styles.switchTexte}>
-        <Text style={styles.switchLabel}>{label}</Text>
-        {aide ? <Text style={styles.aide}>{aide}</Text> : null}
-      </View>
-      <Switch testID={testID} value={value} onValueChange={onChange} trackColor={{ true: colors.brandPrimary, false: colors.border }} />
-    </View>
-  );
-}
 
 export default function PromotionsAdmin() {
   useTheme();

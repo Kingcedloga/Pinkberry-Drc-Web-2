@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-na
 
 import { apiFetch } from "@/src/api";
 import { BannierePromotions } from "@/src/components/BannierePromotions";
+import { CarrouselBannieres } from "@/src/components/CarrouselBannieres";
 import { BanniereRecommandes } from "@/src/components/BanniereRecommandes";
 import { Chargement } from "@/src/components/Chargement";
 import { Chips } from "@/src/components/Chips";
@@ -96,6 +97,16 @@ export default function Menu() {
 
   const enTete = (
     <View style={styles.enTete}>
+      {/* Affiches gérées par l'admin, en tête de l'accueil (rien si aucune n'est active). */}
+      {!rechercheActive ? (
+        <CarrouselBannieres
+          onProduit={(id) => {
+            const p = produits.find((x) => x.id === id);
+            if (p) setProduitOuvert(p);
+          }}
+          onCategorie={setCategorie}
+        />
+      ) : null}
       <View style={styles.hero}>
         <Text style={styles.heroTitre}>{t("accueil.heroTitre")}</Text>
         <Text style={styles.heroSous}>{t("accueil.heroSousTitre")}</Text>

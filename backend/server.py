@@ -23,13 +23,13 @@ import bcrypt
 import httpx
 import jwt
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from PIL import Image
+from PIL import Image, ImageOps
 from pydantic import BaseModel, Field
 from pymongo import ReturnDocument
 from pywebpush import WebPushException, webpush
@@ -452,6 +452,30 @@ class PromotionIn(BaseModel):
 
 class PromotionActifIn(BaseModel):
     actif: bool
+
+
+class BanniereIn(BaseModel):
+    imageUrl: Optional[str] = None  # variante 1800x600 (tablette, ordinateur)
+    imageMobileUrl: Optional[str] = None  # variante 1200x400 (telephone)
+    titre: Optional[str] = Field(default=None, max_length=80)
+    titreEn: Optional[str] = Field(default=None, max_length=80)
+    sousTitre: Optional[str] = Field(default=None, max_length=160)
+    sousTitreEn: Optional[str] = Field(default=None, max_length=160)
+    couleurTexte: str = "#FFFFFF"
+    positionTexte: Literal["gauche", "centre", "droite"] = "gauche"
+    lienType: Literal["aucun", "produit", "categorie", "promotion"] = "aucun"
+    lienValeur: Optional[str] = None  # id produit, nom de categorie ou id promotion
+    actif: bool = True
+    dateDebut: Optional[str] = None
+    dateFin: Optional[str] = None
+
+
+class BanniereActifIn(BaseModel):
+    actif: bool
+
+
+class OrdreIn(BaseModel):
+    ids: List[str]
 
 
 class StatutIn(BaseModel):
@@ -2902,6 +2926,190 @@ async def liberer_promotions(cmd_id: str) -> None:
     )
     if cmd:
         await liberer_compteurs([pr["id"] for pr in cmd.get("promotions") or []])
+
+
+# ------------------------------------------------------------------- bannieres
+# Affiches de l'accueil, entierement gerees par l'admin. Format unique : ratio
+# 3:1 (1200 x 400 px recommande). L'image est recadree au ratio exact cote
+# serveur (selon le cadre choisi dans l'outil de recadrage), puis enregistree en
+# deux variantes WebP compressees dans le stockage objet (jamais en base).
+RATIO_BANNIERE = 3
+VARIANTES_BANNIERE = {"imageUrl": (1800, 600), "imageMobileUrl": (1200, 400)}
+LARGEUR_RECOMMANDEE = 1200
+COULEUR_HEX = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
+
+def recadrer_banniere(brut: bytes, cadre: Optional[Tuple[float, float, float, float]]) -> Tuple[Dict[str, bytes], int]:
+    """Recadre au ratio 3:1 (cadre fourni, sinon centre) et produit les variantes.
+    Renvoie aussi la largeur source retenue (pour signaler une image trop petite)."""
+    with Image.open(io.BytesIO(brut)) as source:
+        img = ImageOps.exif_transpose(source).convert("RGB")
+    larg, haut = img.size
+    if cadre:
+        x, y, w, _h = cadre
+        w = max(1.0, min(w, larg, haut * RATIO_BANNIERE))
+    else:
+        w = min(larg, haut * RATIO_BANNIERE)
+        x, y = (larg - w) / 2, (haut - w / RATIO_BANNIERE) / 2
+    h = w / RATIO_BANNIERE  # ratio exact, quoi qu'envoie le client
+    x = max(0.0, min(x, larg - w))
+    y = max(0.0, min(y, haut - h))
+    recadree = img.crop((round(x), round(y), round(x + w), round(y + h)))
+    sorties = {}
+    for cle, taille in VARIANTES_BANNIERE.items():
+        tampon = io.BytesIO()
+        recadree.resize(taille, Image.LANCZOS).save(tampon, format="WEBP", quality=82, method=6)
+        sorties[cle] = tampon.getvalue()
+    return sorties, round(w)
+
+
+@api_router.post("/admin/bannieres/image")
+async def envoyer_image_banniere(
+    file: UploadFile = File(...),
+    x: Optional[float] = Form(None),
+    y: Optional[float] = Form(None),
+    w: Optional[float] = Form(None),
+    h: Optional[float] = Form(None),
+    admin=Depends(require_admin),
+):
+    if (file.content_type or "").lower() not in TYPES_IMAGE:
+        raise HTTPException(status_code=400, detail="Formats acceptes : JPG, PNG ou WebP")
+    brut = await file.read()
+    if len(brut) > TAILLE_MAX_IMAGE:
+        raise HTTPException(status_code=400, detail="Image trop lourde (5 Mo maximum)")
+    cadre = (x, y, w, h) if None not in (x, y, w, h) and w > 0 and h > 0 else None
+    try:
+        variantes, largeur_source = await asyncio.to_thread(recadrer_banniere, brut, cadre)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Fichier image illisible")
+    urls = {}
+    for cle, contenu in variantes.items():
+        fichier_id = str(uuid.uuid4())
+        chemin = f"{APP_NAME}/bannieres/{fichier_id}.webp"
+        await put_object(chemin, contenu, "image/webp")
+        await db.fichiers.insert_one({
+            "id": fichier_id, "path": chemin, "contentType": "image/webp", "ownerId": admin["id"],
+            "taille": len(contenu), "createdAt": iso(now_utc()),
+        })
+        urls[cle] = f"/api/fichiers/{fichier_id}"
+    return {**urls, "largeurSource": largeur_source, "basseResolution": largeur_source < LARGEUR_RECOMMANDEE}
+
+
+def statut_banniere(b: Dict[str, Any], maintenant: Optional[datetime] = None) -> str:
+    maintenant = maintenant or now_utc()
+    if not b.get("actif"):
+        return "desactivee"
+    if b.get("dateFin") and maintenant > _instant(b["dateFin"]):
+        return "expiree"
+    if b.get("dateDebut") and maintenant < _instant(b["dateDebut"]):
+        return "programmee"
+    return "active"
+
+
+async def _valider_banniere(body: BanniereIn) -> Dict[str, Any]:
+    if not COULEUR_HEX.match(body.couleurTexte):
+        raise HTTPException(status_code=400, detail="Couleur du texte invalide (format #RRGGBB)")
+    for url in (body.imageUrl, body.imageMobileUrl):
+        if url and not url.startswith("/api/fichiers/"):
+            raise HTTPException(status_code=400, detail="Image invalide")
+    valeur = _texte(body.lienValeur) or None
+    if body.lienType == "produit" and not await db.produits.find_one({"id": valeur}):
+        raise HTTPException(status_code=400, detail="Produit du lien introuvable")
+    if body.lienType == "categorie" and not await db.categories.find_one({"nom": valeur}):
+        raise HTTPException(status_code=400, detail="Categorie du lien introuvable")
+    if body.lienType == "promotion" and not await db.promotions.find_one({"id": valeur}):
+        raise HTTPException(status_code=400, detail="Promotion du lien introuvable")
+    doc = body.model_dump(exclude={"lienType", "lienValeur"})
+    doc["lien"] = None if body.lienType == "aucun" else {"type": body.lienType, "valeur": valeur}
+    doc["imageMobileUrl"] = body.imageMobileUrl or body.imageUrl
+    for fr, en in (("titre", "titreEn"), ("sousTitre", "sousTitreEn")):
+        doc[fr] = _texte(doc.get(fr)) or None
+        doc[en] = _texte(doc.get(en)) or None
+        if doc[fr] and not doc[en]:
+            doc[en] = (await traduire_en([doc[fr]])).get(doc[fr])
+    doc["dateDebut"] = _date_promo(body.dateDebut, "debut")
+    doc["dateFin"] = _date_promo(body.dateFin, "fin")
+    if doc["dateDebut"] and doc["dateFin"] and doc["dateFin"] <= doc["dateDebut"]:
+        raise HTTPException(status_code=400, detail="La date de fin doit suivre la date de debut")
+    return doc
+
+
+async def _lien_resolu(lien: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Ce dont le client a besoin pour agir au clic (sans requete supplementaire)."""
+    if not lien:
+        return None
+    if lien["type"] == "produit":
+        p = await db.produits.find_one({"id": lien["valeur"]}, {"_id": 0, "id": 1, "nom": 1, "disponible": 1})
+        return {**lien, "disponible": bool(p and p.get("disponible", True))} if p else None
+    if lien["type"] == "categorie":
+        return lien if await db.categories.find_one({"nom": lien["valeur"]}) else None
+    promo = await db.promotions.find_one({"id": lien["valeur"]}, {"_id": 0})
+    if not promo or statut_promotion(promo) != "active":
+        return None
+    return {**lien, "code": promo.get("code") if promo_publique(promo) else None,
+            "automatique": bool(promo.get("automatique")), "cible": promo.get("cible"),
+            "cibleValeur": promo.get("cibleValeur")}
+
+
+@api_router.get("/bannieres")
+async def bannieres_actives():
+    """Accueil client : bannieres en cours, dans l'ordre choisi par l'admin."""
+    docs = await db.bannieres.find({"actif": True}, {"_id": 0}).sort("ordre", 1).to_list(20)
+    visibles = []
+    for b in docs:
+        if statut_banniere(b) != "active":
+            continue
+        visibles.append({**b, "lien": await _lien_resolu(b.get("lien"))})
+    return JSONResponse(visibles, headers={"Cache-Control": "no-store"})
+
+
+@api_router.get("/admin/bannieres")
+async def admin_bannieres(_=Depends(require_admin)):
+    docs = await db.bannieres.find({}, {"_id": 0}).sort("ordre", 1).to_list(100)
+    return [{**b, "statut": statut_banniere(b)} for b in docs]
+
+
+@api_router.post("/admin/bannieres")
+async def creer_banniere(body: BanniereIn, _=Depends(require_admin)):
+    doc = {
+        "id": str(uuid.uuid4()),
+        **await _valider_banniere(body),
+        "ordre": await _ordre_suivant(db.bannieres),
+        "createdAt": iso(now_utc()),
+    }
+    await db.bannieres.insert_one(dict(doc))
+    return {**doc, "statut": statut_banniere(doc)}
+
+
+@api_router.put("/admin/bannieres/ordre")
+async def ordonner_bannieres(body: OrdreIn, _=Depends(require_admin)):
+    for rang, ident in enumerate(dict.fromkeys(body.ids)):
+        await db.bannieres.update_one({"id": ident}, {"$set": {"ordre": rang}})
+    return {"ok": True}
+
+
+@api_router.put("/admin/bannieres/{banniere_id}")
+async def modifier_banniere(banniere_id: str, body: BanniereIn, _=Depends(require_admin)):
+    ancien = await _introuvable(db.bannieres, banniere_id, "Banniere")
+    maj = await _valider_banniere(body)
+    await db.bannieres.update_one({"id": banniere_id}, {"$set": maj})
+    doc = {**ancien, **maj}
+    return {**doc, "statut": statut_banniere(doc)}
+
+
+@api_router.patch("/admin/bannieres/{banniere_id}/actif")
+async def basculer_banniere(banniere_id: str, body: BanniereActifIn, _=Depends(require_admin)):
+    ancien = await _introuvable(db.bannieres, banniere_id, "Banniere")
+    await db.bannieres.update_one({"id": banniere_id}, {"$set": {"actif": body.actif}})
+    doc = {**ancien, "actif": body.actif}
+    return {**doc, "statut": statut_banniere(doc)}
+
+
+@api_router.delete("/admin/bannieres/{banniere_id}")
+async def supprimer_banniere(banniere_id: str, _=Depends(require_admin)):
+    await _introuvable(db.bannieres, banniere_id, "Banniere")
+    await db.bannieres.delete_one({"id": banniere_id})
+    return {"ok": True}
 
 
 # ------------------------------------------------------------------------ zones

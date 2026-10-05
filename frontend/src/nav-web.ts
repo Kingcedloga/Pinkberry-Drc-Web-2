@@ -27,6 +27,7 @@ export const NAV_ADMIN: LienNav[] = [
 
 export const NAV_ADMIN_SECONDAIRE: LienNav[] = [
   { href: "/admin/promotions", libelle: "Promotions", cle: "nav.promotions", icone: "gift" },
+  { href: "/admin/bannieres", libelle: "Bannières", cle: "nav.bannieres", icone: "image" },
   { href: "/admin/rapports", libelle: "Rapports", cle: "nav.rapports", icone: "download" },
   { href: "/admin/archives", libelle: "Archives", cle: "nav.archives", icone: "archive" },
   { href: "/admin/parametres", libelle: "Paramètres", cle: "nav.parametres", icone: "settings" },
