@@ -713,7 +713,15 @@
     "typeCommandes": "New orders",
     "typeCommandesDetail": "Orders received and cancelled by customers",
     "typeCourses": "Assigned deliveries",
-    "typeCoursesDetail": "Every new delivery assigned to you"
+    "typeCoursesDetail": "Every new delivery assigned to you",
+    "selectionner": "Select",
+    "terminer": "Done",
+    "toutEffacer": "Clear all",
+    "toutEfface": "Notifications cleared",
+    "supprimer": "Delete notification",
+    "supprimees": "{{n}} notifications deleted",
+    "confirmerToutEffacer": "Clear all your notifications? This can't be undone.",
+    "confirmerSelection": "Delete {{n}} notification(s)? This can't be undone."
   },
   "bannieres": {
     "titre": "Banners",

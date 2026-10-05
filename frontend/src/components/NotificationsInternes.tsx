@@ -1,9 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useGlobalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 
 import { useAuth } from "@/src/auth";
-import { useNotifications, type NotificationApp } from "@/src/notifications";
+import { marquerLues, useNotifications, type NotificationApp } from "@/src/notifications";
 import { useToast } from "@/src/toast";
 
 const typeToast = (n: NotificationApp) =>
@@ -20,6 +21,8 @@ export function NotificationsInternes() {
   const toast = useToast();
   const qc = useQueryClient();
   const q = useNotifications();
+  const router = useRouter();
+  const { notif } = useGlobalSearchParams<{ notif?: string }>();
   // Notifications déjà connues : l'historique présent à l'ouverture ne s'affiche pas.
   const connues = useRef<Set<string> | null>(null);
 
@@ -50,6 +53,16 @@ export function NotificationsInternes() {
       qc.invalidateQueries({ queryKey: ["livreur-courses"] });
     }
   }, [q.data, toast, qc]);
+
+  // Ouverture depuis un push (lien « …?notif=<id> ») : la notification est marquée
+  // lue côté serveur, donc sur tous les appareils, puis le paramètre est retiré.
+  useEffect(() => {
+    if (!user || typeof notif !== "string" || !notif) return;
+    marquerLues([notif])
+      .catch(() => undefined)
+      .finally(() => qc.invalidateQueries({ queryKey: ["notifications"] }));
+    router.setParams({ notif: undefined } as any);
+  }, [notif, user, qc, router]);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;

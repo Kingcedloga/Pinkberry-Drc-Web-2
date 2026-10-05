@@ -1767,14 +1767,16 @@ async def notifier(
 async def _pousser(docs: List[Dict[str, Any]]) -> None:
     """Push systeme de chaque notification : web push + relais des apps natives."""
     for d in docs:
+        # Le lien porte l'id de la notification : l'ouvrir depuis le push la marque lue.
+        lien = f"{d['lien']}{'&' if '?' in d['lien'] else '?'}notif={d['id']}"
         try:
-            await envoyer_webpush([d["userId"]], d["titre"], d["message"], d["lien"], tag=d["tag"])
+            await envoyer_webpush([d["userId"]], d["titre"], d["message"], lien, tag=d["tag"])
         except Exception as e:
             logger.warning(f"Web push non bloquant: {e!r}")
         try:
             await send_push(
                 recipients=[d["userId"]],
-                data={"title": d["titre"], "message": d["message"], "action_url": d["lien"]},
+                data={"title": d["titre"], "message": d["message"], "action_url": lien},
                 idempotency_key=f"{d['tag']}-{d['userId']}",
             )
         except Exception as e:
@@ -1816,6 +1818,10 @@ class NotificationsLuesIn(BaseModel):
     ids: Optional[List[str]] = None  # absent : tout marquer comme lu
 
 
+class NotificationsIdsIn(BaseModel):
+    ids: List[str] = Field(default_factory=list, max_length=500)
+
+
 @api_router.get("/notifications")
 async def mes_notifications(limite: int = 30, user=Depends(get_current_user)):
     """Centre de notifications de l'utilisateur connecte (tous roles)."""
@@ -1836,6 +1842,31 @@ async def marquer_notifications_lues(body: NotificationsLuesIn, user=Depends(get
         filtre["id"] = {"$in": body.ids}
     res = await db.notifications.update_many(filtre, {"$set": {"lu": True}})
     return {"ok": True, "marquees": res.modified_count}
+
+
+# Suppressions : toujours restreintes aux notifications de l'utilisateur connecte
+# (le filtre userId garantit qu'on ne touche jamais celles d'un autre compte).
+@api_router.delete("/notifications/bulk/delete")
+async def supprimer_notifications(body: NotificationsIdsIn, user=Depends(get_current_user)):
+    ids = list(dict.fromkeys(i for i in body.ids if i))
+    if not ids:
+        return {"ok": True, "supprimees": 0}
+    res = await db.notifications.delete_many({"userId": user["id"], "id": {"$in": ids}})
+    return {"ok": True, "supprimees": res.deleted_count}
+
+
+@api_router.delete("/notifications/tout")
+async def effacer_notifications(user=Depends(get_current_user)):
+    res = await db.notifications.delete_many({"userId": user["id"]})
+    return {"ok": True, "supprimees": res.deleted_count}
+
+
+@api_router.delete("/notifications/{notif_id}")
+async def supprimer_notification(notif_id: str, user=Depends(get_current_user)):
+    res = await db.notifications.delete_one({"userId": user["id"], "id": notif_id})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Notification introuvable")
+    return {"ok": True}
 
 # --------------------------------------------- notifications push web (VAPID)
 # Push navigateur (systeme) : recues meme onglet ferme. Les pop-ups internes de
@@ -4553,6 +4584,7 @@ async def seed():
     await db.push_subscriptions.create_index("endpoint", unique=True)
     await db.push_subscriptions.create_index("userId")
     await db.notifications.create_index([("userId", 1), ("createdAt", -1)])
+    await db.notifications.create_index([("userId", 1), ("lu", 1)])  # compte des non-lues
     await db.notifications.create_index("expireAt", expireAfterSeconds=0)
 
     # Normalise les produits anterieurs a l'ajout de la mise en avant.

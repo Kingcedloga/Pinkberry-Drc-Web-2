@@ -153,3 +153,44 @@ def test_abonnement_push_lie_au_compte(client):
     assert requests.delete(f"{API}/push/web/abonnement", headers=ch, json=corps, timeout=15).status_code == 200
     invalide = {**corps, "endpoint": "http://exemple.test/push"}
     assert requests.put(f"{API}/push/web/abonnement", headers=ch, json=invalide, timeout=15).status_code == 400
+
+
+def test_suppression_individuelle_groupee_et_tout_effacer(client, admin, produit):
+    (ch, _), (ah, _) = client, admin
+    commandes = [_commander(ch, produit) for _ in range(3)]
+    try:
+        ids = [n["id"] for n in _apparait(ch, lambda n: n["type"] == "commande")]
+        assert len(ids) >= 3
+
+        # Un autre compte ne peut rien supprimer chez ce client.
+        assert requests.delete(f"{API}/notifications/{ids[0]}", headers=ah, timeout=15).status_code == 404
+        r = requests.delete(f"{API}/notifications/bulk/delete", headers=ah, json={"ids": ids}, timeout=15)
+        assert r.json()["supprimees"] == 0
+
+        assert requests.delete(f"{API}/notifications/{ids[0]}", headers=ch, timeout=15).status_code == 200
+        r = requests.delete(f"{API}/notifications/bulk/delete", headers=ch, json={"ids": ids[1:3]}, timeout=15)
+        assert r.json()["supprimees"] == 2
+        restantes = {n["id"] for n in _notifs(ch)["notifications"]}
+        assert not restantes & set(ids[:3])
+
+        requests.delete(f"{API}/notifications/tout", headers=ch, timeout=15)
+        assert _notifs(ch) == {"notifications": [], "nonLues": 0}
+    finally:
+        for cmd in commandes:
+            _nettoyer(ch, ah, cmd["id"])
+
+
+def test_lien_et_lecture_unitaire(client, admin, produit):
+    """Le centre et le push pointent vers la page concernee ; marquer une seule
+    notification lue (clic, ou ouverture depuis le push via ?notif=<id>)."""
+    (ch, _), (ah, _) = client, admin
+    cmd = _commander(ch, produit)
+    try:
+        n = _apparait(ch, lambda n: n["lien"] == f"/suivi/{cmd['id']}")[0]
+        avant = _notifs(ch)["nonLues"]
+        requests.post(f"{API}/notifications/lues", headers=ch, json={"ids": [n["id"]]}, timeout=15)
+        apres = _notifs(ch)
+        assert apres["nonLues"] == avant - 1
+        assert next(x for x in apres["notifications"] if x["id"] == n["id"])["lu"] is True
+    finally:
+        _nettoyer(ch, ah, cmd["id"])

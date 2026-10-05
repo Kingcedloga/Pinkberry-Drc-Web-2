@@ -713,7 +713,15 @@
     "typeCommandes": "Nouvelles commandes",
     "typeCommandesDetail": "Commandes reçues et annulées par les clients",
     "typeCourses": "Courses assignées",
-    "typeCoursesDetail": "Chaque nouvelle course qui vous est confiée"
+    "typeCoursesDetail": "Chaque nouvelle course qui vous est confiée",
+    "selectionner": "Sélectionner",
+    "terminer": "Terminé",
+    "toutEffacer": "Tout effacer",
+    "toutEfface": "Notifications effacées",
+    "supprimer": "Supprimer la notification",
+    "supprimees": "{{n}} notifications supprimées",
+    "confirmerToutEffacer": "Effacer toutes vos notifications ? Cette action est définitive.",
+    "confirmerSelection": "Supprimer {{n}} notification(s) ? Cette action est définitive."
   },
   "bannieres": {
     "titre": "Bannières",

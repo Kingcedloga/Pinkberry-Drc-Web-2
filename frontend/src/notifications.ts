@@ -36,3 +36,15 @@ export function useNotifications() {
 export function marquerLues(ids?: string[]) {
   return apiFetch("/notifications/lues", { method: "POST", body: ids ? { ids } : {} });
 }
+
+/** Supprime ces notifications (une seule requête), toujours limitées au compte connecté. */
+export function supprimerNotifications(ids: string[]) {
+  return ids.length === 1
+    ? apiFetch(`/notifications/${ids[0]}`, { method: "DELETE" })
+    : apiFetch("/notifications/bulk/delete", { method: "DELETE", body: { ids } });
+}
+
+/** Vide le centre de notifications du compte connecté. */
+export function effacerNotifications() {
+  return apiFetch("/notifications/tout", { method: "DELETE" });
+}
