@@ -4495,7 +4495,17 @@ GARNITURES_MENU = [
     _cat("Noix", "Nuts", "Toasted almonds", "Candied pecans"),
     _cat("Liquide", "Liquid", "Chocolate sauce", "Caramel sauce", "Honey"),
     _cat("Coup de cœur local", "Local favorite", "Coconut", "Yogurt chips", "Dates", "Mini marshmallow"),
+    {"nom": "Fruits", "nomEn": "Fruits", "garnitures": [
+        {"nom": n, "nomEn": en} for n, en in [
+            ("Grenade", "Pomegranate"), ("Mangue", "Mango"), ("Framboise", "Raspberry"),
+            ("Myrtille", "Blueberry"), ("Kiwi", "Kiwi"), ("Ananas", "Pineapple"),
+            ("Banane", "Banana"), ("Baie noire", "Blackberry"),
+        ]
+    ]},
 ]
+# Categories ajoutees a la carte apres sa mise en service : amorcees une seule
+# fois sur une base existante (voir `seed_composition`).
+AJOUTS_GARNITURES = ["Fruits"]
 
 
 def _boisson(sous: str, nom: str, nom_en: str) -> Dict[str, Any]:
@@ -4557,6 +4567,27 @@ async def seed_composition() -> None:
                 await db.garnitures.insert_one(
                     {"id": str(uuid.uuid4()), "categorieId": cid, **g, "disponible": True, "ordre": m}
                 )
+    # Ajouts ulterieurs : une seule fois par base (marqueur `ajoutsGarnitures`),
+    # donc une categorie ou une garniture supprimee par l'admin ne revient pas ;
+    # seuls les elements absents (meme nom) sont crees, en fin de liste.
+    deja = (await db.parametres.find_one({"cle": "global"}, {"_id": 0, "ajoutsGarnitures": 1}) or {})
+    for c in (c for c in GARNITURES_MENU if c["nom"] in AJOUTS_GARNITURES):
+        if c["nom"] in deja.get("ajoutsGarnitures", []):
+            continue
+        cat = await db.categories_garnitures.find_one({"nom": c["nom"]}, {"_id": 0})
+        if not cat:
+            cat = {"id": str(uuid.uuid4()), "nom": c["nom"], "nomEn": c["nomEn"], "disponible": True,
+                   "ordre": await db.categories_garnitures.count_documents({})}
+            await db.categories_garnitures.insert_one({**cat})
+        existantes = {g["nom"] for g in await db.garnitures.find({"categorieId": cat["id"]}, {"nom": 1}).to_list(200)}
+        m = len(existantes)
+        for g in c["garnitures"]:
+            if g["nom"] not in existantes:
+                await db.garnitures.insert_one(
+                    {"id": str(uuid.uuid4()), "categorieId": cat["id"], **g, "disponible": True, "ordre": m}
+                )
+                m += 1
+        await db.parametres.update_one({"cle": "global"}, {"$addToSet": {"ajoutsGarnitures": c["nom"]}})
     await db.parametres.update_one(
         {"cle": "global", "regleGarnitures": {"$exists": False}},
         {"$set": {"regleGarnitures": REGLE_GARNITURES_DEFAUT}},
