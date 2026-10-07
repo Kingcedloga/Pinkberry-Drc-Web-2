@@ -4717,21 +4717,27 @@ CONTENANTS_MENU = [
 
 
 # Carte des garnitures Pinkberry, dans l'ordre d'affichage : deux categories,
-# 3 garnitures a choisir dans chacune. Les garnitures seches portent leur nom
-# de carte Pinkberry, identique en FR et en EN (modifiable dans « Composition »).
+# 3 garnitures a choisir dans chacune. (nom FR, nom EN) ; les noms propres
+# (Mochi, Cap'n Crunch, Fruity Pebbles) restent identiques. Modifiables dans « Composition ».
 SECHES, FRUITS = "Garnitures sèches", "Fruits"
+GARNITURES_SECHES = [
+    ("Bouchées de brownie", "Brownie bites"), ("Bouchées de cheesecake", "Cheesecake bites"),
+    ("Crêpes croustillantes", "Crispy crepes"), ("Mochi", "Mochi"),
+    ("Mini dragées chocolat", "Mini gems"), ("Oursons aux fruits", "Fruit bears"),
+    ("Vermicelles arc-en-ciel", "Rainbow sprinkles"),
+    ("Fruity Pebbles", "Fruity pebbles"), ("Cap'n Crunch", "Cap'n Crunch"),
+    ("Copeaux de chocolat", "Chocolate curls"), ("Croustillants au chocolat", "Chocolate crisps"),
+    ("Cookies & crème", "Cookies & cream"), ("Gaufrettes cookie", "Cookie wafers"),
+    ("Gaufrettes à la vanille", "Vanilla wafers"), ("Roulés gaufrette chocolat-noisette", "Chocolate hazelnut wafer rolls"),
+    ("Biscuits gaufrés", "Waffle cookies"),
+    ("Granola miel et amandes", "Honey almond granola"),
+    ("Amandes grillées", "Toasted almonds"), ("Noix de pécan caramélisées", "Candied pecans"),
+    ("Sauce chocolat", "Chocolate sauce"), ("Sauce caramel", "Caramel sauce"), ("Miel", "Honey"),
+    ("Noix de coco", "Coconut"), ("Pépites de yogourt", "Yogurt chips"), ("Dattes", "Dates"),
+    ("Mini guimauves", "Mini marshmallow"),
+]
 GARNITURES_MENU = [
-    {"nom": SECHES, "nomEn": "Dry toppings", "garnitures": [{"nom": g, "nomEn": g} for g in [
-        "Brownie bites", "Cheesecake bites", "Crispy crepes", "Mochi",
-        "Mini gems", "Fruit bears", "Rainbow sprinkles",
-        "Fruity pebbles", "Cap'n Crunch",
-        "Chocolate curls", "Chocolate crisps",
-        "Cookies & cream", "Cookie wafers", "Vanilla wafers", "Chocolate hazelnut wafer rolls", "Waffle cookies",
-        "Honey almond granola",
-        "Toasted almonds", "Candied pecans",
-        "Chocolate sauce", "Caramel sauce", "Honey",
-        "Coconut", "Yogurt chips", "Dates", "Mini marshmallow",
-    ]]},
+    {"nom": SECHES, "nomEn": "Dry toppings", "garnitures": [{"nom": n, "nomEn": en} for n, en in GARNITURES_SECHES]},
     {"nom": FRUITS, "nomEn": "Fruits", "garnitures": [
         {"nom": n, "nomEn": en} for n, en in [
             ("Grenade", "Pomegranate"), ("Mangue", "Mango"), ("Framboise", "Raspberry"),
@@ -4803,6 +4809,20 @@ async def seed_composition() -> None:
                     {"id": str(uuid.uuid4()), "categorieId": cid, **g, "disponible": True, "ordre": m}
                 )
     await migrer_garnitures_seches_fruits()
+    await franciser_garnitures_seches()
+
+
+async def franciser_garnitures_seches() -> None:
+    """Une seule fois par base (marqueur `garnituresFr`) : les garnitures seches,
+    amorcees avec leur seul nom de carte anglais, recoivent leur nom francais.
+    Seules celles que l'admin n'a pas renommees (nom FR = nom EN d'origine) changent."""
+    params = await db.parametres.find_one({"cle": "global"}, {"_id": 0, "garnituresFr": 1}) or {}
+    if params.get("garnituresFr"):
+        return
+    for fr, en in GARNITURES_SECHES:
+        if fr != en:
+            await db.garnitures.update_many({"nom": en, "nomEn": {"$in": [en, None, ""]}}, {"$set": {"nom": fr, "nomEn": en}})
+    await db.parametres.update_one({"cle": "global"}, {"$set": {"garnituresFr": True}})
 
 
 async def migrer_garnitures_seches_fruits() -> None:

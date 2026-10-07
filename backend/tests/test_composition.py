@@ -81,8 +81,8 @@ def test_composition_publique(compo):
         ("Garnitures sèches", "Dry toppings", 3), ("Fruits", "Fruits", 3),
     ]
     assert compo["regle"] == {"total": 6}
-    seches = {g["nom"] for g in compo["categories"][0]["garnitures"]}
-    assert {"Brownie bites", "Mini gems", "Chocolate curls", "Chocolate sauce", "Mini marshmallow"} <= seches
+    seches = {(g["nom"], g["nomEn"]) for g in compo["categories"][0]["garnitures"]}
+    assert {("Bouchées de brownie", "Brownie bites"), ("Sauce chocolat", "Chocolate sauce"), ("Miel", "Honey")} <= seches
     assert {g["nomEn"] for g in compo["categories"][1]["garnitures"]} >= {"Pomegranate", "Blackberry"}
     assert {t["nom"] for t in compo["tailles"]} >= {"Régulière", "Moyen", "Grand"}
     assert all(c["disponible"] and c["garnitures"] for c in compo["categories"])  # seules les visibles
