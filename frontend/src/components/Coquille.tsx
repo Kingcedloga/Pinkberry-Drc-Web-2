@@ -96,7 +96,7 @@ function EnteteWeb({
             return (
               <Pressable
                 key={l.href}
-                testID={`lien-${l.libelle}`}
+                testID={`lien-${l.id}`}
                 onPress={() => router.push(l.href as any)}
                 style={({ pressed }) => [
                   styles.lien,
@@ -105,7 +105,7 @@ function EnteteWeb({
                 ]}
               >
                 <Text style={[styles.lienTexte, actif && { color: colors.brandPrimary }]}>
-                  {l.cle ? t(l.cle) : l.libelle}
+                  {t(l.cle)}
                 </Text>
               </Pressable>
             );
@@ -156,13 +156,13 @@ function BarreOnglets({ liens }: { liens: LienNav[] }) {
         return (
           <Pressable
             key={l.href}
-            testID={`onglet-${l.libelle}`}
+            testID={`onglet-${l.id}`}
             onPress={() => router.push(l.href as any)}
             style={styles.onglet}
           >
             <Icone name={l.icone} size={22} color={couleur} />
             <Text style={[styles.ongletTexte, { color: couleur }]} numberOfLines={1}>
-              {l.cle ? t(l.cle) : l.libelle}
+              {t(l.cle)}
             </Text>
           </Pressable>
         );
@@ -193,7 +193,7 @@ function BarreLaterale({
     return (
       <Pressable
         key={l.href}
-        testID={`lien-lateral-${l.libelle}`}
+        testID={`lien-lateral-${l.id}`}
         onPress={() => router.push(l.href as any)}
         style={({ pressed }) => [
           styles.lienLateral,
@@ -202,7 +202,7 @@ function BarreLaterale({
         ]}
       >
         <Icone name={l.icone} size={20} color={couleur} />
-        <Text style={[styles.lienLateralTexte, { color: couleur }]}>{l.cle ? t(l.cle) : l.libelle}</Text>
+        <Text style={[styles.lienLateralTexte, { color: couleur }]}>{t(l.cle)}</Text>
       </Pressable>
     );
   };

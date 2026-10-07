@@ -3,6 +3,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts, stylesDynamiques } from "@/src/theme";
+import { useT } from "@/src/i18n";
 
 // Symbole officiel (spirale + feuilles), généré par scripts/gen_icones.py.
 const SYMBOLE = require("@/assets/images/logo.png");
@@ -30,10 +31,11 @@ export function Logo({
   couleur?: string;
   testID?: string;
 }) {
+  const t = useT();
   return (
     <View testID={testID} style={styles.ligne}>
       <Swirl taille={taille * 1.35} />
-      <Text style={[styles.mot, { fontSize: taille, color: couleur }]}>Pinkberry</Text>
+      <Text style={[styles.mot, { fontSize: taille, color: couleur }]}>{t("commun.marque")}</Text>
     </View>
   );
 }

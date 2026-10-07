@@ -8,6 +8,7 @@ import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { TitrePage } from "@/src/components/TitrePage";
 import type { CategorieGarnitures, Composition, Contenant, GarnitureYogourt, TailleYogourt } from "@/src/composition";
+import { useLibelle } from "@/src/catalogue-i18n";
 import { useT } from "@/src/i18n";
 import { LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
@@ -125,6 +126,7 @@ const vers = (v?: string) => parseInt((v ?? "").replace(/\s/g, ""), 10) || 0;
 export default function CompositionAdmin() {
   useTheme();
   const t = useT();
+  const libelle = useLibelle();
   const toast = useToast();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin-composition"], queryFn: () => apiFetch<Composition>("/admin/composition") });
@@ -180,6 +182,15 @@ export default function CompositionAdmin() {
 
   const data = q.data;
   const regle = data?.regle;
+  // Règle : nombre exact à choisir dans chaque catégorie (3 sèches + 3 fruits par défaut).
+  const categories = data?.categories ?? [];
+  const champsRegle: Champ[] = categories.map((c) => ({
+    cle: c.id,
+    libelle: t("composition.aChoisir", { categorie: libelle(c.nom, c.nomEn) }),
+    numerique: true,
+  }));
+  const valeursRegle: Valeurs = Object.fromEntries(categories.map((c) => [c.id, String(c.nombre)]));
+  const proposees = categories.filter((c) => c.disponible && c.nombre > 0);
 
   return (
     <View testID="ecran-admin-composition" style={styles.ecran}>
@@ -193,34 +204,25 @@ export default function CompositionAdmin() {
 
           <Section titre={t("composition.regle")} aide={t("composition.regleAide")}>
             <LigneEditable
-              key={`regle-${regle.nombre}-${regle.categoriesMin}-${regle.categoriesMax}`}
+              key={`regle-${categories.map((c) => `${c.id}:${c.nombre}`).join("-")}`}
               id="regle"
               testID="regle"
               avecEtiquettes
-              champs={[
-                { cle: "nombre", libelle: t("composition.nombre"), numerique: true },
-                { cle: "categoriesMin", libelle: t("composition.categoriesMin"), numerique: true },
-                { cle: "categoriesMax", libelle: t("composition.categoriesMax"), numerique: true },
-              ]}
-              initiales={{
-                nombre: String(regle.nombre),
-                categoriesMin: String(regle.categoriesMin),
-                categoriesMax: String(regle.categoriesMax),
-              }}
+              champs={champsRegle}
+              initiales={valeursRegle}
               onEnregistrer={(v) =>
                 appeler(
                   "/admin/regle-garnitures",
                   "PUT",
-                  { nombre: vers(v.nombre), categoriesMin: vers(v.categoriesMin), categoriesMax: vers(v.categoriesMax) },
+                  { categories: Object.fromEntries(categories.map((c) => [c.id, vers(v[c.id])])) },
                   t("composition.regleEnregistree"),
                 )
               }
             />
-            <Text style={styles.legende}>
+            <Text testID="regle-resume" style={styles.legende}>
               {t("composition.regleResume", {
-                nombre: regle.nombre,
-                min: regle.categoriesMin,
-                max: regle.categoriesMax,
+                detail: proposees.map((c) => `${c.nombre} ${libelle(c.nom, c.nomEn)}`).join(" + "),
+                total: regle.total,
               })}
             </Text>
           </Section>
@@ -279,9 +281,8 @@ export default function CompositionAdmin() {
                 <View key={cat.id} testID={`categorie-${cat.nom}`} style={[styles.carte, masquee && styles.carteMasquee]}>
                   <View style={styles.carteEntete}>
                     <View style={styles.carteTitreBloc}>
-                      <Text style={styles.carteTitre}>{cat.nom}</Text>
+                      <Text style={styles.carteTitre}>{libelle(cat.nom, cat.nomEn)}</Text>
                       <Text style={styles.carteSousTitre}>
-                        {cat.nomEn ? `${cat.nomEn} · ` : ""}
                         {t("composition.nbGarnitures", { n: disponibles, total: cat.garnitures.length })}
                       </Text>
                     </View>
@@ -299,6 +300,8 @@ export default function CompositionAdmin() {
                     <Text style={styles.avertissement}>
                       {cat.disponible ? t("composition.categorieVide") : t("composition.categorieMasquee")}
                     </Text>
+                  ) : cat.nombre > disponibles ? (
+                    <Text style={styles.avertissement}>{t("composition.nombreSuperieur", { n: disponibles })}</Text>
                   ) : null}
                   {cat.garnitures.map((g) => (
                     <LigneEditable

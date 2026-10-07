@@ -4,6 +4,7 @@ import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from "r
 
 import { EnteteMarque, MotifCoin, Vague } from "@/src/components/DecorAuth";
 import { colors, fonts, poids, spacing, stylesDynamiques } from "@/src/theme";
+import { useT } from "@/src/i18n";
 
 const HERO = require("@/assets/images/livreur-pinkberry-v2.webp");
 
@@ -14,6 +15,7 @@ const HERO = require("@/assets/images/livreur-pinkberry-v2.webp");
  */
 export function EcranDemarrage({ testID = "ecran-demarrage" }: { testID?: string }) {
   const { width } = useWindowDimensions();
+  const t = useT();
   const flotte = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -48,8 +50,8 @@ export function EcranDemarrage({ testID = "ecran-demarrage" }: { testID?: string
         </View>
 
         <View style={styles.bas}>
-          <Text style={styles.slogan}>Le vrai frozen yogurt, livré chez toi à Kinshasa</Text>
-          <Text style={styles.chargement}>Chargement…</Text>
+          <Text style={styles.slogan}>{t("auth.slogan")}</Text>
+          <Text style={styles.chargement}>{t("commun.chargement")}</Text>
         </View>
       </View>
     </View>

@@ -33,6 +33,7 @@ from PIL import Image, ImageOps
 from pydantic import BaseModel, Field
 from pymongo import ReturnDocument
 from pywebpush import WebPushException, webpush
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
 import io
 
@@ -57,7 +58,7 @@ SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/")
 # frais de livraison et rapports sont en FC entiers. Le taux (FC pour 1 USD)
 # ne sert qu'a l'equivalent affiche en dollars et aux paiements en USD.
 TAUX_FC = float(os.environ.get("TAUX_FC", "2800"))
-FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "5750"))
+FRAIS_LIVRAISON = float(os.environ.get("FRAIS_LIVRAISON", "2000"))
 MONNAIE = "CDF"
 # Valeurs d'un enregistrement de parametres cree a neuf (deja en FC).
 PARAMETRES_INITIAUX = {"cle": "global", "tauxFC": TAUX_FC, "fraisLivraison": FRAIS_LIVRAISON, "monnaie": MONNAIE}
@@ -102,6 +103,200 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
+
+
+# ------------------------------------------------- messages d'erreur bilingues
+# Les erreurs sont redigees en francais dans le code ; le gestionnaire
+# `erreur_http` renvoie leur version anglaise quand la requete est en anglais
+# (en-tete Accept-Language envoye par l'app). `{}` = valeur variable, reprise
+# telle quelle. Les messages qui citent un nom du catalogue passent par
+# `ErreurApi`, qui porte directement sa version anglaise (nomEn).
+ERREURS_EN: Dict[str, str] = {
+    # Compte et acces
+    "Non authentifie": "Not signed in",
+    "Session expiree": "Session expired, please sign in again",
+    "Utilisateur introuvable": "User not found",
+    "Compte desactive": "Account disabled",
+    "Acces reserve a l'administrateur": "Restricted to administrators",
+    "Acces reserve au super admin": "Restricted to the super admin",
+    "Acces reserve au livreur": "Restricted to couriers",
+    "Acces refuse": "Access denied",
+    "Patientez une minute avant de demander un nouveau code": "Please wait a minute before requesting a new code",
+    "Numero de telephone invalide": "Invalid phone number",
+    "Une adresse email valide est requise": "A valid email address is required",
+    "Mot de passe trop court (6 caracteres minimum)": "Password too short (6 characters minimum)",
+    "Ce numero est deja utilise": "This number is already in use",
+    "Compte introuvable": "Account not found",
+    "Ce compte est deja verifie, connectez-vous": "This account is already verified, please sign in",
+    "Code incorrect": "Incorrect code",
+    "Trop de tentatives, demandez un nouveau code": "Too many attempts, request a new code",
+    "Code expire, demandez un nouveau code": "Code expired, request a new code",
+    "Compte desactive, contactez le super admin": "Account disabled, contact the super admin",
+    "Telephone ou mot de passe incorrect": "Incorrect phone number or password",
+    "Compte non verifie, verifiez votre code": "Account not verified, please enter your code",
+    "Nom trop court": "Name too short",
+    "Cet email est deja utilise": "This email is already in use",
+    "Mot de passe : 6 caracteres minimum": "Password: 6 characters minimum",
+    "Mot de passe actuel incorrect": "Current password is incorrect",
+    "Les comptes du personnel sont geres par le super admin": "Staff accounts are managed by the super admin",
+    "Connexion Google impossible": "Google sign-in failed",
+    "Session Google invalide ou deja utilisee": "Invalid or already used Google session",
+    "Email Google introuvable": "Google email not found",
+    "Ce numero est deja utilise par un autre compte": "This number is already used by another account",
+    "Impossible de supprimer votre propre compte": "You cannot delete your own account",
+    # Images et fichiers
+    "Stockage d'images indisponible": "Image storage unavailable",
+    "Quota de stockage epuise": "Storage quota exceeded",
+    "Echec de l'envoi de l'image": "Image upload failed",
+    "Image introuvable": "Image not found",
+    "Formats acceptes : JPG, PNG ou WebP": "Accepted formats: JPG, PNG or WebP",
+    "Image trop lourde (5 Mo maximum)": "Image too large (5 MB maximum)",
+    "Fichier image illisible": "Unreadable image file",
+    "Image invalide": "Invalid image",
+    # Carte et itineraire
+    "Recherche d'adresse non configuree": "Address search is not configured",
+    "Service de carte indisponible": "Map service unavailable",
+    "Cartographie non configuree": "Maps are not configured",
+    "Mode de carte invalide": "Invalid map mode",
+    "Couleur invalide": "Invalid color",
+    "Coordonnees invalides": "Invalid coordinates",
+    "Itineraire introuvable": "Route not found",
+    # Paiement
+    "Numero mobile money invalide (ex. 0812345678)": "Invalid mobile money number (e.g. 0812345678)",
+    "Paiement mobile money non configure": "Mobile money payment is not configured",
+    "Service de paiement indisponible": "Payment service unavailable",
+    "Callback non signe": "Unsigned callback",
+    "Digest invalide": "Invalid digest",
+    "Signature-Input invalide": "Invalid Signature-Input",
+    "Parametres de signature refuses": "Signature parameters rejected",
+    "Cle de signature inconnue": "Unknown signing key",
+    "Signature invalide": "Invalid signature",
+    "Operateur inconnu": "Unknown operator",
+    "Devise non supportee": "Unsupported currency",
+    "Commande deja payee": "Order already paid",
+    "Paiement refuse par l'operateur": "Payment declined by the operator",
+    "Paiement introuvable": "Payment not found",
+    "Callback illisible": "Unreadable callback",
+    "Callback invalide": "Invalid callback",
+    # Notifications
+    "EMERGENT_PUSH_KEY manquante ou invalide": "EMERGENT_PUSH_KEY missing or invalid",
+    "Service de notifications indisponible": "Notification service unavailable",
+    "Notification introuvable": "Notification not found",
+    "Abonnement invalide": "Invalid subscription",
+    # Catalogue et composition
+    "Sous-categorie inconnue pour cette categorie": "Unknown subcategory for this category",
+    "Nom de categorie trop court": "Category name too short",
+    "« Tous » est un filtre reserve": "“All” is a reserved filter",
+    "Cette categorie existe deja": "This category already exists",
+    "Categorie introuvable": "Category not found",
+    "Produit introuvable": "Product not found",
+    "Aucun changement d'etat demande": "No status change requested",
+    "Saisissez un prix avant de rendre le produit disponible": "Enter a price before making the product available",
+    "Le nom est obligatoire": "Name is required",
+    "Taille introuvable": "Size not found",
+    "Recipient introuvable": "Container not found",
+    "Garniture introuvable": "Topping not found",
+    "Categorie de garnitures introuvable": "Topping category not found",
+    "Promotion introuvable": "Promotion not found",
+    "Banniere introuvable": "Banner not found",
+    "Gardez au moins une taille": "Keep at least one size",
+    "Chaque categorie : entre 0 et {} garnitures": "Each category: between 0 and {} toppings",
+    # Promotions
+    "Date invalide : debut": "Invalid start date",
+    "Date invalide : fin": "Invalid end date",
+    "Le pourcentage doit etre compris entre 1 et 100": "The percentage must be between 1 and 100",
+    "Le montant de la reduction doit etre positif": "The discount amount must be positive",
+    "Code promo : 3 a 30 lettres, chiffres, - ou _": "Promo code: 3 to 30 letters, digits, - or _",
+    "Ce code promo existe deja": "This promo code already exists",
+    "Categorie ciblee introuvable": "Targeted category not found",
+    "Produit cible introuvable": "Targeted product not found",
+    "La date de fin doit suivre la date de debut": "The end date must be after the start date",
+    "Code promo invalide": "Invalid promo code",
+    "Ce code promo a expire": "This promo code has expired",
+    "Ce code promo n'est pas encore valable": "This promo code is not valid yet",
+    "Ce code promo a atteint sa limite d'utilisation": "This promo code has reached its usage limit",
+    "Vous avez deja utilise ce code promo": "You have already used this promo code",
+    "Montant minimum de commande non atteint pour ce code": "Minimum order amount not reached for this code",
+    "Ce code est reserve a la premiere commande": "This code is reserved for your first order",
+    "Votre panier ne contient pas les produits concernes par ce code": "Your cart doesn't contain the products this code applies to",
+    # Bannieres
+    "Couleur du texte invalide (format #RRGGBB)": "Invalid text color (#RRGGBB format)",
+    "Produit du lien introuvable": "Linked product not found",
+    "Categorie du lien introuvable": "Linked category not found",
+    "Promotion du lien introuvable": "Linked promotion not found",
+    # Zones et livreurs
+    "Nom de zone trop court": "Zone name too short",
+    "Cette zone existe deja": "This zone already exists",
+    "Zone introuvable": "Zone not found",
+    "Livreur introuvable": "Courier not found",
+    "Ce livreur a une course en cours": "This courier has a delivery in progress",
+    "Un ou plusieurs livreurs ont une course en cours": "One or more couriers have a delivery in progress",
+    # Commandes et courses
+    "Le panier est vide": "Your cart is empty",
+    "Trop d'articles dans le panier": "Too many items in the cart",
+    "Produit introuvable : {}": "Product not found: {}",
+    "Nous ne livrons pas encore a {}": "We don't deliver to {} yet",
+    "La position GPS indiquee se trouve a {}, hors de nos zones de livraison":
+        "The GPS position is in {}, outside our delivery areas",
+    "Commande introuvable": "Order not found",
+    "Seule une commande terminee peut etre archivee": "Only a completed order can be archived",
+    "Archivez la commande avant de la supprimer": "Archive the order before deleting it",
+    "Cette commande ne peut plus etre annulee": "This order can no longer be cancelled",
+    "Seules les commandes livrees ou annulees peuvent etre archivees": "Only delivered or cancelled orders can be archived",
+    "Commande archivee introuvable": "Archived order not found",
+    "Une ou plusieurs commandes sont introuvables": "One or more orders were not found",
+    "Archivez les commandes sélectionnées avant de les supprimer": "Archive the selected orders before deleting them",
+    "Course introuvable": "Delivery not found",
+    "Seule une course terminee peut etre archivee": "Only a completed delivery can be archived",
+    "Archivez la course avant de la supprimer": "Archive the delivery before deleting it",
+    "Une ou plusieurs courses sont introuvables": "One or more deliveries were not found",
+    "Seules les courses terminees peuvent etre archivees": "Only completed deliveries can be archived",
+    "Archivez les courses sélectionnées avant de les supprimer": "Archive the selected deliveries before deleting them",
+    # Rapports et parametres
+    "Format attendu : xlsx ou pdf": "Expected format: xlsx or pdf",
+    "Dates attendues au format AAAA-MM-JJ": "Dates expected in YYYY-MM-DD format",
+    "La date de fin precede la date de debut": "The end date is before the start date",
+    "Le taux doit être supérieur à zéro": "The rate must be greater than zero",
+    "Enregistrement du taux impossible": "Unable to save the rate",
+}
+_ERREURS_MOTIFS = [
+    (re.compile("^" + re.escape(fr).replace(r"\{\}", "(.+?)") + "$"), en)
+    for fr, en in ERREURS_EN.items()
+    if "{}" in fr
+]
+
+
+def erreur_en(detail: str) -> str:
+    """Version anglaise d'un message d'erreur ; inchange s'il est inconnu."""
+    if detail in ERREURS_EN:
+        return ERREURS_EN[detail]
+    for motif, en in _ERREURS_MOTIFS:
+        m = motif.match(detail)
+        if m:
+            return en.format(*m.groups())
+    return detail
+
+
+class ErreurApi(HTTPException):
+    """Erreur citant un nom du catalogue : la version anglaise est fournie
+    directement (avec le nom anglais) au lieu de passer par ERREURS_EN."""
+
+    def __init__(self, status_code: int, fr: str, en: str):
+        super().__init__(status_code=status_code, detail=fr)
+        self.detail_en = en
+
+
+def langue_requete(request: Request) -> str:
+    return "en" if (request.headers.get("accept-language") or "").lower().startswith("en") else "fr"
+
+
+@app.exception_handler(StarletteHTTPException)
+async def erreur_http(request: Request, exc: StarletteHTTPException):
+    detail = exc.detail
+    if isinstance(detail, str) and langue_requete(request) == "en":
+        detail = getattr(exc, "detail_en", None) or erreur_en(detail)
+    return JSONResponse({"detail": detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
+
 
 
 # ---------------------------------------------------------------- email (G1-G5)
@@ -616,9 +811,8 @@ class GarnitureIn(BaseModel):
 
 
 class RegleGarnituresIn(BaseModel):
-    nombre: int = Field(ge=1, le=30)
-    categoriesMin: int = Field(ge=1, le=30)
-    categoriesMax: int = Field(ge=1, le=30)
+    """Nombre exact de garnitures a choisir dans chaque categorie (id -> nombre)."""
+    categories: Dict[str, int]
 
 
 class EtatProduitIn(BaseModel):
@@ -2325,13 +2519,10 @@ async def supprimer_produits_bulk(body: BulkIdsIn, _=Depends(require_admin)):
 # ------------------------------------------------- composition du frozen yogurt
 # Tailles (prix de base + supplement garnitures), recipients, categories de
 # garnitures et garnitures sont des collections gerees par l'admin. La regle de
-# selection (nombre de garnitures, categories min/max) est un parametre modifiable.
-REGLE_GARNITURES_DEFAUT = {"nombre": 6, "categoriesMin": 2, "categoriesMax": 3}
-
-
-async def lire_regle_garnitures() -> Dict[str, int]:
-    doc = await db.parametres.find_one({"cle": "global"}, {"_id": 0, "regleGarnitures": 1}) or {}
-    return {**REGLE_GARNITURES_DEFAUT, **(doc.get("regleGarnitures") or {})}
+# selection est portee par chaque categorie : `nombre` = garnitures a choisir
+# exactement dans cette categorie (3 seches + 3 fruits par defaut), modifiable.
+NOMBRE_PAR_CATEGORIE_DEFAUT = 3
+NOMBRE_PAR_CATEGORIE_MAX = 20
 
 
 def _par_ordre(docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -2352,14 +2543,20 @@ async def lire_composition(admin: bool = False) -> Dict[str, Any]:
     par_categorie: Dict[str, List[Dict[str, Any]]] = {}
     for g in garnitures:
         par_categorie.setdefault(g["categorieId"], []).append(g)
-    categories = [{**c, "garnitures": par_categorie.get(c["id"], [])} for c in categories]
+    categories = [
+        {**c, "nombre": int(c.get("nombre", NOMBRE_PAR_CATEGORIE_DEFAUT)), "garnitures": par_categorie.get(c["id"], [])}
+        for c in categories
+    ]
     if not admin:
-        categories = [c for c in categories if c["garnitures"]]
+        # Cote client, on ne peut exiger plus de garnitures qu'il n'en reste de
+        # disponibles ; une categorie a 0 (ou vide) n'est pas proposee.
+        categories = [{**c, "nombre": min(c["nombre"], len(c["garnitures"]))} for c in categories]
+        categories = [c for c in categories if c["nombre"] > 0]
     return {
         "tailles": tailles,
         "contenants": contenants,
         "categories": categories,
-        "regle": await lire_regle_garnitures(),
+        "regle": {"total": sum(c["nombre"] for c in categories if c.get("disponible", True))},
     }
 
 
@@ -2509,52 +2706,53 @@ async def supprimer_garniture(garniture_id: str, _=Depends(require_admin)):
     return {"ok": True}
 
 
-# Regle de selection
+# Regle de selection : nombre exact par categorie, en une seule requete.
 @api_router.put("/admin/regle-garnitures")
 async def modifier_regle_garnitures(body: RegleGarnituresIn, _=Depends(require_admin)):
-    if body.categoriesMin > body.categoriesMax:
-        raise HTTPException(status_code=400, detail="Le minimum de categories depasse le maximum")
-    if body.categoriesMin > body.nombre:
+    existantes = {c["id"] for c in await db.categories_garnitures.find({}, {"_id": 0, "id": 1}).to_list(50)}
+    if not body.categories or not set(body.categories) <= existantes:
+        raise HTTPException(status_code=400, detail="Categorie de garnitures introuvable")
+    if any(not 0 <= n <= NOMBRE_PAR_CATEGORIE_MAX for n in body.categories.values()):
         raise HTTPException(
-            status_code=400, detail="Impossible de couvrir plus de categories que de garnitures choisies"
+            status_code=400, detail=f"Chaque categorie : entre 0 et {NOMBRE_PAR_CATEGORIE_MAX} garnitures"
         )
-    regle = body.model_dump()
-    await db.parametres.update_one({"cle": "global"}, {"$set": {"regleGarnitures": regle}})
-    return regle
+    for cid, n in body.categories.items():
+        await db.categories_garnitures.update_one({"id": cid}, {"$set": {"nombre": n}})
+    return {"ok": True, "categories": body.categories}
 
 
-def verifier_regle_garnitures(choisies: List[Dict[str, Any]], regle: Dict[str, int]) -> None:
+def verifier_regle_garnitures(choisies: List[Dict[str, Any]], categories: List[Dict[str, Any]]) -> None:
     """Sans garniture : toujours valide. Avec : exactement `nombre` garnitures
-    reparties sur `categoriesMin` a `categoriesMax` categories."""
+    dans chaque categorie proposee (3 seches + 3 fruits par defaut)."""
     if not choisies:
         return
-    if len(choisies) != regle["nombre"]:
-        raise HTTPException(status_code=400, detail=f"Choisissez exactement {regle['nombre']} garnitures")
-    nb = len({g["categorieId"] for g in choisies})
-    if not regle["categoriesMin"] <= nb <= regle["categoriesMax"]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Repartissez vos garnitures sur {regle['categoriesMin']} a {regle['categoriesMax']} categories",
-        )
+    for c in categories:
+        if sum(1 for g in choisies if g["categorie"]["id"] == c["id"]) != c["nombre"]:
+            raise ErreurApi(
+                400,
+                f"Choisissez exactement {c['nombre']} garnitures dans {c['nom']}",
+                f"Pick exactly {c['nombre']} toppings from {c.get('nomEn') or c['nom']}",
+            )
 
 
 async def ligne_yogourt(p: Dict[str, Any], i: ItemIn, compo: Dict[str, Any]) -> Dict[str, Any]:
     """Ligne d'un frozen yogurt compose, recalculee depuis la composition publique
     (elements disponibles uniquement)."""
+    nom_en = p.get("nomEn") or p["nom"]
     taille = next((t for t in compo["tailles"] if t["nom"] == i.taille), None)
     if not taille:
-        raise HTTPException(status_code=400, detail=f"Taille invalide pour {p['nom']}")
+        raise ErreurApi(400, f"Taille invalide pour {p['nom']}", f"Invalid size for {nom_en}")
     contenant = None
     if compo["contenants"]:
         contenant = next((c for c in compo["contenants"] if c["nom"] == i.contenant), None)
         if not contenant:
-            raise HTTPException(status_code=400, detail=f"Recipient indisponible pour {p['nom']}")
+            raise ErreurApi(400, f"Recipient indisponible pour {p['nom']}", f"Container unavailable for {nom_en}")
     offertes = {g["id"]: {**g, "categorie": c} for c in compo["categories"] for g in c["garnitures"]}
     ids = list(dict.fromkeys(g.id or "" for g in i.garnitures))
     if any(gid not in offertes for gid in ids):
-        raise HTTPException(status_code=400, detail=f"Garniture indisponible pour {p['nom']}")
+        raise ErreurApi(400, f"Garniture indisponible pour {p['nom']}", f"Topping unavailable for {nom_en}")
     choisies = [offertes[gid] for gid in ids]
-    verifier_regle_garnitures(choisies, compo["regle"])
+    verifier_regle_garnitures(choisies, compo["categories"])
     prix = taille["prixBase"] + (taille["supplementGarnitures"] if choisies else 0)
     return {
         "taille": taille["nom"],
@@ -2938,7 +3136,11 @@ async def reserver_promotions(promotions: List[Dict[str, Any]]) -> List[str]:
         )
         if res.modified_count == 0:
             await liberer_compteurs(reservees)
-            raise HTTPException(status_code=409, detail=f"La promotion « {pr['nom']} » n'est plus disponible")
+            raise ErreurApi(
+                409,
+                f"La promotion « {pr['nom']} » n'est plus disponible",
+                f"The promotion “{pr.get('nomEn') or pr['nom']}” is no longer available",
+            )
         reservees.append(pr["id"])
     return reservees
 
@@ -3436,10 +3638,11 @@ async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
         p = produits.get(i.produitId)
         if not p:
             raise HTTPException(status_code=400, detail=f"Produit introuvable : {i.nom}")
+        nom_en = p.get("nomEn") or p["nom"]
         if not p.get("disponible", True):
-            raise HTTPException(status_code=400, detail=f"{p['nom']} est en rupture de stock")
+            raise ErreurApi(400, f"{p['nom']} est en rupture de stock", f"{nom_en} is out of stock")
         if not 1 <= i.quantite <= QUANTITE_MAX:
-            raise HTTPException(status_code=400, detail=f"Quantite invalide pour {p['nom']}")
+            raise ErreurApi(400, f"Quantite invalide pour {p['nom']}", f"Invalid quantity for {nom_en}")
         if p.get("configurable"):
             lignes.append({
                 "produitId": p["id"],
@@ -3458,12 +3661,12 @@ async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
         if tailles:
             taille = next((t for t in tailles if t["nom"] == i.taille), None) if i.taille else tailles[0]
         if (i.taille or tailles) and taille is None:
-            raise HTTPException(status_code=400, detail=f"Taille invalide pour {p['nom']}")
+            raise ErreurApi(400, f"Taille invalide pour {p['nom']}", f"Invalid size for {nom_en}")
 
         offertes = {g["nom"]: g for g in p.get("garnitures") or []}
         noms = list(dict.fromkeys(g.nom for g in i.garnitures))
         if any(n not in offertes for n in noms):
-            raise HTTPException(status_code=400, detail=f"Garniture invalide pour {p['nom']}")
+            raise ErreurApi(400, f"Garniture invalide pour {p['nom']}", f"Invalid topping for {nom_en}")
         garnitures = [
             {"nom": n, "prix": float(offertes[n].get("prix", 0)), "nomEn": offertes[n].get("nomEn")} for n in noms
         ]
@@ -3684,15 +3887,66 @@ async def confirmer_paiement_client(cmd_id: str, body: PaiementIn, user=Depends(
 # ------------------------------------------------------------------- admin orders
 DELAI_ARCHIVAGE_JOURS = int(os.environ.get("ARCHIVAGE_AUTO_JOURS", "10"))
 
-LIBELLES_STATUT = {
-    "recue": "Reçue",
-    "en_preparation": "En préparation",
-    "recuperee": "Récupérée",
-    "en_route": "En route",
-    "arrivee": "Arrivée",
-    "livree": "Livrée",
-    "annulee": "Annulée",
+# Libelles des rapports Excel / PDF, dans la langue de l'utilisateur qui les telecharge.
+TEXTES_RAPPORT: Dict[str, Dict[str, Any]] = {
+    "fr": {
+        "statut": {
+            "recue": "Reçue", "en_preparation": "En préparation", "recuperee": "Récupérée", "en_route": "En route",
+            "arrivee": "Arrivée", "livree": "Livrée", "annulee": "Annulée",
+        },
+        "paiement": {"cash": "À la livraison", "mobile": "Mobile Money"},
+        "statutPaiement": {"a_la_livraison": "À la livraison", "attente": "En attente", "paye": "Payé", "echoue": "Échoué"},
+        "colonnes": {
+            "numero": "N° commande", "date": "Date", "client": "Client", "adresse": "Adresse / commune",
+            "articles": "Articles", "promotion": "Promotion", "reduction": "Réduction FC", "total": "Total FC",
+            "statut": "Statut", "paiement": "Paiement", "statutPaiement": "Statut paiement", "livreur": "Livreur",
+            "cash": "Cash encaissé FC",
+        },
+        "recapitulatif": "Récapitulatif",
+        "feuilleCommandes": "Commandes",
+        "feuilleCourses": "Courses",
+        "titreCommandes": "Rapport des commandes du {debut} au {fin}",
+        "titreCourses": "Courses de {nom} du {debut} au {fin}",
+        "nbCommandes": "Nombre de commandes",
+        "chiffre": "Chiffre d'affaires (commandes livrées)",
+        "livrees": "Livraisons réussies",
+        "annulees": "Commandes annulées",
+        "courses": "Courses effectuées",
+        "coursesAnnulees": "Courses annulées",
+        "totalCash": "Total cash encaissé",
+    },
+    "en": {
+        "statut": {
+            "recue": "Received", "en_preparation": "Preparing", "recuperee": "Picked up", "en_route": "On the way",
+            "arrivee": "Arrived", "livree": "Delivered", "annulee": "Cancelled",
+        },
+        "paiement": {"cash": "Cash on delivery", "mobile": "Mobile Money"},
+        "statutPaiement": {"a_la_livraison": "On delivery", "attente": "Pending", "paye": "Paid", "echoue": "Failed"},
+        "colonnes": {
+            "numero": "Order no.", "date": "Date", "client": "Customer", "adresse": "Address / commune",
+            "articles": "Items", "promotion": "Promotion", "reduction": "Discount FC", "total": "Total FC",
+            "statut": "Status", "paiement": "Payment", "statutPaiement": "Payment status", "livreur": "Courier",
+            "cash": "Cash collected FC",
+        },
+        "recapitulatif": "Summary",
+        "feuilleCommandes": "Orders",
+        "feuilleCourses": "Deliveries",
+        "titreCommandes": "Orders report from {debut} to {fin}",
+        "titreCourses": "Deliveries by {nom} from {debut} to {fin}",
+        "nbCommandes": "Number of orders",
+        "chiffre": "Revenue (delivered orders)",
+        "livrees": "Successful deliveries",
+        "annulees": "Cancelled orders",
+        "courses": "Deliveries made",
+        "coursesAnnulees": "Cancelled deliveries",
+        "totalCash": "Total cash collected",
+    },
 }
+
+
+def _colonnes(cles: List[tuple], textes: Dict[str, Any]) -> List[tuple]:
+    """(cle, largeur) -> (cle, libelle traduit, largeur)."""
+    return [(cle, textes["colonnes"][cle], largeur) for cle, largeur in cles]
 
 
 async def archiver_anciennes() -> int:
@@ -3797,6 +4051,7 @@ async def supprimer_commandes_bulk(body: BulkIdsIn, _=Depends(require_admin)):
 
 @api_router.get("/admin/rapport")
 async def rapport_commandes(
+    request: Request,
     debut: str,
     fin: str,
     format: str = "xlsx",
@@ -3819,12 +4074,15 @@ async def rapport_commandes(
     ).to_list(5000)
     cmds.sort(key=lambda c: c["createdAt"])
 
+    textes = TEXTES_RAPPORT[langue_requete(request)]
+    en = langue_requete(request) == "en"
+    nom = lambda x, cle: (en and x.get(f"{cle}En")) or x.get(cle) or ""  # noqa: E731
     livreurs = {lv["id"]: lv["nom"] for lv in await db.livreurs.find({}, {"_id": 0}).to_list(200)}
     lignes = []
     for c in cmds:
         articles = ", ".join(
-            f"{a.get('quantite', 1)}x {a.get('nom', '')}"
-            + (f" ({', '.join(x for x in (a.get('taille'), a.get('contenant')) if x)})"
+            f"{a.get('quantite', 1)}x {nom(a, 'nom')}"
+            + (f" ({', '.join(x for x in (nom(a, 'taille'), nom(a, 'contenant')) if x)})"
                if a.get("taille") or a.get("contenant") else "")
             for a in c.get("items", [])
         )
@@ -3835,12 +4093,12 @@ async def rapport_commandes(
             "client": c.get("clientNom") or "—",
             "adresse": f"{adr.get('commune', '')} — {adr.get('avenue', '')} {adr.get('numero', '')}".strip(" —"),
             "articles": articles,
-            "promotion": ", ".join(pr["nom"] for pr in c.get("promotions") or []) or "—",
+            "promotion": ", ".join(nom(pr, "nom") for pr in c.get("promotions") or []) or "—",
             "reduction": en_fc((c.get("reduction") or 0) + (c.get("reductionLivraison") or 0)),
             "total": en_fc(c.get("total", 0)),
-            "statut": LIBELLES_STATUT.get(c.get("statut", ""), c.get("statut", "")),
-            "paiement": resume_paiement(c)[0],
-            "statutPaiement": resume_paiement(c)[1],
+            "statut": textes["statut"].get(c.get("statut", ""), c.get("statut", "")),
+            "paiement": resume_paiement(c, textes)[0],
+            "statutPaiement": resume_paiement(c, textes)[1],
             "livreur": livreurs.get(c.get("livreurId") or "", "—"),
         })
 
@@ -3852,19 +4110,20 @@ async def rapport_commandes(
         "nbLivrees": len(livrees),
         "nbAnnulees": len(annulees),
     }
-    titre = f"Rapport des commandes du {debut} au {fin}"
+    titre = textes["titreCommandes"].format(debut=debut, fin=fin)
     nom_fichier = f"pinkberry-rapport-{debut}-{fin}.{format}"
 
     resume_lignes = [
-        ("Nombre de commandes", resume["nbCommandes"]),
-        ("Chiffre d'affaires (commandes livrées)", fc_txt(resume["chiffre"])),
-        ("Livraisons réussies", resume["nbLivrees"]),
-        ("Commandes annulées", resume["nbAnnulees"]),
+        (textes["nbCommandes"], resume["nbCommandes"]),
+        (textes["chiffre"], fc_txt(resume["chiffre"])),
+        (textes["livrees"], resume["nbLivrees"]),
+        (textes["annulees"], resume["nbAnnulees"]),
     ]
+    colonnes = _colonnes(COLONNES_RAPPORT, textes)
     contenu = (
-        construire_xlsx(titre, lignes, resume_lignes)
+        construire_xlsx(titre, lignes, resume_lignes, colonnes, textes["feuilleCommandes"], textes["recapitulatif"])
         if format == "xlsx"
-        else construire_pdf(titre, lignes, resume_lignes)
+        else construire_pdf(titre, lignes, resume_lignes, colonnes, textes["recapitulatif"])
     )
     media = (
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -3878,54 +4137,35 @@ async def rapport_commandes(
     )
 
 
+# (cle, largeur) : les libelles viennent de TEXTES_RAPPORT.
 COLONNES_RAPPORT = [
-    ("numero", "N° commande", 14),
-    ("date", "Date", 17),
-    ("client", "Client", 20),
-    ("adresse", "Adresse / commune", 30),
-    ("articles", "Articles", 40),
-    ("promotion", "Promotion", 16),
-    ("reduction", "Réduction FC", 12),
-    ("total", "Total FC", 12),
-    ("statut", "Statut", 14),
-    ("paiement", "Paiement", 18),
-    ("statutPaiement", "Statut paiement", 16),
-    ("livreur", "Livreur", 18),
+    ("numero", 14), ("date", 17), ("client", 20), ("adresse", 30), ("articles", 40), ("promotion", 16),
+    ("reduction", 12), ("total", 12), ("statut", 14), ("paiement", 18), ("statutPaiement", 16), ("livreur", 18),
 ]
 
-
-LIBELLES_PAIEMENT = {
-    "cash": "A la livraison",
-    "mpesa": "M-Pesa (Vodacom)",
-    "airtel": "Airtel Money",
-    "orange": "Orange Money",
-}
-LIBELLES_STATUT_PAIEMENT = {
-    "a_la_livraison": "A la livraison",
-    "attente": "En attente",
-    "paye": "Paye",
-    "echoue": "Echoue",
-}
+# Noms de marque des operateurs : identiques dans toutes les langues.
+OPERATEURS_PAIEMENT = {"mpesa": "M-Pesa (Vodacom)", "airtel": "Airtel Money", "orange": "Orange Money"}
 
 
-def resume_paiement(commande: Dict[str, Any]) -> tuple:
-    """(mode lisible, statut lisible) pour l'admin et les rapports."""
+def resume_paiement(commande: Dict[str, Any], textes: Dict[str, Any]) -> tuple:
+    """(mode lisible, statut lisible) pour les rapports."""
     p = commande.get("paiement")
     if not isinstance(p, dict):
-        return LIBELLES_PAIEMENT["cash"], LIBELLES_STATUT_PAIEMENT["a_la_livraison"]
-    mode = p.get("operateur") if p.get("mode") == "mobile" else "cash"
-    return (
-        LIBELLES_PAIEMENT.get(mode or "cash", "Mobile Money"),
-        LIBELLES_STATUT_PAIEMENT.get(p.get("statut", ""), p.get("statut", "")),
-    )
+        return textes["paiement"]["cash"], textes["statutPaiement"]["a_la_livraison"]
+    if p.get("mode") != "mobile":
+        mode = textes["paiement"]["cash"]
+    else:
+        mode = OPERATEURS_PAIEMENT.get(p.get("operateur") or "", textes["paiement"]["mobile"])
+    return mode, textes["statutPaiement"].get(p.get("statut", ""), p.get("statut", ""))
 
 
 def construire_xlsx(
     titre: str,
     lignes: List[Dict[str, Any]],
     resume_lignes: List[tuple],
-    colonnes: List[tuple] = COLONNES_RAPPORT,
-    feuille: str = "Commandes",
+    colonnes: List[tuple],
+    feuille: str,
+    recapitulatif: str,
 ) -> bytes:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -3952,7 +4192,7 @@ def construire_xlsx(
         ws.column_dimensions[ws.cell(row=3, column=i).column_letter].width = largeur
 
     ws.append([])
-    ws.append(["Récapitulatif"])
+    ws.append([recapitulatif])
     ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=12)
     for label, valeur in resume_lignes:
         ws.append([label, valeur])
@@ -3966,7 +4206,8 @@ def construire_pdf(
     titre: str,
     lignes: List[Dict[str, Any]],
     resume_lignes: List[tuple],
-    colonnes: List[tuple] = COLONNES_RAPPORT,
+    colonnes: List[tuple],
+    recapitulatif: str,
 ) -> bytes:
     from reportlab.lib import colors as pdfcolors
     from reportlab.lib.pagesizes import A4, landscape
@@ -4008,7 +4249,7 @@ def construire_pdf(
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [pdfcolors.white, pdfcolors.HexColor("#FDF3F7")]),
     ]))
-    elements += [table, Spacer(1, 10), Paragraph("<b>Récapitulatif</b>", styles["Heading3"])]
+    elements += [table, Spacer(1, 10), Paragraph(f"<b>{recapitulatif}</b>", styles["Heading3"])]
 
     resume_table = Table(
         [[label, str(valeur)] for label, valeur in resume_lignes],
@@ -4088,7 +4329,9 @@ async def ventes_du_jour(_=Depends(require_admin)):
     articles: Dict[str, Dict[str, Any]] = {}
     for c in cmds:
         for i in c.get("items", []):
-            e = articles.setdefault(i["nom"], {"nom": i["nom"], "quantite": 0, "montant": 0.0, "image": i.get("image")})
+            e = articles.setdefault(i["nom"], {
+                "nom": i["nom"], "nomEn": i.get("nomEn"), "quantite": 0, "montant": 0.0, "image": i.get("image"),
+            })
             e["quantite"] += i.get("quantite", 0)
             e["montant"] = en_fc(e["montant"] + i.get("prixUnitaire", 0) * i.get("quantite", 0))
 
@@ -4102,13 +4345,7 @@ async def ventes_du_jour(_=Depends(require_admin)):
     }
 
 
-COLONNES_RAPPORT_LIVREUR = [
-    ("numero", "N° commande", 14),
-    ("date", "Date", 17),
-    ("adresse", "Adresse / commune", 34),
-    ("cash", "Cash encaissé FC", 16),
-    ("statut", "Statut", 14),
-]
+COLONNES_RAPPORT_LIVREUR = [("numero", 14), ("date", 17), ("adresse", 34), ("cash", 16), ("statut", 14)]
 
 
 # ---------------------------------------------------------------------- livreur
@@ -4218,7 +4455,7 @@ async def livreur_masquer_bulk(body: BulkIdsIn, user=Depends(require_livreur)):
 
 
 @api_router.get("/livreur/rapport")
-async def rapport_livreur(debut: str, fin: str, format: str = "xlsx", user=Depends(require_livreur)):
+async def rapport_livreur(request: Request, debut: str, fin: str, format: str = "xlsx", user=Depends(require_livreur)):
     """Rapport des courses du livreur : cash encaisse et livraisons de la periode."""
     if format not in ("xlsx", "pdf"):
         raise HTTPException(status_code=400, detail="Format attendu : xlsx ou pdf")
@@ -4239,6 +4476,7 @@ async def rapport_livreur(debut: str, fin: str, format: str = "xlsx", user=Depen
     ).to_list(5000)
     cmds.sort(key=lambda c: c["createdAt"])
 
+    textes = TEXTES_RAPPORT[langue_requete(request)]
     lignes = []
     for c in cmds:
         adr = c.get("adresse") or {}
@@ -4248,29 +4486,30 @@ async def rapport_livreur(debut: str, fin: str, format: str = "xlsx", user=Depen
             "date": (c.get("createdAt") or "")[:16].replace("T", " "),
             "adresse": f"{adr.get('commune', '')} — {adr.get('avenue', '')} {adr.get('numero', '')}".strip(" —"),
             "cash": en_fc(encaisse),
-            "statut": LIBELLES_STATUT.get(c.get("statut", ""), c.get("statut", "")),
+            "statut": textes["statut"].get(c.get("statut", ""), c.get("statut", "")),
         })
 
     nb_livrees = len([c for c in cmds if c.get("statut") == "livree"])
     nb_annulees = len([c for c in cmds if c.get("statut") == "annulee"])
     total_cash = en_fc(sum(lg["cash"] for lg in lignes))
     resume_lignes = [
-        ("Courses effectuées", len(cmds)),
-        ("Livraisons réussies", nb_livrees),
-        ("Courses annulées", nb_annulees),
-        ("Total cash encaissé", fc_txt(total_cash)),
+        (textes["courses"], len(cmds)),
+        (textes["livrees"], nb_livrees),
+        (textes["coursesAnnulees"], nb_annulees),
+        (textes["totalCash"], fc_txt(total_cash)),
     ]
 
     nom_livreur = (await db.livreurs.find_one({"id": user.get("livreurId")}, {"_id": 0}) or {}).get(
         "nom", user.get("nom", "")
     )
-    titre = f"Courses de {nom_livreur} du {debut} au {fin}"
+    titre = textes["titreCourses"].format(nom=nom_livreur, debut=debut, fin=fin)
     nom_fichier = f"pinkberry-courses-{debut}-{fin}.{format}"
 
+    colonnes = _colonnes(COLONNES_RAPPORT_LIVREUR, textes)
     contenu = (
-        construire_xlsx(titre, lignes, resume_lignes, COLONNES_RAPPORT_LIVREUR, "Courses")
+        construire_xlsx(titre, lignes, resume_lignes, colonnes, textes["feuilleCourses"], textes["recapitulatif"])
         if format == "xlsx"
-        else construire_pdf(titre, lignes, resume_lignes, COLONNES_RAPPORT_LIVREUR)
+        else construire_pdf(titre, lignes, resume_lignes, colonnes, textes["recapitulatif"])
     )
     media = (
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -4477,25 +4716,23 @@ CONTENANTS_MENU = [
 ]
 
 
-def _cat(nom: str, nom_en: str, *garnitures: str) -> Dict[str, Any]:
-    # Les garnitures portent leur nom de carte Pinkberry, identique en FR et en EN
-    # (l'admin peut saisir un nom francais dans « Composition »).
-    return {"nom": nom, "nomEn": nom_en, "garnitures": [{"nom": g, "nomEn": g} for g in garnitures]}
-
-
-# Carte des garnitures Pinkberry, dans l'ordre d'affichage.
+# Carte des garnitures Pinkberry, dans l'ordre d'affichage : deux categories,
+# 3 garnitures a choisir dans chacune. Les garnitures seches portent leur nom
+# de carte Pinkberry, identique en FR et en EN (modifiable dans « Composition »).
+SECHES, FRUITS = "Garnitures sèches", "Fruits"
 GARNITURES_MENU = [
-    _cat("Produits Boulangers", "Baked goods", "Brownie bites", "Cheesecake bites", "Crispy crepes", "Mochi"),
-    _cat("Bonbon", "Candy", "Mini gems", "Fruit bears", "Rainbow sprinkles"),
-    _cat("Céréales", "Cereal", "Fruity pebbles", "Cap'n Crunch"),
-    _cat("Chocolat", "Chocolate", "Chocolate curls", "Chocolate crisps"),
-    _cat("Cookies", "Cookies", "Cookies & cream", "Cookie wafers", "Vanilla wafers",
-         "Chocolate hazelnut wafer rolls", "Waffle cookies"),
-    _cat("Granola", "Granola", "Honey almond granola"),
-    _cat("Noix", "Nuts", "Toasted almonds", "Candied pecans"),
-    _cat("Liquide", "Liquid", "Chocolate sauce", "Caramel sauce", "Honey"),
-    _cat("Coup de cœur local", "Local favorite", "Coconut", "Yogurt chips", "Dates", "Mini marshmallow"),
-    {"nom": "Fruits", "nomEn": "Fruits", "garnitures": [
+    {"nom": SECHES, "nomEn": "Dry toppings", "garnitures": [{"nom": g, "nomEn": g} for g in [
+        "Brownie bites", "Cheesecake bites", "Crispy crepes", "Mochi",
+        "Mini gems", "Fruit bears", "Rainbow sprinkles",
+        "Fruity pebbles", "Cap'n Crunch",
+        "Chocolate curls", "Chocolate crisps",
+        "Cookies & cream", "Cookie wafers", "Vanilla wafers", "Chocolate hazelnut wafer rolls", "Waffle cookies",
+        "Honey almond granola",
+        "Toasted almonds", "Candied pecans",
+        "Chocolate sauce", "Caramel sauce", "Honey",
+        "Coconut", "Yogurt chips", "Dates", "Mini marshmallow",
+    ]]},
+    {"nom": FRUITS, "nomEn": "Fruits", "garnitures": [
         {"nom": n, "nomEn": en} for n, en in [
             ("Grenade", "Pomegranate"), ("Mangue", "Mango"), ("Framboise", "Raspberry"),
             ("Myrtille", "Blueberry"), ("Kiwi", "Kiwi"), ("Ananas", "Pineapple"),
@@ -4503,9 +4740,6 @@ GARNITURES_MENU = [
         ]
     ]},
 ]
-# Categories ajoutees a la carte apres sa mise en service : amorcees une seule
-# fois sur une base existante (voir `seed_composition`).
-AJOUTS_GARNITURES = ["Fruits"]
 
 
 def _boisson(sous: str, nom: str, nom_en: str) -> Dict[str, Any]:
@@ -4549,8 +4783,8 @@ TRADUCTIONS_MENU = {
 
 async def seed_composition() -> None:
     """Carte de depart du frozen yogurt, tout disponible. Non destructif : chaque
-    collection n'est amorcee que si elle est vide, et la regle seulement si elle
-    n'existe pas. Rien de ce que l'admin a cree ou modifie n'est jamais ecrase."""
+    collection n'est amorcee que si elle est vide. Rien de ce que l'admin a cree
+    ou modifie n'est jamais ecrase."""
     if await db.tailles.count_documents({}) == 0:
         for n, t in enumerate(TAILLES_MENU):
             await db.tailles.insert_one({"id": str(uuid.uuid4()), **t, "ordre": n})
@@ -4560,38 +4794,70 @@ async def seed_composition() -> None:
     if await db.categories_garnitures.count_documents({}) == 0:
         for n, c in enumerate(GARNITURES_MENU):
             cid = str(uuid.uuid4())
-            await db.categories_garnitures.insert_one(
-                {"id": cid, "nom": c["nom"], "nomEn": c["nomEn"], "disponible": True, "ordre": n}
-            )
+            await db.categories_garnitures.insert_one({
+                "id": cid, "nom": c["nom"], "nomEn": c["nomEn"], "disponible": True, "ordre": n,
+                "nombre": NOMBRE_PAR_CATEGORIE_DEFAUT,
+            })
             for m, g in enumerate(c["garnitures"]):
                 await db.garnitures.insert_one(
                     {"id": str(uuid.uuid4()), "categorieId": cid, **g, "disponible": True, "ordre": m}
                 )
-    # Ajouts ulterieurs : une seule fois par base (marqueur `ajoutsGarnitures`),
-    # donc une categorie ou une garniture supprimee par l'admin ne revient pas ;
-    # seuls les elements absents (meme nom) sont crees, en fin de liste.
-    deja = (await db.parametres.find_one({"cle": "global"}, {"_id": 0, "ajoutsGarnitures": 1}) or {})
-    for c in (c for c in GARNITURES_MENU if c["nom"] in AJOUTS_GARNITURES):
-        if c["nom"] in deja.get("ajoutsGarnitures", []):
-            continue
-        cat = await db.categories_garnitures.find_one({"nom": c["nom"]}, {"_id": 0})
-        if not cat:
-            cat = {"id": str(uuid.uuid4()), "nom": c["nom"], "nomEn": c["nomEn"], "disponible": True,
-                   "ordre": await db.categories_garnitures.count_documents({})}
-            await db.categories_garnitures.insert_one({**cat})
-        existantes = {g["nom"] for g in await db.garnitures.find({"categorieId": cat["id"]}, {"nom": 1}).to_list(200)}
-        m = len(existantes)
-        for g in c["garnitures"]:
-            if g["nom"] not in existantes:
-                await db.garnitures.insert_one(
-                    {"id": str(uuid.uuid4()), "categorieId": cat["id"], **g, "disponible": True, "ordre": m}
-                )
-                m += 1
-        await db.parametres.update_one({"cle": "global"}, {"$addToSet": {"ajoutsGarnitures": c["nom"]}})
+    await migrer_garnitures_seches_fruits()
+
+
+async def migrer_garnitures_seches_fruits() -> None:
+    """Une seule fois par base (marqueur `garnituresSechesFruits`) : les anciennes
+    categories (Bonbon, Chocolat, Liquide…) sont fusionnees dans « Garnitures
+    seches » ; seule « Fruits » reste a part. Aucune garniture n'est perdue :
+    memes identifiants (commandes et paniers restent valides), meme ordre, meme
+    disponibilite (une garniture d'une categorie masquee reste masquee)."""
+    params = await db.parametres.find_one({"cle": "global"}, {"_id": 0, "garnituresSechesFruits": 1}) or {}
+    if params.get("garnituresSechesFruits"):
+        return
+
+    async def categorie(c: Dict[str, Any], ordre: int) -> Dict[str, Any]:
+        doc = await db.categories_garnitures.find_one({"nom": c["nom"]}, {"_id": 0})
+        if not doc:
+            doc = {"id": str(uuid.uuid4()), "nom": c["nom"], "nomEn": c["nomEn"], "disponible": True,
+                   "ordre": ordre, "nombre": NOMBRE_PAR_CATEGORIE_DEFAUT}
+            await db.categories_garnitures.insert_one(dict(doc))
+        await db.categories_garnitures.update_one(
+            {"id": doc["id"]}, {"$set": {"ordre": ordre, "nombre": NOMBRE_PAR_CATEGORIE_DEFAUT}}
+        )
+        return doc
+
+    seches = await categorie(GARNITURES_MENU[0], 0)
+    fruits = await categorie(GARNITURES_MENU[1], 1)
+    # Fruits : seules les garnitures absentes sont ajoutees.
+    noms_fruits = {g["nom"] for g in await db.garnitures.find({"categorieId": fruits["id"]}, {"nom": 1}).to_list(200)}
+    rang = len(noms_fruits)
+    for g in GARNITURES_MENU[1]["garnitures"]:
+        if g["nom"] not in noms_fruits:
+            await db.garnitures.insert_one(
+                {"id": str(uuid.uuid4()), "categorieId": fruits["id"], **g, "disponible": True, "ordre": rang}
+            )
+            rang += 1
+
+    # Garnitures seches : celles deja presentes d'abord, puis chaque ancienne categorie dans son ordre.
+    rang = await db.garnitures.count_documents({"categorieId": seches["id"]})
+    anciennes = _par_ordre(await db.categories_garnitures.find(
+        {"id": {"$nin": [seches["id"], fruits["id"]]}}, {"_id": 0}
+    ).to_list(50))
+    for c in anciennes:
+        for g in _par_ordre(await db.garnitures.find({"categorieId": c["id"]}, {"_id": 0}).to_list(500)):
+            await db.garnitures.update_one({"id": g["id"]}, {"$set": {
+                "categorieId": seches["id"],
+                "ordre": rang,
+                "disponible": bool(g.get("disponible", True) and c.get("disponible", True)),
+            }})
+            rang += 1
+        await db.categories_garnitures.delete_one({"id": c["id"]})
     await db.parametres.update_one(
-        {"cle": "global", "regleGarnitures": {"$exists": False}},
-        {"$set": {"regleGarnitures": REGLE_GARNITURES_DEFAUT}},
+        {"cle": "global"},
+        {"$set": {"garnituresSechesFruits": True}, "$unset": {"regleGarnitures": "", "ajoutsGarnitures": ""}},
     )
+    if anciennes:
+        logger.info(f"Garnitures : {len(anciennes)} categories fusionnees dans « {SECHES} »")
 
 
 async def seed():

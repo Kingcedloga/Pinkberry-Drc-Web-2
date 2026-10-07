@@ -7,14 +7,11 @@ import Svg, { Line, Path } from "react-native-svg";
 import { Swirl } from "@/src/components/Logo";
 import { useEcran } from "@/src/reactif";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
+import { useT } from "@/src/i18n";
 
 const VISUEL = require("@/assets/images/livreur-pinkberry-v2.webp");
 
-const ARGUMENTS = [
-  "Commandez en quelques clics depuis votre navigateur",
-  "Paiement en espèces à la livraison",
-  "Suivi de votre livreur en direct sur la carte",
-];
+const ARGUMENTS = ["auth.argumentCommande", "auth.argumentPaiement", "auth.argumentSuivi"];
 
 /** Fines lignes décoratives dans le coin haut droit d'une zone illustration. */
 export function MotifCoin({ couleur }: { couleur: string }) {
@@ -43,12 +40,13 @@ export function Vague({ largeur, couleur }: { largeur: number; couleur: string }
 export function EnteteMarque({
   taille = 34,
   anime = false,
-  sousTitre = "Livraison",
+  sousTitre,
 }: {
   taille?: number;
   anime?: boolean;
   sousTitre?: string;
 }) {
+  const t = useT();
   const rotation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -68,10 +66,10 @@ export function EnteteMarque({
         <Animated.View style={anime ? { transform: [{ rotate: tourne }] } : undefined}>
           <Swirl taille={taille} />
         </Animated.View>
-        <Text style={[styles.mot, { fontSize: taille * 0.76 }]}>Pinkberry</Text>
+        <Text style={[styles.mot, { fontSize: taille * 0.76 }]}>{t("commun.marque")}</Text>
       </View>
       <View style={styles.trait} />
-      <Text style={styles.sousMarque}>{sousTitre}</Text>
+      <Text style={styles.sousMarque}>{sousTitre ?? t("auth.sousMarque")}</Text>
     </View>
   );
 }
@@ -85,6 +83,7 @@ export function CarteAuth({ children, testID }: { children: React.ReactNode; tes
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const { bureau } = useEcran();
+  const t = useT();
   const largeur = Math.min(width - spacing.md * 2, 520);
   // Sur grand écran, la carte devient une boîte centrée au lieu d'occuper toute la hauteur.
   const borne = height > 760 ? Math.min(height - spacing.xxxl * 2, 640) : undefined;
@@ -94,11 +93,11 @@ export function CarteAuth({ children, testID }: { children: React.ReactNode; tes
       <View testID={testID} style={styles.site}>
         <View style={styles.panneauVisuel}>
           <MotifCoin couleur={colors.onBrandPrimary} />
-          <Text style={styles.visuelTitre}>Le vrai frozen yogurt, livré chez vous à Kinshasa</Text>
+          <Text style={styles.visuelTitre}>{t("auth.visuelTitre")}</Text>
           <View style={styles.visuelArguments}>
             {ARGUMENTS.map((a) => (
               <Text key={a} style={styles.visuelArgument}>
-                • {a}
+                • {t(a)}
               </Text>
             ))}
           </View>

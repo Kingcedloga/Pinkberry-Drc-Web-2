@@ -12,7 +12,7 @@ import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { TitrePage } from "@/src/components/TitrePage";
-import { useLangue, type CleTexte } from "@/src/i18n";
+import { champsAdresse, useLangue, type CleTexte } from "@/src/i18n";
 import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -122,7 +122,7 @@ export default function Dashboard() {
       });
       setOuverte(maj);
       rafraichir();
-      toast.show(`${t("admin.statut")} : ${t(`statut.${statut}` as CleTexte)}`, "succes");
+      toast.show(t("admin.statutChange", { statut: t(`statut.${statut}` as CleTexte) }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -171,7 +171,7 @@ export default function Dashboard() {
       setConfirmerArchivageMultiple(false);
       rafraichir();
       qc.invalidateQueries({ queryKey: ["admin-archives"] });
-      toast.show(`${count} commande(s) archivée(s)`, "succes");
+      toast.show(t("admin.commandesArchivees", { count }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -346,7 +346,7 @@ export default function Dashboard() {
                   <Text style={styles.celluleFaible}>{item.clientTelephone}</Text>
                 </View>
                 <Text style={[styles.cellule, styles.colAdresse]} numberOfLines={2}>
-                  {item.adresse?.commune} — {item.adresse?.avenue} n° {item.adresse?.numero}
+                  {t("commun.adresseCommune", champsAdresse(item.adresse))}
                 </Text>
                 <Text
                   style={[styles.cellule, styles.colLivreur, !item.livreur && { color: colors.muted }]}
@@ -424,7 +424,7 @@ export default function Dashboard() {
                 {item.clientNom} · {item.clientTelephone}
               </Text>
               <Text style={styles.adresse} numberOfLines={1}>
-                {item.adresse?.commune} — {item.adresse?.avenue} n° {item.adresse?.numero}
+                {t("commun.adresseCommune", champsAdresse(item.adresse))}
               </Text>
               <View style={styles.carteBas}>
                 <View style={styles.livreurTagRow}>
@@ -484,7 +484,7 @@ export default function Dashboard() {
               <View style={styles.blocInfo}>
                 <Text style={styles.blocTitre}>{t("admin.adresse")}</Text>
                 <Text style={styles.blocTexte}>
-                  {ouverte?.adresse?.avenue} n° {ouverte?.adresse?.numero}, {ouverte?.adresse?.commune}
+                  {t("commun.adresse", champsAdresse(ouverte?.adresse))}
                 </Text>
                 <Text style={styles.blocRepere}>{t("admin.repere", { repere: ouverte?.adresse?.repere ?? "" })}</Text>
               </View>
@@ -502,14 +502,14 @@ export default function Dashboard() {
                   <Text key={idx} style={styles.blocTexte}>
                     {i.quantite}× {libelle(i.nom, i.nomEn)}
                     {detail.options(i) ? ` (${detail.options(i)})` : ""} — {prix(i.prixUnitaire * i.quantite)}
-                    {detail.garnitures(i) ? `\n${t("admin.garnitures")} : ${detail.garnitures(i)}` : ""}
+                    {detail.garnitures(i) ? `\n${t("admin.garnituresListe", { liste: detail.garnitures(i) })}` : ""}
                   </Text>
                 ))}
                 {(ouverte?.promotions ?? []).map((pr: any) => (
                   <Text key={pr.id} testID={`promo-commande-${pr.id}`} style={styles.blocTexte}>
                     {t("admin.promotionAppliquee", { nom: libelle(pr.nom, pr.nomEn) })}
                     {pr.code ? ` (${pr.code})` : ""}
-                    {pr.montant > 0 ? ` : −${prix(pr.montant)}` : ""}
+                    {pr.montant > 0 ? ` · −${prix(pr.montant)}` : ""}
                     {pr.livraison > 0 ? ` · ${t("promo.livraisonOfferte")}` : ""}
                   </Text>
                 ))}
@@ -564,16 +564,16 @@ export default function Dashboard() {
       <SelectionBar
         selectedCount={selection.selectedIds.length}
         onClear={selection.clear}
-        deleteLabel="Archiver"
+        deleteLabel={t("commun.archiver")}
         onDelete={() => setConfirmerArchivageMultiple(true)}
         bottomOffset={insets.bottom + spacing.lg}
       />
       <BulkDeleteDialog
         visible={confirmerArchivageMultiple}
         count={selection.selectedIds.length}
-        title={`Archiver ${selection.selectedIds.length} commande${selection.selectedIds.length > 1 ? "s" : ""} ?`}
-        confirmLabel="Archiver les commandes"
-        description="Seules les commandes terminées sont archivées et restent consultables dans les rapports."
+        title={t("admin.archiverCommandesTitre", { count: selection.selectedIds.length })}
+        confirmLabel={t("admin.archiverCommandes")}
+        description={t("admin.archiverCommandesTexte")}
         onCancel={() => setConfirmerArchivageMultiple(false)}
         onConfirm={archiverSelection}
       />

@@ -158,7 +158,7 @@ export default function ParametresClient() {
         if (partageWeb) await partageWeb.call(globalThis.navigator, { text: message, url: LIEN_APP });
         else {
           await (globalThis.navigator as any)?.clipboard?.writeText?.(message);
-          toast.show(langue === "fr" ? "Lien copié" : "Link copied", "succes");
+          toast.show(t("params.lienCopie"), "succes");
         }
         return;
       }
@@ -266,7 +266,7 @@ export default function ParametresClient() {
                       style={[styles.langue, actif && styles.langueActive]}
                     >
                       <Text style={[styles.langueTexte, actif && styles.langueTexteActif]}>
-                        {code === "fr" ? "Français" : "English"}
+                        {t(code === "fr" ? "langue.fr" : "langue.en")}
                       </Text>
                       {actif ? <Icone name="check" size={16} color={colors.onBrandPrimary} /> : null}
                     </Pressable>

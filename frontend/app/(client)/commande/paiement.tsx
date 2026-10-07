@@ -13,7 +13,7 @@ import { ChoixPaiement, type Devise, type ModePaiement, type Operateur } from "@
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { RecapTotaux } from "@/src/components/RecapTotaux";
 import { useLibelle } from "@/src/catalogue-i18n";
-import { useT } from "@/src/i18n";
+import { champsAdresse, cleNomAdresse, useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
 import { useMessageCode, type Totaux } from "@/src/promotions";
 import { TitrePage } from "@/src/components/TitrePage";
@@ -149,10 +149,12 @@ export default function Confirmation() {
         <View style={styles.carte}>
           <View style={styles.carteTitreRow}>
             <Icone name="map-pin" size={16} color={colors.brandPrimary} />
-            <Text style={styles.carteTitre}>{t("confirmation.livraisonA", { label: adresse?.label ?? "" })}</Text>
+            <Text style={styles.carteTitre}>{t("confirmation.livraisonA", {
+              label: cleNomAdresse(adresse?.label) ? t(cleNomAdresse(adresse?.label)!) : (adresse?.label ?? ""),
+            })}</Text>
           </View>
           <Text style={styles.ligne}>
-            {adresse?.avenue} n° {adresse?.numero}, {adresse?.commune}
+            {t("commun.adresse", champsAdresse(adresse))}
           </Text>
           <Text style={styles.repere}>{t("confirmation.repere", { repere: adresse?.repere ?? "" })}</Text>
           <Text style={styles.ligne}>{t("confirmation.contact", { telephone: adresse?.telephone ?? "" })}</Text>

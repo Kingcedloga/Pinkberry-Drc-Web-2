@@ -10,6 +10,7 @@ import { useLibelle } from "@/src/catalogue-i18n";
 import { evaluerSelection, prixDes, useComposition, type GarnitureYogourt } from "@/src/composition";
 import { useT } from "@/src/i18n";
 import { ArticlePanier, Garniture } from "@/src/panier";
+import { useToast } from "@/src/toast";
 import { LARGEUR_FEUILLE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useMontant } from "@/src/taux";
@@ -50,6 +51,7 @@ export function FeuilleProduit({
   const { bureau } = useEcran();
   const tr = useT();
   const libelle = useLibelle();
+  const toast = useToast();
   const { usd, fc, prix } = useMontant();
   const [tailleIndex, setTailleIndex] = useState(0);
   const [contenantIndex, setContenantIndex] = useState(0);
@@ -58,6 +60,8 @@ export function FeuilleProduit({
   // Les garnitures ne s'affichent qu'après « Avec garnitures ».
   const [avecGarnitures, setAvecGarnitures] = useState(false);
   const [quantite, setQuantite] = useState(1);
+  // Tentative de validation incomplète : le message passe en alerte.
+  const [tentative, setTentative] = useState(false);
 
   const compoQ = useComposition();
   const compo = compoQ.data;
@@ -69,7 +73,7 @@ export function FeuilleProduit({
   const choisiesYogourt = garnituresChoisies
     .map((id) => garnituresCompo.get(id))
     .filter((g): g is GarnitureYogourt => !!g);
-  const evaluation = compo ? evaluerSelection(choisiesYogourt, compo.regle) : null;
+  const evaluation = compo ? evaluerSelection(choisiesYogourt, compo.categories) : null;
   const tailleYogourt = compo?.tailles[tailleIndex];
   const contenant = compo?.contenants[contenantIndex];
 
@@ -79,6 +83,7 @@ export function FeuilleProduit({
     setGarnitures([]);
     setAvecGarnitures(false);
     setQuantite(1);
+    setTentative(false);
   };
 
   // Fermer sans commander repart de zéro : les choix ne passent pas au produit suivant.
@@ -106,13 +111,25 @@ export function FeuilleProduit({
   const valide = compose
     ? !!tailleYogourt && (!compo?.contenants.length || !!contenant) && (!avecGarnitures || !!evaluation?.valide)
     : true;
-  const messageRegle = (() => {
-    if (!compose || !avecGarnitures || !compo || !evaluation || evaluation.valide) return null;
-    const { nombre, categoriesMin, categoriesMax } = compo.regle;
-    if (evaluation.nb < nombre) return tr("feuilleProduit.encoreGarnitures", { n: nombre - evaluation.nb });
-    if (evaluation.nbCategories < categoriesMin) return tr("feuilleProduit.minCategories", { min: categoriesMin });
-    return tr("feuilleProduit.maxCategories", { max: categoriesMax });
-  })();
+  // Ce qu'il reste à choisir, catégorie par catégorie (« 2 de plus dans Fruits »).
+  const messageRegle =
+    compose && avecGarnitures && evaluation && !evaluation.valide
+      ? tr("feuilleProduit.pourValider", {
+          liste: evaluation.manquantes
+            .map((m) => tr("feuilleProduit.manqueDans", { n: m.n, categorie: libelle(m.categorie.nom, m.categorie.nomEn) }))
+            .join(" · "),
+        })
+      : null;
+  const detailRegle = (compo?.categories ?? [])
+    .map((c) => `${c.nombre} ${libelle(c.nom, c.nomEn)}`)
+    .join(" + ");
+
+  // Appui sur « Ajouter » alors que la sélection est incomplète : on explique pourquoi.
+  const signalerIncomplet = () => {
+    if (!messageRegle) return;
+    setTentative(true);
+    toast.show(messageRegle, "erreur", tr("feuilleProduit.selectionIncomplete"));
+  };
 
   const basculerGarniture = (id: string, coche: boolean) =>
     setGarnitures((prev) => (coche ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -296,48 +313,32 @@ export function FeuilleProduit({
                     {avecGarnitures ? (
                       <>
                         <Text style={styles.optionAide}>
-                          {tr("feuilleProduit.regleGarnitures", {
-                            nombre: compo.regle.nombre,
-                            min: compo.regle.categoriesMin,
-                            max: compo.regle.categoriesMax,
-                          })}
+                          {tr("feuilleProduit.regleGarnitures", { detail: detailRegle })}
                         </Text>
                         <View style={styles.compteurs} testID="compteurs-garnitures">
-                          <Text
-                            testID="compteur-garnitures"
-                            style={[styles.compteur, evaluation.complet && styles.compteurOk]}
-                          >
-                            {tr("feuilleProduit.compteurGarnitures", { n: evaluation.nb, total: compo.regle.nombre })}
-                          </Text>
-                          <Text
-                            testID="compteur-categories"
-                            style={[
-                              styles.compteur,
-                              evaluation.nbCategories >= compo.regle.categoriesMin &&
-                                evaluation.nbCategories <= compo.regle.categoriesMax &&
-                                styles.compteurOk,
-                            ]}
-                          >
-                            {tr("feuilleProduit.compteurCategories", {
-                              n: evaluation.nbCategories,
-                              min: compo.regle.categoriesMin,
-                              max: compo.regle.categoriesMax,
-                            })}
-                          </Text>
+                          {evaluation.parCategorie.map(({ categorie: c, n, requis, ok }) => (
+                            <Text
+                              key={c.id}
+                              testID={`compteur-${c.nom}`}
+                              accessibilityLiveRegion="polite"
+                              style={[styles.compteur, ok && styles.compteurOk]}
+                            >
+                              {tr("feuilleProduit.compteurCategorie", { categorie: libelle(c.nom, c.nomEn), n, total: requis })}
+                            </Text>
+                          ))}
                         </View>
-                        {evaluation.categoriesPleines && !evaluation.complet ? (
-                          <Text style={styles.optionAide}>
-                            {tr("feuilleProduit.categoriesPleines", { max: compo.regle.categoriesMax })}
-                          </Text>
-                        ) : null}
 
-                        {compo.categories.map((cat) => {
-                          const nbDansCat = choisiesYogourt.filter((g) => g.categorieId === cat.id).length;
+                        {evaluation.parCategorie.map(({ categorie: cat, n, requis, plein }) => {
                           return (
                             <View key={cat.id} style={styles.categorie} testID={`categorie-garnitures-${cat.nom}`}>
                               <View style={styles.categorieEntete}>
                                 <Text style={styles.categorieNom}>{libelle(cat.nom, cat.nomEn)}</Text>
-                                {nbDansCat > 0 ? <Text style={styles.categorieNb}>{nbDansCat}</Text> : null}
+                                <Text style={[styles.categorieNb, plein && styles.categorieNbOk]}>
+                                  {n}/{requis}
+                                </Text>
+                                {plein ? (
+                                  <Text style={styles.categoriePleine}>{tr("feuilleProduit.categoriePleine")}</Text>
+                                ) : null}
                               </View>
                               <View style={styles.chips}>
                                 {cat.garnitures.map((g) => {
@@ -462,17 +463,31 @@ export function FeuilleProduit({
 
           <View style={styles.cta}>
             {messageRegle ? (
-              <Text testID="message-regle-garnitures" style={styles.messageRegle} accessibilityLiveRegion="polite">
+              <Text
+                testID="message-regle-garnitures"
+                style={[styles.messageRegle, tentative && styles.messageRegleAlerte]}
+                accessibilityLiveRegion="polite"
+              >
                 {messageRegle}
               </Text>
             ) : null}
-            <Bouton
-              testID="btn-ajouter-panier"
-              label={tr("feuilleProduit.ajouterPanier", { total: fc(prixUnitaire * quantite) })}
-              icone="shopping-bag"
-              disabled={!valide}
-              onPress={ajouter}
-            />
+            {/* Bouton désactivé, mais un appui reste capté pour dire ce qu'il manque. */}
+            <Pressable
+              testID="zone-ajouter-panier"
+              disabled={valide || !messageRegle}
+              onPress={signalerIncomplet}
+              accessibilityElementsHidden={valide}
+            >
+              <View pointerEvents={valide ? "auto" : "none"}>
+                <Bouton
+                  testID="btn-ajouter-panier"
+                  label={tr("feuilleProduit.ajouterPanier", { total: fc(prixUnitaire * quantite) })}
+                  icone="shopping-bag"
+                  disabled={!valide}
+                  onPress={ajouter}
+                />
+              </View>
+            </Pressable>
             <Text style={styles.ctaFc}>≈ {usd(prixUnitaire * quantite)}</Text>
           </View>
         </View>
@@ -576,18 +591,29 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   categorieEntete: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   categorieNom: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onSurface },
   categorieNb: {
-    minWidth: 20,
+    minWidth: 32,
     textAlign: "center",
     fontFamily: fonts.text,
     fontSize: 11,
     fontWeight: "800",
-    color: colors.onBrandPrimary,
-    backgroundColor: colors.brandPrimary,
+    color: colors.brandPrimary,
+    backgroundColor: colors.brandTertiary,
     borderRadius: radius.pill,
     paddingHorizontal: 6,
+    paddingVertical: 1,
     overflow: "hidden",
   },
-  messageRegle: { textAlign: "center", fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.error },
+  categorieNbOk: { color: colors.success, backgroundColor: colors.successSoft },
+  categoriePleine: { flexShrink: 1, fontFamily: fonts.text, fontSize: 11, color: colors.muted },
+  messageRegle: { textAlign: "center", fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.muted },
+  messageRegleAlerte: {
+    color: colors.error,
+    backgroundColor: colors.errorSoft,
+    borderRadius: radius.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    overflow: "hidden",
+  },
   optionPrix: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, fontWeight: "700" },
   radio: {
     width: 22,

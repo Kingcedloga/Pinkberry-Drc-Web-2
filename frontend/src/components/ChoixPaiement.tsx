@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
+import { useT } from "@/src/i18n";
 
 export type ModePaiement = "cash" | "mobile";
 export type Operateur = "mpesa" | "airtel" | "orange";
@@ -15,7 +16,7 @@ const OPERATEURS: { cle: Operateur; nom: string; logo: number }[] = [
   { cle: "orange", nom: "Orange Money", logo: require("@/assets/images/orange.png") },
 ];
 
-/** Choix du mode de paiement au checkout. */
+/** Choix du mode de paiement au checkout. Les noms d'opérateurs sont des marques (non traduits). */
 export function ChoixPaiement({
   mode,
   setMode,
@@ -37,11 +38,12 @@ export function ChoixPaiement({
   setDevise: (d: Devise) => void;
   equivalent: string;
 }) {
+  const t = useT();
   return (
     <View testID="bloc-choix-paiement" style={styles.carte}>
       <View style={styles.titreRow}>
         <Icone name="credit-card" size={16} color={colors.brandPrimary} />
-        <Text style={styles.titre}>Mode de paiement</Text>
+        <Text style={styles.titre}>{t("paiement.mode")}</Text>
       </View>
 
       <View style={styles.modes}>
@@ -51,7 +53,7 @@ export function ChoixPaiement({
           style={[styles.mode, mode === "cash" && styles.modeActif]}
         >
           <Icone name="receipt" size={18} color={mode === "cash" ? colors.onBrandPrimary : colors.onSurface} />
-          <Text style={[styles.modeTexte, mode === "cash" && styles.modeTexteActif]}>À la livraison</Text>
+          <Text style={[styles.modeTexte, mode === "cash" && styles.modeTexteActif]}>{t("paiement.aLaLivraison")}</Text>
         </Pressable>
         <Pressable
           testID="mode-paiement-mobile"
@@ -59,13 +61,13 @@ export function ChoixPaiement({
           style={[styles.mode, mode === "mobile" && styles.modeActif]}
         >
           <Icone name="smartphone" size={18} color={mode === "mobile" ? colors.onBrandPrimary : colors.onSurface} />
-          <Text style={[styles.modeTexte, mode === "mobile" && styles.modeTexteActif]}>Mobile Money</Text>
+          <Text style={[styles.modeTexte, mode === "mobile" && styles.modeTexteActif]}>{t("paiement.mobileMoney")}</Text>
         </Pressable>
       </View>
 
       {mode === "mobile" ? (
         <View style={styles.bloc}>
-          <Text style={styles.label}>Opérateur</Text>
+          <Text style={styles.label}>{t("paiement.operateur")}</Text>
           <View style={styles.puces}>
             {OPERATEURS.map((o) => (
               <Pressable
@@ -85,7 +87,7 @@ export function ChoixPaiement({
             ))}
           </View>
 
-          <Text style={styles.label}>Numéro à débiter</Text>
+          <Text style={styles.label}>{t("paiement.numero")}</Text>
           <TextInput
             testID="input-telephone-paiement"
             value={telephone}
@@ -96,7 +98,7 @@ export function ChoixPaiement({
             style={styles.saisie}
           />
 
-          <Text style={styles.label}>Devise à débiter</Text>
+          <Text style={styles.label}>{t("paiement.devise")}</Text>
           <View style={styles.puces}>
             {(["CDF", "USD"] as Devise[]).map((d) => (
               <Pressable
@@ -112,7 +114,7 @@ export function ChoixPaiement({
           <Text style={styles.equivalent}>{equivalent}</Text>
         </View>
       ) : (
-        <Text style={styles.equivalent}>Vous réglerez en espèces au livreur à la remise de la commande.</Text>
+        <Text style={styles.equivalent}>{t("paiement.especes")}</Text>
       )}
     </View>
   );

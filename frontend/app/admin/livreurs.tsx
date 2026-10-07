@@ -39,7 +39,7 @@ export default function Livreurs() {
   const [ouvert, setOuvert] = useState(false);
   const [nom, setNom] = useState("");
   const [telephone, setTelephone] = useState("");
-  const [vehicule, setVehicule] = useState("Moto");
+  const [vehicule, setVehicule] = useState(() => t("admin.vehiculeDefaut"));
   const [plaque, setPlaque] = useState("");
   const [motDePasse, setMotDePasse] = useState("livreur123");
 
@@ -84,7 +84,7 @@ export default function Livreurs() {
       setConfirmerSuppressionMultiple(false);
       await qc.invalidateQueries({ queryKey: ["admin-livreurs"] });
       await qc.invalidateQueries({ queryKey: ["superadmin-comptes"] });
-      toast.show(`${count} livreur(s) supprimé(s)`, "succes");
+      toast.show(t("admin.livreursSupprimes", { count }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }

@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import Svg, { Path } from "react-native-svg";
 
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
+import { useT } from "@/src/i18n";
 
 /** Logo Google officiel : couleurs de marque identiques en clair et sombre. */
 function LogoGoogle({ taille = 20 }: { taille?: number }) {
@@ -31,12 +32,13 @@ function LogoGoogle({ taille = 20 }: { taille?: number }) {
 export function BoutonGoogle({
   onPress,
   testID = "btn-google",
-  label = "Continuer avec Google",
+  label,
 }: {
   onPress: () => Promise<void> | void;
   testID?: string;
   label?: string;
 }) {
+  const t = useT();
   const [loading, setLoading] = useState(false);
 
   const presser = async () => {
@@ -63,7 +65,7 @@ export function BoutonGoogle({
       ) : (
         <View style={styles.contenu}>
           <LogoGoogle />
-          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.label}>{label ?? t("auth.googleConnexion")}</Text>
         </View>
       )}
     </Pressable>

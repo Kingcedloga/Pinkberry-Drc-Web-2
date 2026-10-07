@@ -3,21 +3,20 @@ import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CONTACT_LEGAL, CONFIDENTIALITE, CONDITIONS, MAJ_LEGALE } from "@/src/legal";
+import { useDocLegal, type DocumentLegal } from "@/src/legal";
 import { Icone } from "@/src/components/Icone";
-import { useLangue } from "@/src/i18n";
+import { useT } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
-
-type DocumentLegal = "confidentialite" | "conditions";
 
 export function PageLegale({ document }: { document: DocumentLegal }) {
   useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { langue } = useLangue();
-  const page = document === "confidentialite" ? CONFIDENTIALITE[langue] : CONDITIONS[langue];
+  const t = useT();
+  const page = useDocLegal(document);
+  const contact = t("legal.contact");
 
   return (
     <View testID={`page-legale-${document}`} style={styles.ecran}>
@@ -25,12 +24,12 @@ export function PageLegale({ document }: { document: DocumentLegal }) {
         <Pressable testID="btn-retour-legal" onPress={() => router.back()} style={styles.retour}>
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
-        <Text style={styles.marque}>Pinkberry</Text>
+        <Text style={styles.marque}>{t("commun.marque")}</Text>
       </View>
       <ScrollView contentContainerStyle={[styles.contenu, { paddingBottom: insets.bottom + spacing.xxxl }]}>
         <Text style={styles.titre}>{page.titre}</Text>
         <Text style={styles.sousTitre}>{page.sousTitre}</Text>
-        <Text style={styles.date}>{page.majLabel} : {MAJ_LEGALE[langue]}</Text>
+        <Text style={styles.date}>{t("legal.majLe", { date: t("legal.date") })}</Text>
         {page.sections.map((section) => (
           <View key={section.titre} style={styles.section}>
             <Text style={styles.sectionTitre}>{section.titre}</Text>
@@ -39,9 +38,9 @@ export function PageLegale({ document }: { document: DocumentLegal }) {
             ))}
           </View>
         ))}
-        <Pressable onPress={() => Linking.openURL(`mailto:${CONTACT_LEGAL}`)} style={styles.contact}>
+        <Pressable onPress={() => Linking.openURL(`mailto:${contact}`)} style={styles.contact}>
           <Icone name="mail" size={18} color={colors.brandPrimary} />
-          <Text style={styles.contactTexte}>{CONTACT_LEGAL}</Text>
+          <Text style={styles.contactTexte}>{contact}</Text>
         </Pressable>
       </ScrollView>
     </View>

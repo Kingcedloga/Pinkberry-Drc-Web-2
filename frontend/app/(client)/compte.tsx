@@ -41,7 +41,7 @@ export default function Compte() {
       <ScrollView
         contentContainerStyle={styles.contenu}
       >
-        <TitrePage titre="Mon compte" sousTitre={user?.nom ?? undefined} />
+        <TitrePage titre={t("compte.titre")} sousTitre={user?.nom ?? undefined} />
 
         <View style={styles.carte}>
           <View style={styles.avatar}>

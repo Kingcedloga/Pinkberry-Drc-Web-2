@@ -1,7 +1,9 @@
 {
   "langue": {
     "nom": "English",
-    "autre": "Français"
+    "autre": "Français",
+    "fr": "Français",
+    "en": "English"
   },
   "onglet": {
     "accueil": "Home",
@@ -63,7 +65,13 @@
     "courseRestauree": "Delivery restored to the list",
     "courseSupprimee": "Delivery removed from your history",
     "supprimerCourseTitre": "Delete this delivery?",
-    "supprimerCourseTexte": "It will disappear from your history. The shop keeps it for reports and accounting."
+    "supprimerCourseTexte": "It will disappear from your history. The shop keeps it for reports and accounting.",
+    "coursesArchivees": "{{count}} delivery(ies) archived",
+    "archiverCoursesTitre": "Archive {{count}} delivery(ies)?",
+    "archiverCourses": "Archive deliveries",
+    "archiverCoursesTexte": "Only completed deliveries can be archived. They will remain in the shop's reports.",
+    "coursesRetirees": "{{count}} delivery(ies) removed from archives",
+    "retirerArchivesTexte": "These deliveries will only be hidden from your history. The shop keeps them for its reports."
   },
   "rapport": {
     "filtresRapides": "Quick filters",
@@ -184,7 +192,19 @@
     "promotions": "Promotions",
     "promotionsDetail": "Discounts and promo codes",
     "bannieres": "Banners",
-    "bannieresDetail": "Home page posters"
+    "bannieresDetail": "Home page posters",
+    "statutChange": "Status: {{statut}}",
+    "garnituresListe": "Toppings: {{liste}}",
+    "commandesArchivees": "{{count}} order(s) archived",
+    "archiverCommandesTitre": "Archive {{count}} order(s)?",
+    "archiverCommandes": "Archive orders",
+    "archiverCommandesTexte": "Only completed orders are archived; they remain available in reports.",
+    "commandesSupprimees": "{{count}} order(s) deleted",
+    "livreursSupprimes": "{{count}} courier(s) deleted",
+    "comptesSupprimes": "{{count}} account(s) deleted",
+    "zonesSupprimees": "{{count}} zone(s) deleted",
+    "exempleCommune": "e.g. Ngaliema",
+    "vehiculeDefaut": "Motorbike"
   },
   "archives": {
     "titre": "Archives",
@@ -204,7 +224,11 @@
     "supprimer": "Delete",
     "archiver": "Archive",
     "desarchiver": "Unarchive",
-    "chargement": "Loading..."
+    "chargement": "Loading...",
+    "adresse": "{{numero}} {{avenue}}, {{commune}}",
+    "adresseCommune": "{{commune}} — {{numero}} {{avenue}}",
+    "adresseRepere": "{{numero}} {{avenue}}, {{commune}} — {{repere}}",
+    "marque": "Pinkberry"
   },
   "compte": {
     "parametres": "Settings",
@@ -223,7 +247,8 @@
     "confirmationDefinitive": "Final confirmation",
     "confirmationTexte": "This cannot be undone. You will need to create a new account to order again.",
     "suppressionEnCours": "Deleting...",
-    "supprimerDefinitivement": "Delete permanently"
+    "supprimerDefinitivement": "Delete permanently",
+    "titre": "My account"
   },
   "params": {
     "titre": "Settings",
@@ -265,7 +290,8 @@
     "mdpOk": "Password changed",
     "mdpCourt": "Password: 6 characters minimum",
     "mdpDifferent": "The two passwords do not match",
-    "partageMessage": "Order your Pinkberry frozen yogurt in Kinshasa, delivered in 25 to 45 minutes!"
+    "partageMessage": "Order your Pinkberry frozen yogurt in Kinshasa, delivered in 25 to 45 minutes!",
+    "lienCopie": "Link copied"
   },
   "auth": {
     "titreConnexion": "Sign in",
@@ -297,7 +323,18 @@
     "pointZones": "Delivery areas: Gombe, Limete, Ngaliema, Lingwala",
     "pointPaiement": "Cash payment on delivery",
     "pointSuivi": "Real-time delivery tracking",
-    "sloganMobile": "Real frozen yogurt, delivered to you in Kinshasa"
+    "sloganMobile": "Real frozen yogurt, delivered to you in Kinshasa",
+    "argumentCommande": "Order in a few clicks from your browser",
+    "argumentPaiement": "Pay in cash on delivery",
+    "argumentSuivi": "Track your courier live on the map",
+    "visuelTitre": "Real frozen yogurt, delivered to your door in Kinshasa",
+    "sousMarque": "Delivery",
+    "slogan": "Real frozen yogurt, delivered to you in Kinshasa",
+    "googleAnnulee": "Google sign-in cancelled",
+    "exempleNom": "e.g. Grace Kabila",
+    "exempleEmail": "you@email.com",
+    "afficherMotDePasse": "Show password",
+    "masquerMotDePasse": "Hide password"
   },
   "accueil": {
     "heroTitre": "Real frozen yogurt, delivered to your door in Kinshasa",
@@ -417,7 +454,8 @@
     "annulerTexte": "This cannot be undone. Your cart will not be restored.",
     "ouiAnnuler": "Yes, cancel",
     "nonGarder": "No, keep it",
-    "merci": "Thanks for your order!"
+    "merci": "Thanks for your order!",
+    "titre": "Tracking {{numero}}"
   },
   "catalogue": {
     "titre": "Catalog",
@@ -504,7 +542,8 @@
     "prixRequisDisponible": "{{n}} product(s) at 0 FC left out of stock: set their price first",
     "compose": "Build your own",
     "yogourtCompose": "Build-your-own frozen yogurt",
-    "yogourtComposeAide": "Size, container and toppings picked by the customer, at the prices set in “Composition”."
+    "yogourtComposeAide": "Size, container and toppings picked by the customer, at the prices set in “Composition”.",
+    "tauxActuel": "1 USD = {{taux}}"
   },
   "feuilleProduit": {
     "choisirTaille": "Choose size",
@@ -518,14 +557,13 @@
     "des": "From {{prix}}",
     "choisirContenant": "Choose your container",
     "avecSupplement": "+ {{prix}} with toppings",
-    "regleGarnitures": "Pick {{nombre}} toppings from {{min}} to {{max}} different categories. They are included in the size's topping supplement.",
-    "compteurGarnitures": "{{n}} / {{total}} toppings",
-    "compteurCategories": "Categories: {{n}} ({{min}} to {{max}})",
-    "encoreGarnitures": "Pick {{n}} more topping(s)",
-    "minCategories": "Pick from at least {{min}} different categories",
-    "maxCategories": "No more than {{max}} categories",
-    "categoriesPleines": "{{max}} categories reached: remove a topping to switch category",
-    "compositionIndisponible": "Options are unavailable right now. Please try again in a moment."
+    "regleGarnitures": "Pick exactly {{detail}}. They are included in the size's topping supplement.",
+    "compositionIndisponible": "Options are unavailable right now. Please try again in a moment.",
+    "compteurCategorie": "{{categorie}}: {{n}}/{{total}}",
+    "pourValider": "To continue, pick: {{liste}}",
+    "manqueDans": "{{n}} more in {{categorie}}",
+    "selectionIncomplete": "Incomplete selection",
+    "categoriePleine": "Full: remove one to swap"
   },
   "selection": {
     "annuler": "Cancel",
@@ -567,18 +605,16 @@
     "recue": "Order received",
     "en_preparation": "Being prepared",
     "en_route": "Rider on the way",
-    "livree": "Delivered"
+    "livree": "Delivered",
+    "enCours": "In progress…"
   },
   "composition": {
     "titre": "Composition",
     "sousTitre": "Frozen yogurt sizes, containers, toppings and selection rule",
     "regle": "Topping rule",
-    "regleAide": "When customers add toppings, they must pick exactly this number, spread over this number of categories. Can be changed at any time.",
-    "regleResume": "Currently: {{nombre}} toppings, from {{min}} to {{max}} categories",
+    "regleAide": "When customers add toppings, they must pick exactly this number in each category. Can be changed at any time, no redeploy needed. 0 = category not offered.",
+    "regleResume": "Currently: {{detail}} ({{total}} toppings in total), or no toppings",
     "regleEnregistree": "Rule saved",
-    "nombre": "Number of toppings",
-    "categoriesMin": "Min. categories",
-    "categoriesMax": "Max. categories",
     "tailles": "Sizes and prices",
     "taillesAide": "Final price = base price + supplement if the customer adds toppings. Toppings are included in this supplement.",
     "prixBase": "Base price (FC)",
@@ -595,7 +631,9 @@
     "supprime": "Deleted",
     "nbGarnitures": "{{n}} / {{total}} toppings available",
     "categorieMasquee": "Category disabled: hidden from customers",
-    "categorieVide": "No topping available: category hidden from customers"
+    "categorieVide": "No topping available: category hidden from customers",
+    "aChoisir": "To pick · {{categorie}}",
+    "nombreSuperieur": "Only {{n}} topping(s) available: customers will have to pick {{n}}"
   },
   "promo": {
     "livraisonOfferte": "Free delivery",
@@ -721,7 +759,10 @@
     "supprimer": "Delete notification",
     "supprimees": "{{n}} notifications deleted",
     "confirmerToutEffacer": "Clear all your notifications? This can't be undone.",
-    "confirmerSelection": "Delete {{n}} notification(s)? This can't be undone."
+    "confirmerSelection": "Delete {{n}} notification(s)? This can't be undone.",
+    "navigateur": "Browser",
+    "swIndisponible": "Browser notification service unavailable. Please reload the page.",
+    "canalAndroid": "Pinkberry orders"
   },
   "bannieres": {
     "titre": "Banners",
@@ -775,5 +816,205 @@
     "statut_desactivee": "Disabled",
     "affiche": "Pinkberry poster",
     "voir": "Banner {{n}} of {{total}}"
+  },
+  "erreurs": {
+    "reseau": "Unable to connect. Check your internet connection and try again.",
+    "donneesInvalides": "Some information is invalid. Please check the form.",
+    "serveur": "The service is temporarily unavailable. Please try again in a moment.",
+    "statut": "Error {{statut}}",
+    "appTitre": "Something went wrong",
+    "appTexte": "Please reload the app to continue.",
+    "appRecharger": "Reload app",
+    "appAfficherDetails": "Show details",
+    "appMasquerDetails": "Hide details"
+  },
+  "paiement": {
+    "attente": "Waiting for confirmation…",
+    "validerPin": "Approve the {{montant}} {{devise}} request with your PIN on your phone.",
+    "astuce": "No request received? Dial *501# (Vodacom) or check your pending approvals.",
+    "confirme": "Payment confirmed",
+    "delaiDepasse": "Time limit exceeded",
+    "echoue": "Payment failed",
+    "delaiTexte": "We didn't receive your approval. Try again or pay on delivery.",
+    "refuse": "The operator declined the transaction.",
+    "reessayer": "Try again",
+    "payerLivraison": "Pay on delivery",
+    "mode": "Payment method",
+    "aLaLivraison": "On delivery",
+    "mobileMoney": "Mobile Money",
+    "operateur": "Operator",
+    "numero": "Number to charge",
+    "devise": "Currency to charge",
+    "especes": "You'll pay the courier in cash when your order is delivered."
+  },
+  "unites": {
+    "minutes": "{{n}} min",
+    "heures": "{{h}} h {{m}}",
+    "metres": "{{n}} m",
+    "kilometres": "{{n}} km",
+    "decimale": "."
+  },
+  "legal": {
+    "majLe": "Last updated: {{date}}",
+    "date": "June 20, 2026",
+    "contact": "contact@pinkberrydrc.cd",
+    "confidentialite": {
+      "titre": "Privacy Policy",
+      "sousTitre": "Pinkberry Drc — frozen yogurt delivery in Kinshasa",
+      "sections": [
+        {
+          "titre": "1. Who we are",
+          "paragraphes": [
+            "Pinkberry Drc operates an app for ordering and delivering Pinkberry products in Kinshasa, Democratic Republic of the Congo. This policy explains what personal data we collect, why, how we use it and what your rights are.",
+            "For any question about your data: contact@pinkberrydrc.cd."
+          ]
+        },
+        {
+          "titre": "2. Data we collect",
+          "paragraphes": [
+            "• Identity and contact: full name, phone number, email address.",
+            "• Delivery address: commune, avenue, number and the landmark you provide.",
+            "• GPS location: only when you choose to locate your address or follow an ongoing delivery. For riders, location is shared during the active delivery.",
+            "• Order history: products, sizes, toppings, amounts, dates and statuses.",
+            "• Payment method: the option chosen (cash on delivery or Mobile Money) and, for Mobile Money, the paying phone number and transaction reference. We never store PIN codes or bank card numbers.",
+            "• Technical data: device and browser type, language, display preferences and notification subscription."
+          ]
+        },
+        {
+          "titre": "3. Why we collect this data",
+          "paragraphes": [
+            "• Create and secure your account and verify your phone or email with a one-time code.",
+            "• Prepare, invoice and deliver your orders to the right address.",
+            "• Keep you informed about your order (notifications, live map tracking).",
+            "• Process Mobile Money payments and confirm their outcome.",
+            "• Provide customer support, prevent fraud and improve the service (aggregated statistics)."
+          ]
+        },
+        {
+          "titre": "4. How your data is used and stored",
+          "paragraphes": [
+            "Your data is stored in a database hosted by an infrastructure provider, with access restricted to authorised staff. Traffic between the app and our servers is encrypted (HTTPS). Passwords are stored as cryptographic hashes (bcrypt) and are never readable.",
+            "We do not use your data for advertising and we never sell it."
+          ]
+        },
+        {
+          "titre": "5. Who we share it with",
+          "paragraphes": [
+            "• Riders: your first name, phone number, address and landmark, only for the order assigned to them and for the duration of the delivery.",
+            "• Mobile Money payment aggregator (PawaPay for M-Pesa, Airtel Money and Orange Money): amount, payer phone number and order reference, to initiate and confirm payment.",
+            "• Technical providers: database hosting, verification emails, map tiles and routing (Mapbox, TomTom for address search).",
+            "• Competent authorities: only where Congolese law requires it."
+          ]
+        },
+        {
+          "titre": "6. Retention period",
+          "paragraphes": [
+            "• Account and contact details: while your account is active.",
+            "• Orders and payment records: up to 5 years, for accounting and traceability.",
+            "• Delivery GPS location: deleted when the order is closed.",
+            "• After you delete your account, your personal data is erased or anonymised within 30 days, unless the law requires otherwise."
+          ]
+        },
+        {
+          "titre": "7. Your rights",
+          "paragraphes": [
+            "At any time you can: view and correct your information in Settings → My account; delete your account from the Account screen (“Delete my account”); enable or disable notifications in Settings; request a copy of your data or object to processing by writing to contact@pinkberrydrc.cd.",
+            "We answer any request within 30 days."
+          ]
+        },
+        {
+          "titre": "8. Security and minors",
+          "paragraphes": [
+            "Your account is protected by a password and code verification. Keep your credentials confidential. The service is not intended for people under 13."
+          ]
+        },
+        {
+          "titre": "9. Changes",
+          "paragraphes": [
+            "This policy may change. The last update date is shown at the top of this page; for significant changes we will inform you in the app."
+          ]
+        },
+        {
+          "titre": "10. Contact",
+          "paragraphes": [
+            "Pinkberry Drc — Kinshasa, Democratic Republic of the Congo — contact@pinkberrydrc.cd"
+          ]
+        }
+      ]
+    },
+    "conditions": {
+      "titre": "Terms of Use",
+      "sousTitre": "Pinkberry Drc — frozen yogurt delivery in Kinshasa",
+      "sections": [
+        {
+          "titre": "1. The service",
+          "paragraphes": [
+            "Pinkberry Drc is an app for ordering and delivering Pinkberry products (frozen yogurt cups, smoothies, drinks and toppings) in selected communes of Kinshasa. By using the app you accept these terms."
+          ]
+        },
+        {
+          "titre": "2. Account creation and responsibility",
+          "paragraphes": [
+            "Ordering requires an account created with a name, a valid phone number, an email address and a password. A verification code is sent to you by email.",
+            "You are responsible for the accuracy of your information and for keeping your password confidential. Any order placed from your account is deemed to be yours. Tell us immediately about any unauthorised use.",
+            "We may suspend an account in case of fraud, abuse, repeated fake orders or disrespectful behaviour towards our riders."
+          ]
+        },
+        {
+          "titre": "3. Ordering rules",
+          "paragraphes": [
+            "Products are offered while stocks last; unavailable products are flagged in the catalogue. Prices are shown in Congolese francs with an indicative US dollar equivalent based on the rate set by the shop.",
+            "Delivery fees are added to the subtotal and displayed before you confirm. A complete address with a landmark is mandatory: an imprecise address may cause a delay or a cancelled delivery.",
+            "Announced delivery times (25 to 45 minutes on average) are indicative and depend on traffic and weather."
+          ]
+        },
+        {
+          "titre": "4. Payment",
+          "paragraphes": [
+            "Two payment options are available: cash on delivery, or Mobile Money (M-Pesa, Airtel Money, Orange Money) through our payment aggregator.",
+            "For Mobile Money, the order is confirmed once the operator validates the transaction; if payment fails or expires the order stays pending and you can retry or switch to cash on delivery.",
+            "For cash payments, the exact amount must be handed to the rider on delivery."
+          ]
+        },
+        {
+          "titre": "5. Cancellation and refunds",
+          "paragraphes": [
+            "You can cancel free of charge from the tracking screen as long as the order has not moved to preparation. Once preparation has started, cancellation is no longer guaranteed because the products are perishable.",
+            "If an order is not delivered, an item is missing or clearly non-compliant, contact us within 24 hours: after verification we will replace the item or refund the amount concerned using the same payment method."
+          ]
+        },
+        {
+          "titre": "6. Delivery areas",
+          "paragraphes": [
+            "We only deliver in the covered communes shown when you choose your address (notably Gombe, Limete, Ngaliema and Lingwala). Addresses outside the covered area are rejected at checkout. The list of communes may change without notice."
+          ]
+        },
+        {
+          "titre": "7. Limitation of liability",
+          "paragraphes": [
+            "We strive to provide a reliable service but cannot be held liable for delays or failures caused by external events: traffic jams, bad weather, network or power outages, Mobile Money operator failures, demonstrations or force majeure.",
+            "In any event our liability is limited to the amount of the order concerned. The app is provided “as is”; we do not guarantee uninterrupted availability."
+          ]
+        },
+        {
+          "titre": "8. Intellectual property",
+          "paragraphes": [
+            "The Pinkberry brand, logos, photographs and app content are protected. Any reproduction or commercial use without written permission is prohibited."
+          ]
+        },
+        {
+          "titre": "9. Governing law and changes",
+          "paragraphes": [
+            "These terms are governed by the law of the Democratic Republic of the Congo. We may amend them; the last update date is shown at the top of this page and continued use of the service constitutes acceptance of the version in force."
+          ]
+        },
+        {
+          "titre": "10. Contact",
+          "paragraphes": [
+            "Pinkberry Drc — Kinshasa, Democratic Republic of the Congo — contact@pinkberrydrc.cd"
+          ]
+        }
+      ]
+    }
   }
 }

@@ -1,5 +1,6 @@
 """Frozen yogurt compose : tailles (prix de base + supplement), recipients,
-categories de garnitures et regle de selection (6 garnitures sur 2 a 3 categories)."""
+categories de garnitures et regle de selection (exactement 3 garnitures seches
++ 3 fruits, nombre configurable par categorie)."""
 import os
 import uuid
 
@@ -76,7 +77,13 @@ def _selection(compo, repartition):
 
 
 def test_composition_publique(compo):
-    assert compo["regle"] == {"nombre": 6, "categoriesMin": 2, "categoriesMax": 3}
+    assert [(c["nom"], c["nomEn"], c["nombre"]) for c in compo["categories"]] == [
+        ("Garnitures sèches", "Dry toppings", 3), ("Fruits", "Fruits", 3),
+    ]
+    assert compo["regle"] == {"total": 6}
+    seches = {g["nom"] for g in compo["categories"][0]["garnitures"]}
+    assert {"Brownie bites", "Mini gems", "Chocolate curls", "Chocolate sauce", "Mini marshmallow"} <= seches
+    assert {g["nomEn"] for g in compo["categories"][1]["garnitures"]} >= {"Pomegranate", "Blackberry"}
     assert {t["nom"] for t in compo["tailles"]} >= {"Régulière", "Moyen", "Grand"}
     assert all(c["disponible"] and c["garnitures"] for c in compo["categories"])  # seules les visibles
     assert all(g["disponible"] for c in compo["categories"] for g in c["garnitures"])
@@ -98,9 +105,9 @@ def test_prix_sans_et_avec_garnitures(client, admin, yogourt, compo):
     assert len(ligne["garnitures"]) == 6 and all(g["prix"] == 0 and g["categorie"] for g in ligne["garnitures"])
 
 
-@pytest.mark.parametrize("repartition", [[3, 2], [3], [3, 1, 1, 1], [3, 3, 1]])
+@pytest.mark.parametrize("repartition", [[3, 2], [3, 0], [4, 2], [2, 4], [4, 3], [3, 4], [6, 0], [0, 6]])
 def test_selections_refusees(client, admin, yogourt, compo, repartition):
-    # 5 garnitures ; une seule categorie ; 4 categories ; 7 garnitures
+    # Il faut exactement 3 seches ET 3 fruits : 6 mal repartis ou 4 dans une categorie sont refuses.
     taille, contenant = compo["tailles"][0]["nom"], compo["contenants"][0]["nom"]
     r = _commander(client, admin, yogourt, taille, contenant, _selection(compo, repartition))
     assert r.status_code == 400, r.text
@@ -112,18 +119,23 @@ def test_recipient_et_taille_obligatoires(client, admin, yogourt, compo):
     assert _commander(client, admin, yogourt, "Inconnue", compo["contenants"][0]["nom"], []).status_code == 400
 
 
-def test_regle_configurable(admin):
-    regle_initiale = requests.get(f"{API}/composition", timeout=15).json()["regle"]
+def test_regle_configurable(client, admin, yogourt):
+    initiale = {c["id"]: c["nombre"] for c in requests.get(f"{API}/composition", timeout=15).json()["categories"]}
+    seches, fruits = list(initiale)
     try:
         r = requests.put(f"{API}/admin/regle-garnitures", headers=admin, timeout=15,
-                         json={"nombre": 4, "categoriesMin": 1, "categoriesMax": 2})
+                         json={"categories": {seches: 2, fruits: 1}})
         assert r.status_code == 200, r.text
-        assert requests.get(f"{API}/composition", timeout=15).json()["regle"]["nombre"] == 4
-        incoherentes = [{"nombre": 6, "categoriesMin": 3, "categoriesMax": 2}, {"nombre": 2, "categoriesMin": 3, "categoriesMax": 4}]
-        for regle in incoherentes:
-            assert requests.put(f"{API}/admin/regle-garnitures", headers=admin, json=regle, timeout=15).status_code == 400
+        compo = requests.get(f"{API}/composition", timeout=15).json()
+        assert [c["nombre"] for c in compo["categories"]] == [2, 1] and compo["regle"] == {"total": 3}
+        taille, contenant = compo["tailles"][0]["nom"], compo["contenants"][0]["nom"]
+        assert _commander(client, admin, yogourt, taille, contenant, _selection(compo, [2, 1])).status_code == 200
+        assert _commander(client, admin, yogourt, taille, contenant, _selection(compo, [3, 3])).status_code == 400
+        for invalide in [{seches: -1}, {seches: 21}, {"inconnue": 3}, {}]:
+            r = requests.put(f"{API}/admin/regle-garnitures", headers=admin, json={"categories": invalide}, timeout=15)
+            assert r.status_code == 400, invalide
     finally:
-        requests.put(f"{API}/admin/regle-garnitures", headers=admin, json=regle_initiale, timeout=15)
+        requests.put(f"{API}/admin/regle-garnitures", headers=admin, json={"categories": initiale}, timeout=15)
 
 
 def test_crud_et_disponibilite(admin):
@@ -169,5 +181,5 @@ def test_crud_et_disponibilite(admin):
 def test_routes_admin_protegees(client):
     assert requests.get(f"{API}/admin/composition", headers=client, timeout=15).status_code in (401, 403)
     r = requests.put(f"{API}/admin/regle-garnitures", headers=client, timeout=15,
-                     json={"nombre": 1, "categoriesMin": 1, "categoriesMax": 1})
+                     json={"categories": {}})
     assert r.status_code in (401, 403)

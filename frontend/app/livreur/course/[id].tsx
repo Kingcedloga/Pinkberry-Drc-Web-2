@@ -13,7 +13,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { TitrePage } from "@/src/components/TitrePage";
-import { useLangue } from "@/src/i18n";
+import { champsAdresse, useLangue } from "@/src/i18n";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -167,7 +167,7 @@ export default function DetailCourse() {
           <Text style={styles.carteTitre}>{t("livreur.client")}</Text>
           <Text style={styles.nom}>{cmd.clientNom}</Text>
           <Text style={styles.ligne}>
-            {cmd.adresse?.avenue} n° {cmd.adresse?.numero}, {cmd.adresse?.commune}
+            {t("commun.adresse", champsAdresse(cmd.adresse))}
           </Text>
           <Text style={styles.repere}>{t("livreur.repere", { repere: cmd.adresse?.repere ?? "" })}</Text>
           <View style={styles.boutonsRow}>

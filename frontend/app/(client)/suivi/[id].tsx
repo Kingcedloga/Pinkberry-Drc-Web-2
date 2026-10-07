@@ -13,7 +13,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { Etapes } from "@/src/components/Etapes";
-import { useT } from "@/src/i18n";
+import { champsAdresse, useT } from "@/src/i18n";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { Etoiles } from "@/src/components/Etoiles";
 import { TitrePage } from "@/src/components/TitrePage";
@@ -100,7 +100,7 @@ export default function SuiviCommande() {
         ]}
       >
         <TitrePage
-          titre={`Suivi ${cmd.numero}`}
+          titre={t("suivi.titre", { numero: cmd.numero })}
           sousTitre={`${fc(cmd.total)} ≈ ${usd(cmd.total)}`}
           retour="/commandes"
         />
@@ -118,7 +118,7 @@ export default function SuiviCommande() {
             <View testID="pastille-eta" style={styles.eta}>
               <Icone name="clock" size={14} color={colors.onSuccess} />
               <Text style={styles.etaTexte}>
-                {dureeLisible(itineraire.data?.etaSecondes) ?? `${cmd.etaMinutes ?? "—"} min`}
+                {dureeLisible(itineraire.data?.etaSecondes) ?? t("unites.minutes", { n: cmd.etaMinutes ?? "—" })}
                 {distanceLisible(itineraire.data?.distanceMetres)
                   ? ` · ${distanceLisible(itineraire.data?.distanceMetres)}`
                   : ""}
@@ -211,7 +211,7 @@ export default function SuiviCommande() {
           <View style={styles.separateur} />
           <RecapTotaux totaux={cmd} testID="suivi" />
           <Text style={styles.adresseTexte}>
-            {cmd.adresse?.avenue} n° {cmd.adresse?.numero}, {cmd.adresse?.commune} — {cmd.adresse?.repere}
+            {t("commun.adresseRepere", champsAdresse(cmd.adresse))}
           </Text>
         </View>
 

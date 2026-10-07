@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 
 import { apiFetch, setAuthToken } from "@/src/api";
 import { storage } from "@/src/utils/storage";
+import i18n from "i18next";
 
 const TOKEN_KEY = "pb_token";
 // Portail d'authentification Emergent : configurable au deploiement.
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const url =
       (res as any)?.url ?? urlCapturee.current ?? (await Linking.getInitialURL());
     const sessionId = extraireSessionId(url);
-    if (!sessionId) throw new Error("Connexion Google annulée");
+    if (!sessionId) throw new Error(i18n.t("auth.googleAnnulee"));
     await echangerSession(sessionId);
   }, [echangerSession]);
 

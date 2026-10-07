@@ -57,7 +57,7 @@ export default function Personnel() {
   const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
-  const [vehicule, setVehicule] = useState("Moto");
+  const [vehicule, setVehicule] = useState(() => t("admin.vehiculeDefaut"));
   const [plaque, setPlaque] = useState("");
 
   if (!estSuper) return <Redirect href="/admin" />;
@@ -68,7 +68,7 @@ export default function Personnel() {
     setTelephone("");
     setMotDePasse("");
     setPlaque("");
-    setVehicule("Moto");
+    setVehicule(t("admin.vehiculeDefaut"));
   };
 
   const creer = async () => {
@@ -132,7 +132,7 @@ export default function Personnel() {
       setConfirmerSuppressionMultiple(false);
       await qc.invalidateQueries({ queryKey: ["superadmin-comptes"] });
       await qc.invalidateQueries({ queryKey: ["admin-livreurs"] });
-      toast.show(`${count} compte(s) supprimé(s)`, "succes");
+      toast.show(t("admin.comptesSupprimes", { count }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }

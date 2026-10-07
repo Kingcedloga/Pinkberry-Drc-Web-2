@@ -19,12 +19,33 @@ i18n.use(initReactI18next).init({
   react: { useSuspense: false },
 });
 
+// Web : <html lang> suit la langue choisie (lecteurs d'écran, traduction du navigateur).
+i18n.on("languageChanged", (lng) => {
+  if (typeof document !== "undefined") document.documentElement.lang = lng;
+});
+
+// Web : l'attribut lang de la page suit la langue (lecteurs d'écran, traduction auto).
+i18n.on("languageChanged", (l) => {
+  if (typeof document !== "undefined") document.documentElement.lang = l;
+});
+
 /**
  * Les traductions vivent dans `src/locales/{fr,en}.json` (source unique). Pour
  * traduire un nouvel écran : ajouter les clés dans les deux fichiers puis
  * remplacer les textes par `t("ma.cle")`. Variables : `{{nom}}`.
  */
 export type CleTexte = string;
+
+/** Valeurs d'une adresse pour les clés `commun.adresse*` (format FR / EN). */
+export function champsAdresse(a?: { avenue?: string; numero?: string; commune?: string; repere?: string } | null) {
+  return { avenue: a?.avenue ?? "", numero: a?.numero ?? "", commune: a?.commune ?? "", repere: a?.repere ?? "" };
+}
+
+/** Noms d'adresse prédéfinis : enregistrés en français, affichés dans la langue de l'interface. */
+const NOMS_ADRESSE: Record<string, CleTexte> = { Maison: "adresse.maison", Bureau: "adresse.bureau", Autre: "adresse.autre" };
+export function cleNomAdresse(label?: string | null): CleTexte | null {
+  return (label && NOMS_ADRESSE[label]) || null;
+}
 
 export type ThemeChoisi = "clair" | "sombre" | "systeme";
 

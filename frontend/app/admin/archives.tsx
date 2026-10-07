@@ -65,7 +65,7 @@ export default function Archives() {
       selection.clear();
       setConfirmerSuppressionMultiple(false);
       rafraichir();
-      toast.show(`${count} commande(s) supprimée(s)`, "succes");
+      toast.show(t("admin.commandesSupprimees", { count }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }

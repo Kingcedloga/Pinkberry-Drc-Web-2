@@ -12,7 +12,7 @@ import { useAuth } from "@/src/auth";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { prix } from "@/src/money";
 import { TitrePage } from "@/src/components/TitrePage";
-import { useLangue } from "@/src/i18n";
+import { champsAdresse, useLangue } from "@/src/i18n";
 import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -60,7 +60,7 @@ export default function Courses() {
       setConfirmerArchivageMultiple(false);
       await qc.invalidateQueries({ queryKey: ["livreur-courses"] });
       await qc.invalidateQueries({ queryKey: ["livreur-archives"] });
-      toast.show(`${count} course(s) archivée(s)`, "succes");
+      toast.show(t("livreur.coursesArchivees", { count }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -160,7 +160,7 @@ export default function Courses() {
               </View>
               <Text style={styles.client}>{item.clientNom}</Text>
               <Text style={styles.adresse}>
-                {item.adresse?.commune} — {item.adresse?.avenue} n° {item.adresse?.numero}
+                {t("commun.adresseCommune", champsAdresse(item.adresse))}
               </Text>
               <View style={styles.repereRow}>
                 <Icone name="map-pin" size={13} color={colors.brandPrimary} />
@@ -200,9 +200,9 @@ export default function Courses() {
       <BulkDeleteDialog
         visible={confirmerArchivageMultiple}
         count={selection.selectedIds.length}
-        title={`Archiver ${selection.selectedIds.length} course${selection.selectedIds.length > 1 ? "s" : ""} ?`}
-        confirmLabel="Archiver les courses"
-        description="Seules les courses terminées peuvent être archivées. Elles resteront dans les rapports de la boutique."
+        title={t("livreur.archiverCoursesTitre", { count: selection.selectedIds.length })}
+        confirmLabel={t("livreur.archiverCourses")}
+        description={t("livreur.archiverCoursesTexte")}
         onCancel={() => setConfirmerArchivageMultiple(false)}
         onConfirm={archiverSelection}
       />

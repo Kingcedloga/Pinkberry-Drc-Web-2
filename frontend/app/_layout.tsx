@@ -22,6 +22,7 @@ import { ThemeProvider, useTheme } from "@/src/theme-contexte";
 import { TauxProvider } from "@/src/taux";
 import { ToastProvider } from "@/src/toast";
 import { initialiserWeb } from "@/src/web-pwa";
+import i18n from "i18next";
 
 // Disable logbox errors etc so that users can see the app
 // and agent works as expected.
@@ -43,7 +44,7 @@ if (Platform.OS !== "web") {
 // Canal Android créé avant toute réception de notification.
 if (Platform.OS === "android") {
   Notifications.setNotificationChannelAsync("default", {
-    name: "Commandes Pinkberry",
+    name: i18n.t("notifs.canalAndroid"),
     importance: Notifications.AndroidImportance.MAX,
     sound: "default",
   });

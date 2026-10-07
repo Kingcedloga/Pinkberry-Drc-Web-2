@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import { apiFetch } from "@/src/api";
+import i18n from "i18next";
 
 /**
  * Notifications push web (API Push + Service Worker + VAPID).
@@ -52,7 +53,7 @@ export function iosSansInstallation(): boolean {
 /** « Chrome · Android » : aide l'utilisateur à reconnaître ses appareils abonnés. */
 function decrireAppareil(): string {
   const ua = navigator.userAgent;
-  const navigateur = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Navigateur";
+  const navigateur = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : i18n.t("notifs.navigateur");
   const systeme = /Android/.test(ua) ? "Android" : estIOS() ? "iOS" : /Windows/.test(ua) ? "Windows" : /Mac OS X/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
   return [navigateur, systeme].filter(Boolean).join(" · ");
 }
@@ -108,7 +109,7 @@ export async function abonnerPushWeb(): Promise<EtatPushWeb> {
   if (!actif || !clePublique) return { supporte: true, permission: "granted", abonne: false };
 
   const registration = await serviceWorkerPret(12000);
-  if (!registration) throw new Error("Service worker indisponible");
+  if (!registration) throw new Error(i18n.t("notifs.swIndisponible"));
   let abo = await registration.pushManager.getSubscription();
   if (!abo) {
     abo = await registration.pushManager.subscribe({

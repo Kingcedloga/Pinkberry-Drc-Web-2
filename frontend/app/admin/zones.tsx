@@ -84,7 +84,7 @@ export default function Zones() {
       selection.clear();
       setConfirmerSuppressionMultiple(false);
       await rafraichir();
-      toast.show(`${count} zone(s) supprimée(s)`, "succes");
+      toast.show(t("admin.zonesSupprimees", { count }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -175,7 +175,7 @@ export default function Zones() {
                 testID="input-zone-commune"
                 value={commune}
                 onChangeText={setCommune}
-                placeholder="Ex. Ngaliema"
+                placeholder={t("admin.exempleCommune")}
               />
               <View style={styles.ligneSwitch}>
                 <Text style={styles.switchLabel}>{t("admin.zoneActiveImmediate")}</Text>

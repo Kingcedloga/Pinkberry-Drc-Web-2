@@ -558,7 +558,7 @@ export default function Catalogue() {
         <View style={styles.banniereTexte}>
           <Text style={styles.banniereTitre}>{t("catalogue.tauxTitre")}</Text>
           <Text testID="taux-actuel" style={styles.banniereValeur}>
-            1 USD = {fc(taux)}
+            {t("catalogue.tauxActuel", { taux: fc(taux) })}
           </Text>
         </View>
         <Text style={styles.banniereLien}>{t("catalogue.modifier")}</Text>

@@ -49,7 +49,7 @@ export function Etapes({ statut }: { statut: string }) {
               <Text style={[styles.label, { color: fait ? colors.onSurface : colors.muted }]}>
                 {t(`etape.${e.cle}` as CleTexte)}
               </Text>
-              {encours ? <Text style={styles.encours}>En cours…</Text> : null}
+              {encours ? <Text style={styles.encours}>{t("etape.enCours")}</Text> : null}
             </View>
           </View>
         );

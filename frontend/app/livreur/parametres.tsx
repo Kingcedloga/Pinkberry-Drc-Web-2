@@ -64,7 +64,7 @@ export default function ParametresLivreur() {
                     style={[styles.langue, actif && styles.langueActive]}
                   >
                     <Text style={[styles.langueTexte, actif && styles.langueTexteActif]}>
-                      {code === "fr" ? "Français" : "English"}
+                      {t(code === "fr" ? "langue.fr" : "langue.en")}
                     </Text>
                     {actif ? <Icone name="check" size={16} color={colors.onBrandPrimary} /> : null}
                   </Pressable>

@@ -51,7 +51,7 @@ export function EcranRapport({
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
-  const { t } = useLangue();
+  const { t, langue } = useLangue();
   const p = periodes();
 
   const [debut, setDebut] = useState(p.mois.debut);
@@ -68,7 +68,8 @@ export function EcranRapport({
     setEnCours(format);
     const url = `${BASE}/api${chemin}?debut=${debut}&fin=${fin}&format=${format}`;
     try {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${obtenirToken()}` } });
+      // Le rapport (colonnes, statuts, récapitulatif) est généré dans la langue de l'interface.
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${obtenirToken()}`, "Accept-Language": langue } });
       if (!res.ok) {
         const txt = await res.text();
         throw new Error(txt.includes("detail") ? JSON.parse(txt).detail : t("rapport.indisponible"));

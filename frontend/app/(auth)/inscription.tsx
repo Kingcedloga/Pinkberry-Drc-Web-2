@@ -61,7 +61,7 @@ export default function Inscription() {
             testID="input-nom"
             value={nom}
             onChangeText={setNom}
-            placeholder="Ex. Grace Kabila"
+            placeholder={t("auth.exempleNom")}
             autoCapitalize="words"
           />
           <Champ
@@ -77,7 +77,7 @@ export default function Inscription() {
             testID="input-email"
             value={email}
             onChangeText={setEmail}
-            placeholder="vous@email.com"
+            placeholder={t("auth.exempleEmail")}
             keyboardType="email-address"
             autoCapitalize="none"
           />

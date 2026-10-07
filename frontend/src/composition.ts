@@ -15,14 +15,16 @@ export type CategorieGarnitures = Libelle & {
   id: string;
   disponible: boolean;
   ordre: number;
+  /** Garnitures à choisir exactement dans cette catégorie (3 sèches + 3 fruits par défaut). */
+  nombre: number;
   garnitures: GarnitureYogourt[];
 };
-export type RegleGarnitures = { nombre: number; categoriesMin: number; categoriesMax: number };
 export type Composition = {
   tailles: TailleYogourt[];
   contenants: Contenant[];
   categories: CategorieGarnitures[];
-  regle: RegleGarnitures;
+  /** Total à choisir (somme des catégories proposées). */
+  regle: { total: number };
 };
 
 /** Composition publique : éléments disponibles uniquement. */
@@ -40,21 +42,21 @@ export function prixDes(c?: Composition | null): number {
 }
 
 /**
- * Sélection au regard de la règle. Sans garniture, elle est valide ; avec, il
- * faut exactement `nombre` garnitures sur `categoriesMin` à `categoriesMax`
- * catégories. `peutAjouter` empêche la 7ᵉ garniture et une catégorie de trop.
+ * Sélection au regard de la règle : exactement `nombre` garnitures dans chaque
+ * catégorie. `peutAjouter` empêche d'en prendre une de plus dans une catégorie
+ * pleine ; `manquantes` liste ce qu'il reste à choisir, catégorie par catégorie.
  */
-export function evaluerSelection(choisies: GarnitureYogourt[], regle: RegleGarnitures) {
-  const categories = new Set(choisies.map((g) => g.categorieId));
-  const complet = choisies.length === regle.nombre;
-  const categoriesOk = categories.size >= regle.categoriesMin && categories.size <= regle.categoriesMax;
+export function evaluerSelection(choisies: GarnitureYogourt[], categories: CategorieGarnitures[]) {
+  const parCategorie = categories.map((c) => {
+    const n = choisies.filter((g) => g.categorieId === c.id).length;
+    return { categorie: c, n, requis: c.nombre, plein: n >= c.nombre, ok: n === c.nombre };
+  });
+  const etat = new Map(parCategorie.map((x) => [x.categorie.id, x]));
   return {
+    parCategorie,
     nb: choisies.length,
-    nbCategories: categories.size,
-    complet,
-    valide: complet && categoriesOk,
-    peutAjouter: (g: GarnitureYogourt) =>
-      choisies.length < regle.nombre && (categories.has(g.categorieId) || categories.size < regle.categoriesMax),
-    categoriesPleines: categories.size >= regle.categoriesMax,
+    valide: parCategorie.every((x) => x.ok),
+    manquantes: parCategorie.filter((x) => x.n < x.requis).map((x) => ({ categorie: x.categorie, n: x.requis - x.n })),
+    peutAjouter: (g: GarnitureYogourt) => !etat.get(g.categorieId)?.plein,
   };
 }

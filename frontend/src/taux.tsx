@@ -7,7 +7,7 @@ import { TAUX_FC_DEFAUT, setTauxFC } from "@/src/money";
 type ConfigApp = { tauxFC: number; fraisLivraison: number; demo?: boolean };
 
 // Valeurs d'attente avant la réponse de /config (frais en FC).
-const CONFIG_DEFAUT: ConfigApp = { tauxFC: TAUX_FC_DEFAUT, fraisLivraison: 5750 };
+const CONFIG_DEFAUT: ConfigApp = { tauxFC: TAUX_FC_DEFAUT, fraisLivraison: 2000 };
 
 const TauxContext = createContext<ConfigApp>(CONFIG_DEFAUT);
 

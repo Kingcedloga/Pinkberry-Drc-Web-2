@@ -6,6 +6,7 @@ import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
+import { useT } from "@/src/i18n";
 
 type Etat = { statut: "attente" | "paye" | "echoue" | "expire"; montant: string; devise: string; raisonEchec?: string | null };
 
@@ -35,6 +36,7 @@ export function AttentePaiement({
     retry: false,
   });
 
+  const t = useT();
   const statut = q.data?.statut ?? "attente";
 
   React.useEffect(() => {
@@ -49,35 +51,30 @@ export function AttentePaiement({
           {statut === "attente" ? (
             <>
               <ActivityIndicator color={colors.brandPrimary} size="large" />
-              <Text style={styles.titre}>En attente de confirmation…</Text>
+              <Text style={styles.titre}>{t("paiement.attente")}</Text>
               <Text style={styles.detail}>
-                Validez la demande de {q.data?.montant ?? montant} {q.data?.devise ?? devise} avec votre code
-                PIN sur votre téléphone.
+                {t("paiement.validerPin", { montant: q.data?.montant ?? montant, devise: q.data?.devise ?? devise })}
               </Text>
-              <Text style={styles.astuce}>
-                Pas de demande reçue ? Composez *501# (Vodacom) ou consultez vos approbations en attente.
-              </Text>
+              <Text style={styles.astuce}>{t("paiement.astuce")}</Text>
             </>
           ) : statut === "paye" ? (
             <>
               <Icone name="check-circle" size={40} color={colors.success} />
-              <Text style={styles.titre}>Paiement confirmé</Text>
+              <Text style={styles.titre}>{t("paiement.confirme")}</Text>
             </>
           ) : (
             <>
               <Icone name="alert-circle" size={40} color={colors.error} />
               <Text style={styles.titre}>
-                {statut === "expire" ? "Délai dépassé" : "Paiement échoué"}
+                {t(statut === "expire" ? "paiement.delaiDepasse" : "paiement.echoue")}
               </Text>
               <Text style={styles.detail}>
-                {statut === "expire"
-                  ? "Nous n'avons pas reçu votre approbation. Réessayez ou payez à la livraison."
-                  : q.data?.raisonEchec || "L'opérateur a refusé la transaction."}
+                {t(statut === "expire" ? "paiement.delaiTexte" : "paiement.refuse")}
               </Text>
-              <Bouton testID="btn-reessayer-paiement" label="Réessayer" onPress={onReessayer} />
+              <Bouton testID="btn-reessayer-paiement" label={t("paiement.reessayer")} onPress={onReessayer} />
               <Bouton
                 testID="btn-basculer-cash"
-                label="Payer à la livraison"
+                label={t("paiement.payerLivraison")}
                 variant="contour"
                 onPress={onCash}
               />

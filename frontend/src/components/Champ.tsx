@@ -4,6 +4,7 @@ import type { KeyboardTypeOptions } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
+import { useT } from "@/src/i18n";
 
 export function Champ({
   label,
@@ -26,6 +27,7 @@ export function Champ({
   multiline?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }) {
+  const t = useT();
   const [visible, setVisible] = React.useState(false);
   const masquable = !!secureTextEntry;
 
@@ -49,7 +51,7 @@ export function Champ({
           <Pressable
             testID={testID ? `${testID}-oeil` : "btn-oeil"}
             accessibilityRole="button"
-            accessibilityLabel={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            accessibilityLabel={t(visible ? "auth.masquerMotDePasse" : "auth.afficherMotDePasse")}
             hitSlop={8}
             onPress={() => setVisible((v) => !v)}
             style={styles.oeil}

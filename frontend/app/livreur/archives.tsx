@@ -10,7 +10,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
 import { prix } from "@/src/money";
-import { useLangue, type CleTexte } from "@/src/i18n";
+import { champsAdresse, useLangue, type CleTexte } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -66,7 +66,7 @@ export default function ArchivesLivreur() {
       selection.clear();
       setConfirmerSuppressionMultiple(false);
       rafraichir();
-      toast.show(`${count} course(s) retirée(s) des archives`, "succes");
+      toast.show(t("livreur.coursesRetirees", { count }), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -119,7 +119,7 @@ export default function ArchivesLivreur() {
                 {item.cashEncaisse ? ` · ${t("livreur.cashEncaisseCourt")}` : ""}
               </Text>
               <Text style={styles.adresse} numberOfLines={1}>
-                {item.adresse?.commune} — {item.adresse?.avenue} n° {item.adresse?.numero}
+                {t("commun.adresseCommune", champsAdresse(item.adresse))}
               </Text>
               <View style={styles.actions}>
                 <Pressable
@@ -169,7 +169,7 @@ export default function ArchivesLivreur() {
       <BulkDeleteDialog
         visible={confirmerSuppressionMultiple}
         count={selection.selectedIds.length}
-        description="Les courses seront masquées uniquement de votre historique. Elles resteront conservées côté boutique pour les rapports."
+        description={t("livreur.retirerArchivesTexte")}
         onCancel={() => setConfirmerSuppressionMultiple(false)}
         onConfirm={supprimerSelection}
       />
