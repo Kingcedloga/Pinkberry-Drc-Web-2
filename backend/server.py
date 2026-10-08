@@ -1947,7 +1947,7 @@ async def notifier(
             "tag": tag,
             "lu": False,
             "createdAt": iso(maintenant),
-            "expireAt": maintenant + timedelta(days=60),  # purge automatique (index TTL)
+            "expireAt": maintenant + timedelta(days=60),  # date de peremption indicative
         })
     if not docs:
         return 0
@@ -2534,7 +2534,9 @@ async def lire_composition(admin: bool = False) -> Dict[str, Any]:
     sans garniture disponible disparait."""
     tailles = _par_ordre(await db.tailles.find({}, {"_id": 0}).to_list(50))
     contenants = _par_ordre(await db.contenants.find({}, {"_id": 0}).to_list(50))
-    categories = _par_ordre(await db.categories_garnitures.find({}, {"_id": 0}).to_list(50))
+    categories = _par_ordre(await db.categories_garnitures.find(
+        {"fusionnee": {"$ne": True}}, {"_id": 0}
+    ).to_list(50))
     garnitures = _par_ordre(await db.garnitures.find({}, {"_id": 0}).to_list(1000))
     if not admin:
         contenants = [c for c in contenants if c.get("disponible", True)]
@@ -4861,7 +4863,7 @@ async def migrer_garnitures_seches_fruits() -> None:
     # Garnitures seches : celles deja presentes d'abord, puis chaque ancienne categorie dans son ordre.
     rang = await db.garnitures.count_documents({"categorieId": seches["id"]})
     anciennes = _par_ordre(await db.categories_garnitures.find(
-        {"id": {"$nin": [seches["id"], fruits["id"]]}}, {"_id": 0}
+        {"id": {"$nin": [seches["id"], fruits["id"]]}, "fusionnee": {"$ne": True}}, {"_id": 0}
     ).to_list(50))
     for c in anciennes:
         for g in _par_ordre(await db.garnitures.find({"categorieId": c["id"]}, {"_id": 0}).to_list(500)):
@@ -4871,7 +4873,10 @@ async def migrer_garnitures_seches_fruits() -> None:
                 "disponible": bool(g.get("disponible", True) and c.get("disponible", True)),
             }})
             rang += 1
-        await db.categories_garnitures.delete_one({"id": c["id"]})
+        # Retrait logique : l'ancienne categorie est conservee en base, jamais supprimee.
+        await db.categories_garnitures.update_one(
+            {"id": c["id"]}, {"$set": {"fusionnee": True, "disponible": False}}
+        )
     await db.parametres.update_one(
         {"cle": "global"},
         {"$set": {"garnituresSechesFruits": True}, "$unset": {"regleGarnitures": "", "ajoutsGarnitures": ""}},
@@ -4894,15 +4899,17 @@ async def seed():
         partialFilterExpression={"telephone": {"$type": "string"}},
     )
     # Abonnements push : anciennement `push_web`, repris une seule fois.
-    if "push_web" in await db.list_collection_names():
+    # L'ancienne collection est conservee (aucune suppression au demarrage) ;
+    # un drapeau dans `parametres` empeche la reprise de se rejouer.
+    deja = await db.parametres.find_one({"cle": "global"}, {"_id": 0, "pushWebRepris": 1})
+    if not (deja or {}).get("pushWebRepris") and "push_web" in await db.list_collection_names():
         async for abo in db.push_web.find({}, {"_id": 0}):
             await db.push_subscriptions.update_one({"endpoint": abo["endpoint"]}, {"$setOnInsert": abo}, upsert=True)
-        await db.push_web.drop()
+        await db.parametres.update_one({"cle": "global"}, {"$set": {"pushWebRepris": True}}, upsert=True)
     await db.push_subscriptions.create_index("endpoint", unique=True)
     await db.push_subscriptions.create_index("userId")
     await db.notifications.create_index([("userId", 1), ("createdAt", -1)])
     await db.notifications.create_index([("userId", 1), ("lu", 1)])  # compte des non-lues
-    await db.notifications.create_index("expireAt", expireAfterSeconds=0)
 
     # Normalise les produits anterieurs a l'ajout de la mise en avant.
     await db.produits.update_many({"enAvant": {"$exists": False}}, {"$set": {"enAvant": False}})

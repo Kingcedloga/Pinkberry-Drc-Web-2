@@ -676,3 +676,31 @@ Obligatoires pour la publication App Store / Google Play.
   applicable, contact.
 - Accès : section « À propos / Légal » des paramètres (client, admin, livreur) et mention
   d'acceptation avec liens cliquables sur l'écran d'inscription.
+
+## Préparation au déploiement (health check, itération 32)
+Corrections issues du contrôle de préparation au déploiement :
+- Aucune URL ni clé codée en dur : `EXPO_PUBLIC_SITE_URL`, `EXPO_PUBLIC_AUTH_PORTAL_URL`
+  (frontend/.env), `INTEGRATION_PROXY_URL` et `EMERGENT_AUTH_SESSION_URL` (backend/.env).
+- `yarn.lock` seul gestionnaire de paquets côté frontend (package-lock.json supprimé).
+- Images : `urlImage()` force le HTTPS (ATS iOS / cleartext Android).
+- URLs publiques pour les stores : `/legal/confidentialite` et `/legal/conditions` (accessibles
+  sans compte). Après déploiement, remplacer `EXPO_PUBLIC_SITE_URL` par le domaine définitif.
+- Backend sur 0.0.0.0:8001, toutes les routes préfixées `/api`, base MongoDB issue de `DB_NAME`.
+- À fournir par le propriétaire pour le push natif iOS : `GoogleService-Info.plist` +
+  `expo.ios.googleServicesFile` dans `app.json` (Android déjà configuré). Le push web (VAPID)
+  est indépendant et fonctionnel.
+
+## Health check de déploiement (2e passe) — statut : PASS
+Trois opérations destructives exécutées automatiquement au démarrage ont été supprimées de
+`backend/server.py` (politique de déploiement : aucun effacement de données au boot) :
+- Fusion des catégories de garnitures : `delete_one` remplacé par un retrait logique
+  (`fusionnee: true`, `disponible: false`). La migration et `/api/composition` filtrent
+  désormais les catégories `fusionnee`.
+- Reprise des abonnements push : `db.push_web.drop()` supprimé. La reprise unique est protégée
+  par le drapeau `pushWebRepris` dans `parametres` ; l'ancienne collection est conservée.
+- Notifications : l'index TTL `expireAt` n'est plus créé au démarrage (plus de purge
+  automatique) ; `expireAt` reste un champ indicatif.
+Contrôles : `destructive_db_startup_confirmed: false`, compilation TypeScript OK, lint OK
+(1 avertissement bénin i18next), backend/API/PWA (manifest, sw.js) et pages légales en 200.
+Reste : déploiement public à déclencher par le propriétaire (bouton Publish), puis remplacer
+`EXPO_PUBLIC_SITE_URL` par le domaine définitif et revalider le push web en HTTPS public.
