@@ -52,6 +52,18 @@ export default function SuiviCommande() {
     ? { lat: cmd.positionLivreur.lat, lng: cmd.positionLivreur.lng }
     : null;
   const itineraire = useItineraire(positionLivreur, positionClient, cmd?.statut === "en_route");
+  // Fraîcheur de la position (lecture toutes les 4 s) : au-delà d'une minute sans
+  // nouvelle position, le marqueur reste à la dernière position connue.
+  const ageMs = cmd?.positionLivreur?.updatedAt
+    ? Math.max(0, q.dataUpdatedAt - Date.parse(cmd.positionLivreur.updatedAt))
+    : null;
+  const signalPerdu = ageMs !== null && ageMs > 60_000;
+  const age =
+    ageMs === null
+      ? ""
+      : ageMs < 60_000
+        ? t("unites.secondes", { n: Math.max(1, Math.round(ageMs / 1000)) })
+        : (dureeLisible(ageMs / 1000) ?? "");
 
   if (q.isLoading || !cmd) {
     return (
@@ -126,6 +138,18 @@ export default function SuiviCommande() {
             </View>
           ) : null}
         </View>
+        {cmd.statut === "en_route" && ageMs !== null ? (
+          <View
+            testID={signalPerdu ? "position-perdue" : "position-direct"}
+            accessibilityLiveRegion="polite"
+            style={[styles.fraicheur, signalPerdu && styles.fraicheurPerdue]}
+          >
+            {signalPerdu ? null : <View style={styles.pointDirect} />}
+            <Text style={[styles.fraicheurTexte, signalPerdu && { color: colors.error }]}>
+              {t(signalPerdu ? "suivi.positionPerdue" : "suivi.positionDirect", { duree: age })}
+            </Text>
+          </View>
+        ) : null}
 
         {arrive && peutPayer ? (
           <View testID="bloc-livraison" style={styles.blocLivraison}>
@@ -294,6 +318,19 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     paddingVertical: 6,
   },
   etaTexte: { fontFamily: fonts.text, fontSize: 12, fontWeight: "800", color: colors.onSuccess },
+  fraicheur: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.successSoft,
+    alignSelf: "flex-start",
+  },
+  fraicheurPerdue: { backgroundColor: colors.errorSoft },
+  pointDirect: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
+  fraicheurTexte: { fontFamily: fonts.text, fontSize: 12, fontWeight: "700", color: colors.success },
   blocLivraison: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,

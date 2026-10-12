@@ -37,8 +37,6 @@
     "vide": "No deliveries assigned",
     "videDetail": "Waiting for an assignment from the administrator",
     "archivee": "Delivery archived",
-    "gpsRefuse": "Location denied: use the route simulation",
-    "gpsActif": "Location sharing enabled",
     "positionAvancee": "Location advanced toward the customer",
     "statutOk": "Status updated",
     "cashEncaisse": "Cash collected, delivery closed",
@@ -51,8 +49,6 @@
     "changerStatut": "Update status",
     "courseRecuperee": "Delivery picked up",
     "jeSuisEnRoute": "I'm on my way",
-    "partageGpsArreter": "GPS sharing active - stop",
-    "partagerPosition": "Share my location",
     "ouvrirReglages": "Open settings",
     "avancerDemo": "Move toward customer (demo)",
     "marquerLivree": "Mark as delivered",
@@ -71,7 +67,22 @@
     "archiverCourses": "Archive deliveries",
     "archiverCoursesTexte": "Only completed deliveries can be archived. They will remain in the shop's reports.",
     "coursesRetirees": "{{count}} delivery(ies) removed from archives",
-    "retirerArchivesTexte": "These deliveries will only be hidden from your history. The shop keeps them for its reports."
+    "retirerArchivesTexte": "These deliveries will only be hidden from your history. The shop keeps them for its reports.",
+    "gpsExplicationTitre": "Sharing your location",
+    "gpsExplication": "Pinkberry needs your location so customers can track their delivery. It is shared automatically, only while you are on a delivery.",
+    "gpsAutoriser": "Allow location",
+    "gpsRefuseTitre": "Location is turned off",
+    "gpsRefuseWeb": "Allow location for this site in your browser settings (padlock icon in the address bar), then try again. Without GPS, you can't start a delivery.",
+    "gpsRefuseNatif": "Turn on location for Pinkberry in your phone settings. Without GPS, you can't start a delivery.",
+    "gpsIndisponible": "GPS unavailable: turn on your phone's location, then try again.",
+    "gpsDelai": "Can't find your location right now: check that location is on and try again.",
+    "gpsReessayer": "Try again",
+    "gpsActifAuto": "Location shared live with the customer",
+    "gpsRecherche": "Getting your location…",
+    "gpsPerdu": "GPS signal lost: the customer sees your last position.",
+    "gpsRequisTitre": "Turn on GPS to start the delivery",
+    "departAide": "Your location will be shared automatically with the customer until delivery.",
+    "departOk": "You're on your way! The customer is tracking you live"
   },
   "rapport": {
     "filtresRapides": "Quick filters",
@@ -455,7 +466,9 @@
     "ouiAnnuler": "Yes, cancel",
     "nonGarder": "No, keep it",
     "merci": "Thanks for your order!",
-    "titre": "Tracking {{numero}}"
+    "titre": "Tracking {{numero}}",
+    "positionDirect": "Live location · updated {{duree}} ago",
+    "positionPerdue": "Rider's signal lost · last known position {{duree}} ago"
   },
   "catalogue": {
     "titre": "Catalog",
@@ -852,7 +865,8 @@
     "heures": "{{h}} h {{m}}",
     "metres": "{{n}} m",
     "kilometres": "{{n}} km",
-    "decimale": "."
+    "decimale": ".",
+    "secondes": "{{n}} s"
   },
   "legal": {
     "majLe": "Last updated: {{date}}",

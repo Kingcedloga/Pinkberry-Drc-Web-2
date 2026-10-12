@@ -99,7 +99,7 @@ def _statut_livreur(livreur_token: str, cmd_id: str, statut: str) -> None:
     r = requests.patch(
         f"{API}/livreur/courses/{cmd_id}/statut",
         headers=_h(livreur_token),
-        json={"statut": statut},
+        json={"statut": statut, "lat": -4.32, "lng": 15.31},
         timeout=10,
     )
     assert r.status_code == 200, f"Statut {statut} KO : {r.status_code} {r.text}"

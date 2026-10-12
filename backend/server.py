@@ -257,6 +257,8 @@ ERREURS_EN: Dict[str, str] = {
     "Dates attendues au format AAAA-MM-JJ": "Dates expected in YYYY-MM-DD format",
     "La date de fin precede la date de debut": "The end date is before the start date",
     "Le taux doit être supérieur à zéro": "The rate must be greater than zero",
+    "Activez la localisation (GPS) pour partir en livraison : le client doit pouvoir suivre sa commande":
+        "Turn on location (GPS) to start the delivery: the customer must be able to track their order",
     "Enregistrement du taux impossible": "Unable to save the rate",
 }
 _ERREURS_MOTIFS = [
@@ -675,11 +677,14 @@ class OrdreIn(BaseModel):
 
 class StatutIn(BaseModel):
     statut: Literal["recue", "en_preparation", "recuperee", "en_route", "livree", "annulee"]
+    # Livreur qui part en livraison : sa position au depart (obligatoire si aucune position recente).
+    lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    lng: Optional[float] = Field(default=None, ge=-180, le=180)
 
 
 class PositionIn(BaseModel):
-    lat: float
-    lng: float
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
 
 
 class LivreurIn(BaseModel):
@@ -4530,6 +4535,12 @@ async def livreur_statut(cmd_id: str, body: StatutIn, user=Depends(require_livre
     cmd = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
     if not cmd or cmd.get("livreurId") != user.get("livreurId"):
         raise HTTPException(status_code=404, detail="Course introuvable")
+    if body.statut == "en_route":
+        # Pas de course sans partage de position : le client doit pouvoir suivre sa livraison.
+        if body.lat is not None and body.lng is not None:
+            await enregistrer_position(user.get("livreurId"), body.lat, body.lng)
+        if not await position_recente(user.get("livreurId")):
+            raise HTTPException(status_code=409, detail=GPS_REQUIS)
     await db.commandes.update_one(
         {"id": cmd_id},
         {
@@ -4564,15 +4575,33 @@ async def livreur_encaisser(cmd_id: str, user=Depends(require_livreur)):
 
 
 ARRIVEE_KM = 0.2
+# Partage de position : l'app du livreur emet automatiquement pendant une course
+# « en route » (toutes les ~5 s ou a chaque deplacement). Une position plus vieille
+# que POSITION_FRAICHE_S ne suffit pas pour partir en livraison.
+POSITION_FRAICHE_S = 120
+GPS_REQUIS = "Activez la localisation (GPS) pour partir en livraison : le client doit pouvoir suivre sa commande"
+
+
+async def enregistrer_position(livreur_id: str, lat: float, lng: float) -> None:
+    """Derniere position connue du livreur (une seule par livreur, jamais effacee
+    pendant une course : le client garde le marqueur si le GPS se perd)."""
+    await db.positions_livreurs.replace_one(
+        {"livreurId": livreur_id},
+        {"livreurId": livreur_id, "lat": lat, "lng": lng, "updatedAt": iso(now_utc())},
+        upsert=True,
+    )
+
+
+async def position_recente(livreur_id: str) -> bool:
+    pos = await db.positions_livreurs.find_one({"livreurId": livreur_id}, {"_id": 0, "updatedAt": 1})
+    if not pos or not pos.get("updatedAt"):
+        return False
+    return now_utc() - datetime.fromisoformat(pos["updatedAt"]) <= timedelta(seconds=POSITION_FRAICHE_S)
 
 
 @api_router.post("/livreur/position")
 async def livreur_position(body: PositionIn, user=Depends(require_livreur)):
-    await db.positions_livreurs.replace_one(
-        {"livreurId": user.get("livreurId")},
-        {"livreurId": user.get("livreurId"), "lat": body.lat, "lng": body.lng, "updatedAt": iso(now_utc())},
-        upsert=True,
-    )
+    await enregistrer_position(user.get("livreurId"), body.lat, body.lng)
     # A moins de ARRIVEE_KM de l'adresse : « livreur arrive », une seule fois par commande.
     async for cmd in db.commandes.find(
         {"livreurId": user.get("livreurId"), "statut": "en_route", "arriveeNotifiee": {"$ne": True}}, {"_id": 0}

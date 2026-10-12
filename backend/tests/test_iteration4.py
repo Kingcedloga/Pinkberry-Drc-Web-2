@@ -154,7 +154,7 @@ class TestPushNonBloquant:
         for statut in ("recuperee", "en_route"):
             r = requests.patch(
                 f"{API}/livreur/courses/{cmd_id}/statut",
-                json={"statut": statut},
+                json={"statut": statut, "lat": -4.32, "lng": 15.31},
                 headers=_h(livreur_tok),
                 timeout=30,
             )
@@ -305,7 +305,7 @@ class TestVentesJour:
         for s in ("recuperee", "en_route"):
             requests.patch(
                 f"{API}/livreur/courses/{cid}/statut",
-                json={"statut": s},
+                json={"statut": s, "lat": -4.32, "lng": 15.31},
                 headers=_h(livreur_tok),
                 timeout=15,
             )

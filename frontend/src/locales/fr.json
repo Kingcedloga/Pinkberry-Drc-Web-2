@@ -37,8 +37,6 @@
     "vide": "Aucune course assignée",
     "videDetail": "En attente d'une assignation de l'administrateur",
     "archivee": "Course archivée",
-    "gpsRefuse": "Position refusée : utilisez la simulation de trajet",
-    "gpsActif": "Partage de position activé",
     "positionAvancee": "Position avancée vers le client",
     "statutOk": "Statut mis à jour",
     "cashEncaisse": "Cash encaissé, course clôturée",
@@ -51,8 +49,6 @@
     "changerStatut": "Mise à jour du statut",
     "courseRecuperee": "Course récupérée",
     "jeSuisEnRoute": "Je suis en route",
-    "partageGpsArreter": "Partage GPS actif — arrêter",
-    "partagerPosition": "Partager ma position",
     "ouvrirReglages": "Ouvrir les réglages",
     "avancerDemo": "Avancer vers le client (démo)",
     "marquerLivree": "Marquer comme livrée",
@@ -71,7 +67,22 @@
     "archiverCourses": "Archiver les courses",
     "archiverCoursesTexte": "Seules les courses terminées peuvent être archivées. Elles resteront dans les rapports de la boutique.",
     "coursesRetirees": "{{count}} course(s) retirée(s) des archives",
-    "retirerArchivesTexte": "Les courses seront masquées uniquement de votre historique. Elles resteront conservées côté boutique pour les rapports."
+    "retirerArchivesTexte": "Les courses seront masquées uniquement de votre historique. Elles resteront conservées côté boutique pour les rapports.",
+    "gpsExplicationTitre": "Partage de ta position",
+    "gpsExplication": "Pinkberry doit accéder à ta position pour que les clients suivent leur livraison. Elle est partagée automatiquement, uniquement pendant tes courses en route.",
+    "gpsAutoriser": "Autoriser la localisation",
+    "gpsRefuseTitre": "Localisation désactivée",
+    "gpsRefuseWeb": "Autorise la localisation pour ce site dans les réglages du navigateur (icône du cadenas dans la barre d'adresse), puis réessaie. Sans GPS, tu ne peux pas partir en livraison.",
+    "gpsRefuseNatif": "Active la localisation de Pinkberry dans les réglages du téléphone. Sans GPS, tu ne peux pas partir en livraison.",
+    "gpsIndisponible": "GPS indisponible : active la localisation du téléphone, puis réessaie.",
+    "gpsDelai": "Position introuvable pour le moment : vérifie que la localisation est activée et réessaie.",
+    "gpsReessayer": "Réessayer",
+    "gpsActifAuto": "Position partagée en direct avec le client",
+    "gpsRecherche": "Recherche de ta position…",
+    "gpsPerdu": "Signal GPS perdu : le client voit ta dernière position.",
+    "gpsRequisTitre": "Active le GPS pour partir en livraison",
+    "departAide": "Ta position sera partagée automatiquement avec le client jusqu'à la livraison.",
+    "departOk": "C'est parti ! Le client suit ta position en direct"
   },
   "rapport": {
     "filtresRapides": "Filtres rapides",
@@ -455,7 +466,9 @@
     "ouiAnnuler": "Oui, annuler",
     "nonGarder": "Non, garder",
     "merci": "Merci pour votre commande !",
-    "titre": "Suivi {{numero}}"
+    "titre": "Suivi {{numero}}",
+    "positionDirect": "Position en direct · mise à jour il y a {{duree}}",
+    "positionPerdue": "Signal du livreur perdu · dernière position connue il y a {{duree}}"
   },
   "catalogue": {
     "titre": "Catalogue",
@@ -852,7 +865,8 @@
     "heures": "{{h}} h {{m}}",
     "metres": "{{n}} m",
     "kilometres": "{{n}} km",
-    "decimale": ","
+    "decimale": ",",
+    "secondes": "{{n}} s"
   },
   "legal": {
     "majLe": "Dernière mise à jour : {{date}}",

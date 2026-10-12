@@ -2,10 +2,9 @@ import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { useDetailLigne, useLibelle } from "@/src/catalogue-i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import * as Location from "expo-location";
 import { useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Linking, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
@@ -17,7 +16,8 @@ import { champsAdresse, useLangue } from "@/src/i18n";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
-import { useMontant } from "@/src/taux";
+import { useMessageGps, useSuiviLivreur } from "@/src/suivi-livreur";
+import { useConfigApp, useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
 
 export default function DetailCourse() {
@@ -32,9 +32,11 @@ export default function DetailCourse() {
   const { usd, fc } = useMontant();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const [partageGps, setPartageGps] = useState(false);
-  const [gpsBloque, setGpsBloque] = useState(false);
-  const abonnement = useRef<Location.LocationSubscription | null>(null);
+  const { demo } = useConfigApp();
+  // Partage de position automatique (src/suivi-livreur.tsx) : rien à activer ici.
+  const suivi = useSuiviLivreur();
+  const messageGps = useMessageGps();
+  const [depart, setDepart] = useState<"attente" | "bloque" | null>(null);
 
   const q = useQuery({
     queryKey: ["course", id],
@@ -57,39 +59,6 @@ export default function DetailCourse() {
     }
   };
 
-  const demarrerPartage = async () => {
-    const actuelle = await Location.getForegroundPermissionsAsync();
-    let statut = actuelle.status;
-    if (statut !== "granted") {
-      if (actuelle.canAskAgain) {
-        const demande = await Location.requestForegroundPermissionsAsync();
-        statut = demande.status;
-        if (demande.status !== "granted" && !demande.canAskAgain) setGpsBloque(true);
-      } else {
-        setGpsBloque(true);
-      }
-    }
-    if (statut !== "granted") {
-      toast.show(t("livreur.gpsRefuse"), "erreur");
-      return;
-    }
-    setGpsBloque(false);
-    abonnement.current = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, timeInterval: 6000, distanceInterval: 20 },
-      (pos) => envoyerPosition(pos.coords.latitude, pos.coords.longitude),
-    );
-    setPartageGps(true);
-    toast.show(t("livreur.gpsActif"), "succes");
-  };
-
-  const arreterPartage = () => {
-    abonnement.current?.remove();
-    abonnement.current = null;
-    setPartageGps(false);
-  };
-
-  useEffect(() => () => abonnement.current?.remove(), []);
-
   const avancerDemo = async () => {
     const dest = { lat: cmd?.adresse?.lat ?? -4.325, lng: cmd?.adresse?.lng ?? 15.322 };
     const dep = cmd?.positionLivreur ?? { lat: -4.3178, lng: 15.3136 };
@@ -100,12 +69,23 @@ export default function DetailCourse() {
   };
 
   const changerStatut = async (statut: string) => {
+    let corps: Record<string, unknown> = { statut };
+    if (statut === "en_route") {
+      // Pas de course sans position : autorisation + position de départ, sinon blocage.
+      setDepart("attente");
+      const f = await suivi.preparerDepart();
+      if (!f) {
+        setDepart("bloque");
+        return;
+      }
+      setDepart(null);
+      corps = { ...corps, lat: f.lat, lng: f.lng };
+    }
     try {
-      await apiFetch(`/livreur/courses/${id}/statut`, { method: "PATCH", body: { statut } });
+      await apiFetch(`/livreur/courses/${id}/statut`, { method: "PATCH", body: corps });
       qc.invalidateQueries({ queryKey: ["course", id] });
       qc.invalidateQueries({ queryKey: ["livreur-courses"] });
-      if (statut === "en_route" && !partageGps) demarrerPartage();
-      toast.show(t("livreur.statutOk"), "succes");
+      toast.show(t(statut === "en_route" ? "livreur.departOk" : "livreur.statutOk"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -114,7 +94,6 @@ export default function DetailCourse() {
   const encaisser = async () => {
     try {
       await apiFetch(`/livreur/courses/${id}/encaisser`, { method: "POST" });
-      arreterPartage();
       qc.invalidateQueries({ queryKey: ["course", id] });
       qc.invalidateQueries({ queryKey: ["livreur-courses"] });
       toast.show(t("livreur.cashEncaisse"), "succes");
@@ -219,33 +198,56 @@ export default function DetailCourse() {
             <Bouton testID="btn-course-recuperee" label={t("livreur.courseRecuperee")} icone="package" onPress={() => changerStatut("recuperee")} />
           ) : null}
           {cmd.statut === "recuperee" ? (
-            <Bouton testID="btn-en-route" label={t("livreur.jeSuisEnRoute")} icone="navigation" onPress={() => changerStatut("en_route")} />
+            <>
+              <Text style={styles.aide}>{t("livreur.departAide")}</Text>
+              <Bouton
+                testID="btn-en-route"
+                label={depart === "attente" ? t("livreur.gpsRecherche") : t("livreur.jeSuisEnRoute")}
+                icone="navigation"
+                loading={depart === "attente"}
+                onPress={() => changerStatut("en_route")}
+              />
+              {depart === "bloque" ? (
+                <View testID="blocage-gps" style={styles.blocage} accessibilityRole="alert">
+                  <Icone name="alert-triangle" size={18} color={colors.error} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.blocageTitre}>{t("livreur.gpsRequisTitre")}</Text>
+                    <Text style={styles.blocageTexte}>{messageGps ?? t("livreur.gpsDelai")}</Text>
+                  </View>
+                  {Platform.OS !== "web" && suivi.permission === "refusee" ? (
+                    <Bouton
+                      testID="btn-reglages-gps"
+                      label={t("livreur.ouvrirReglages")}
+                      variant="contour"
+                      petit
+                      onPress={() => Linking.openSettings()}
+                    />
+                  ) : null}
+                </View>
+              ) : null}
+            </>
           ) : null}
           {cmd.statut === "en_route" ? (
             <>
-              <Bouton
-                testID="btn-partage-gps"
-                label={partageGps ? t("livreur.partageGpsArreter") : t("livreur.partagerPosition")}
-                icone="crosshair"
-                variant={partageGps ? "succes" : "secondaire"}
-                onPress={partageGps ? arreterPartage : demarrerPartage}
-              />
-              {gpsBloque ? (
+              <View testID="etat-partage-gps" style={styles.partage}>
+                <Icone
+                  name={suivi.signalOk ? "navigation" : "crosshair"}
+                  size={16}
+                  color={suivi.signalOk ? colors.success : colors.brandPrimary}
+                />
+                <Text style={[styles.partageTexte, { color: suivi.signalOk ? colors.success : colors.brandPrimary }]}>
+                  {t(suivi.signalOk ? "livreur.gpsActifAuto" : "livreur.gpsRecherche")}
+                </Text>
+              </View>
+              {demo ? (
                 <Bouton
-                  testID="btn-reglages-gps"
-                  label={t("livreur.ouvrirReglages")}
+                  testID="btn-simuler-trajet"
+                  label={t("livreur.avancerDemo")}
+                  icone="fast-forward"
                   variant="contour"
-                  petit
-                  onPress={() => Linking.openSettings()}
+                  onPress={avancerDemo}
                 />
               ) : null}
-              <Bouton
-                testID="btn-simuler-trajet"
-                label={t("livreur.avancerDemo")}
-                icone="fast-forward"
-                variant="contour"
-                onPress={avancerDemo}
-              />
               <Bouton testID="btn-livre" label={t("livreur.marquerLivree")} icone="check" variant="succes" onPress={() => changerStatut("livree")} />
             </>
           ) : null}
@@ -315,5 +317,27 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   montant: { fontFamily: fonts.display, fontSize: 34, color: colors.brandPrimary },
   montantFc: { fontFamily: fonts.text, fontSize: 12, color: colors.muted, marginTop: -spacing.xs },
   termine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  aide: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
+  partage: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceSecondary,
+  },
+  partageTexte: { flex: 1, fontFamily: fonts.text, fontSize: 13, fontWeight: "800" },
+  blocage: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.errorSoft,
+  },
+  blocageTitre: { fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.error },
+  blocageTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.error },
   termineTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.success },
 }));

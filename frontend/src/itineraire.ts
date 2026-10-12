@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import i18n from "i18next";
 
 import { apiFetch } from "@/src/api";
@@ -11,17 +11,24 @@ export type Itineraire = {
   heureArrivee: string | null;
 };
 
+/** ~110 m : la position du livreur arrive toutes les ~5 s, l'itinéraire n'est recalculé qu'à ce pas. */
+const arrondi = (v: number) => Math.round(v * 1000) / 1000;
+
 /** Itinéraire routier réel (TomTom) entre le livreur et le client, avec durée estimée. */
 export function useItineraire(livreur: Point | null | undefined, client: Point, actif: boolean) {
+  const lat = livreur ? arrondi(livreur.lat) : null;
+  const lng = livreur ? arrondi(livreur.lng) : null;
   return useQuery({
-    queryKey: ["itineraire", livreur?.lat, livreur?.lng, client.lat, client.lng],
-    enabled: actif && !!livreur,
+    queryKey: ["itineraire", lat, lng, client.lat, client.lng],
+    enabled: actif && lat !== null && lng !== null,
     staleTime: 30_000,
     retry: false,
+    // L'ETA reste affichée pendant le recalcul (pas de clignotement à chaque mise à jour).
+    placeholderData: keepPreviousData,
     queryFn: () =>
       apiFetch<Itineraire>("/carte/itineraire", {
         method: "POST",
-        body: { origine: [livreur!.lat, livreur!.lng], destination: [client.lat, client.lng] },
+        body: { origine: [lat, lng], destination: [client.lat, client.lng] },
       }),
   });
 }

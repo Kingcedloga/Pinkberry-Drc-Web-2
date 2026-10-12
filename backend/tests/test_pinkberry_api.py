@@ -275,7 +275,7 @@ def test_livreur_flow_position_and_encaisser(client_ctx, admin_ctx):
     # status transitions: en_preparation->recuperee->en_route
     for st in ("recuperee", "en_route"):
         rs = requests.patch(f"{API}/livreur/courses/{cmd_id}/statut",
-                            json={"statut": st}, headers=_h(tok_lv), timeout=10)
+                            json={"statut": st, "lat": -4.32, "lng": 15.31}, headers=_h(tok_lv), timeout=10)
         assert rs.status_code == 200 and rs.json()["statut"] == st
     # position update -> distanceKm + etaMinutes on the order
     rp = requests.post(f"{API}/livreur/position", json={"lat": -4.320, "lng": 15.320},
