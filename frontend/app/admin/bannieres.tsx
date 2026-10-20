@@ -17,6 +17,7 @@ import { Icone } from "@/src/components/Icone";
 import { RecadrageBanniere, type Cadre } from "@/src/components/RecadrageBanniere";
 import { TitrePage } from "@/src/components/TitrePage";
 import { versIso, versLocal } from "@/src/dates";
+import { BandeauLectureSeule, useDroits } from "@/src/droits";
 import { useLangue, useT, type CleTexte } from "@/src/i18n";
 import type { Promotion } from "@/src/promotions";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
@@ -72,6 +73,8 @@ export default function BannieresAdmin() {
   const libelle = useLibelle();
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  // Admin : consultation seule ; le serveur refuse aussi toute écriture (403).
+  const { peutGerer, exiger } = useDroits();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin-bannieres"], queryFn: () => apiFetch<Banniere[]>("/admin/bannieres") });
   const produitsQ = useQuery({ queryKey: ["produits"], queryFn: () => apiFetch<any[]>("/produits") });
@@ -98,6 +101,7 @@ export default function BannieresAdmin() {
   };
 
   const ouvrir = (b: Banniere | null) => {
+    if (!exiger()) return;
     setEdition(b ?? "nouvelle");
     setRecherche("");
     setF(
@@ -122,6 +126,7 @@ export default function BannieresAdmin() {
   };
 
   const choisirImage = async () => {
+    if (!exiger()) return;
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1, allowsMultipleSelection: false });
     if (res.canceled || !res.assets?.length) return;
     const a = res.assets[0];
@@ -172,6 +177,7 @@ export default function BannieresAdmin() {
   };
 
   const enregistrer = async () => {
+    if (!exiger()) return;
     const dateDebut = versIso(f.dateDebut);
     const dateFin = versIso(f.dateFin);
     if (dateDebut === undefined || dateFin === undefined) {
@@ -212,6 +218,7 @@ export default function BannieresAdmin() {
   };
 
   const basculer = async (b: Banniere, actif: boolean) => {
+    if (!exiger()) return;
     try {
       await apiFetch(`/admin/bannieres/${b.id}/actif`, { method: "PATCH", body: { actif } });
       await rafraichir();
@@ -221,6 +228,7 @@ export default function BannieresAdmin() {
   };
 
   const deplacer = async (index: number, sens: -1 | 1) => {
+    if (!exiger()) return;
     const ids = liste.map((b) => b.id);
     const cible = index + sens;
     if (cible < 0 || cible >= ids.length) return;
@@ -234,6 +242,7 @@ export default function BannieresAdmin() {
   };
 
   const supprimer = async () => {
+    if (!exiger()) return;
     if (!aSupprimer) return;
     try {
       await apiFetch(`/admin/bannieres/${aSupprimer.id}`, { method: "DELETE" });
@@ -290,43 +299,47 @@ export default function BannieresAdmin() {
                 .join(" · ")}
             </Text>
           </View>
-          <Switch
-            testID={`switch-banniere-${index}`}
-            accessibilityLabel={t("bannieres.active")}
-            value={b.actif}
-            onValueChange={(v) => {
-              void basculer(b, v);
-            }}
-            trackColor={{ true: colors.success, false: colors.border }}
-          />
+          {peutGerer ? (
+            <Switch
+              testID={`switch-banniere-${index}`}
+              accessibilityLabel={t("bannieres.active")}
+              value={b.actif}
+              onValueChange={(v) => {
+                void basculer(b, v);
+              }}
+              trackColor={{ true: colors.success, false: colors.border }}
+            />
+          ) : null}
         </View>
-        <View style={styles.actions}>
-          <Pressable
-            testID={`btn-monter-banniere-${index}`}
-            accessibilityLabel={t("bannieres.monter")}
-            disabled={index === 0}
-            onPress={() => deplacer(index, -1)}
-            style={[styles.iconeBtn, index === 0 && styles.inactif]}
-          >
-            <Icone name="arrow-left" size={17} color={colors.brandPrimary} />
-          </Pressable>
-          <Pressable
-            testID={`btn-descendre-banniere-${index}`}
-            accessibilityLabel={t("bannieres.descendre")}
-            disabled={index === liste.length - 1}
-            onPress={() => deplacer(index, 1)}
-            style={[styles.iconeBtn, index === liste.length - 1 && styles.inactif]}
-          >
-            <Icone name="arrow-right" size={17} color={colors.brandPrimary} />
-          </Pressable>
-          <View style={{ flex: 1 }} />
-          <Pressable testID={`btn-modifier-banniere-${index}`} onPress={() => ouvrir(b)} style={styles.iconeBtn}>
-            <Icone name="edit-2" size={17} color={colors.brandPrimary} />
-          </Pressable>
-          <Pressable testID={`btn-supprimer-banniere-${index}`} onPress={() => setASupprimer(b)} style={styles.iconeBtn}>
-            <Icone name="trash-2" size={17} color={colors.error} />
-          </Pressable>
-        </View>
+        {peutGerer ? (
+          <View style={styles.actions}>
+            <Pressable
+              testID={`btn-monter-banniere-${index}`}
+              accessibilityLabel={t("bannieres.monter")}
+              disabled={index === 0}
+              onPress={() => deplacer(index, -1)}
+              style={[styles.iconeBtn, index === 0 && styles.inactif]}
+            >
+              <Icone name="arrow-left" size={17} color={colors.brandPrimary} />
+            </Pressable>
+            <Pressable
+              testID={`btn-descendre-banniere-${index}`}
+              accessibilityLabel={t("bannieres.descendre")}
+              disabled={index === liste.length - 1}
+              onPress={() => deplacer(index, 1)}
+              style={[styles.iconeBtn, index === liste.length - 1 && styles.inactif]}
+            >
+              <Icone name="arrow-right" size={17} color={colors.brandPrimary} />
+            </Pressable>
+            <View style={{ flex: 1 }} />
+            <Pressable testID={`btn-modifier-banniere-${index}`} onPress={() => ouvrir(b)} style={styles.iconeBtn}>
+              <Icone name="edit-2" size={17} color={colors.brandPrimary} />
+            </Pressable>
+            <Pressable testID={`btn-supprimer-banniere-${index}`} onPress={() => setASupprimer(b)} style={styles.iconeBtn}>
+              <Icone name="trash-2" size={17} color={colors.error} />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -351,12 +364,15 @@ export default function BannieresAdmin() {
                 titre={t("bannieres.titre")}
                 sousTitre={t("bannieres.sousTitre")}
                 actions={
-                  <Pressable testID="btn-nouvelle-banniere" onPress={() => ouvrir(null)} style={styles.btnPrimaire}>
-                    <Icone name="plus" size={16} color={colors.onBrandPrimary} />
-                    <Text style={styles.btnPrimaireTexte}>{t("bannieres.nouvelle")}</Text>
-                  </Pressable>
+                  peutGerer ? (
+                    <Pressable testID="btn-nouvelle-banniere" onPress={() => ouvrir(null)} style={styles.btnPrimaire}>
+                      <Icone name="plus" size={16} color={colors.onBrandPrimary} />
+                      <Text style={styles.btnPrimaireTexte}>{t("bannieres.nouvelle")}</Text>
+                    </Pressable>
+                  ) : undefined
                 }
               />
+              <BandeauLectureSeule />
               <View style={styles.consigne}>
                 <Icone name="image" size={18} color={colors.brandPrimary} />
                 <Text style={styles.consigneTexte}>

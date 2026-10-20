@@ -16,6 +16,7 @@ import time
 
 import pytest
 import requests
+from outils_auth import jeton_superadmin  # configuration : reservee au super admin
 
 BASE_URL = os.environ.get(
     "EXPO_PUBLIC_BACKEND_URL",
@@ -58,7 +59,7 @@ def taux_initial(admin_tok):
     """Sauve la valeur initiale et la restaure a la fin du test."""
     initial = requests.get(f"{API}/config", timeout=10).json()["tauxFC"]
     yield initial
-    requests.put(f"{API}/admin/config", json={"tauxFC": initial}, headers=_h(admin_tok), timeout=10)
+    requests.put(f"{API}/admin/config", json={"tauxFC": initial}, headers=_h(jeton_superadmin()), timeout=10)
 
 
 # ------------------------- BUG TAUX - lecture / ecriture / persistance / unicite -------------------------
@@ -77,7 +78,7 @@ class TestTauxAPI:
         assert isinstance(j.get("fraisLivraison"), (int, float))
 
     def test_put_admin_config_updates_and_get_reflects(self, admin_tok, taux_initial):
-        r = requests.put(f"{API}/admin/config", json={"tauxFC": 3050}, headers=_h(admin_tok), timeout=10)
+        r = requests.put(f"{API}/admin/config", json={"tauxFC": 3050}, headers=_h(jeton_superadmin()), timeout=10)
         assert r.status_code == 200, r.text
         assert r.json()["tauxFC"] == 3050
         # GET public reflete la MAJ
@@ -85,7 +86,7 @@ class TestTauxAPI:
         assert r2.status_code == 200 and r2.json()["tauxFC"] == 3050
 
     def test_put_admin_config_returns_reread_from_db(self, admin_tok, taux_initial):
-        r = requests.put(f"{API}/admin/config", json={"tauxFC": 3111}, headers=_h(admin_tok), timeout=10)
+        r = requests.put(f"{API}/admin/config", json={"tauxFC": 3111}, headers=_h(jeton_superadmin()), timeout=10)
         assert r.status_code == 200
         # la reponse doit venir de la base (donc tauxFC == valeur envoyee)
         assert r.json()["tauxFC"] == 3111
@@ -93,11 +94,11 @@ class TestTauxAPI:
         assert requests.get(f"{API}/config", timeout=10).json()["tauxFC"] == 3111
 
     def test_reject_taux_zero(self, admin_tok):
-        r = requests.put(f"{API}/admin/config", json={"tauxFC": 0}, headers=_h(admin_tok), timeout=10)
+        r = requests.put(f"{API}/admin/config", json={"tauxFC": 0}, headers=_h(jeton_superadmin()), timeout=10)
         assert r.status_code == 400
 
     def test_reject_taux_negatif(self, admin_tok):
-        r = requests.put(f"{API}/admin/config", json={"tauxFC": -5}, headers=_h(admin_tok), timeout=10)
+        r = requests.put(f"{API}/admin/config", json={"tauxFC": -5}, headers=_h(jeton_superadmin()), timeout=10)
         assert r.status_code == 400
 
     def test_put_admin_config_requires_auth(self):
@@ -117,7 +118,7 @@ class TestTauxAPI:
         jamais ecraser le taux choisi par l'admin. On evite un vrai restart du
         service, qui provoquerait des 502 pour les tests executes en parallele."""
         cible = 3050.0
-        r = requests.put(f"{API}/admin/config", json={"tauxFC": cible}, headers=_h(admin_tok), timeout=10)
+        r = requests.put(f"{API}/admin/config", json={"tauxFC": cible}, headers=_h(jeton_superadmin()), timeout=10)
         assert r.status_code == 200 and r.json()["tauxFC"] == cible
 
         from dotenv import load_dotenv
@@ -142,7 +143,7 @@ class TestTauxAPI:
 
     def test_plusieurs_put_ne_creent_pas_de_doublons(self, admin_tok, taux_initial):
         for v in (2900, 3000, 3100, 3200):
-            r = requests.put(f"{API}/admin/config", json={"tauxFC": v}, headers=_h(admin_tok), timeout=10)
+            r = requests.put(f"{API}/admin/config", json={"tauxFC": v}, headers=_h(jeton_superadmin()), timeout=10)
             assert r.status_code == 200 and r.json()["tauxFC"] == v
         # La derniere valeur est bien la seule visible
         assert requests.get(f"{API}/config", timeout=10).json()["tauxFC"] == 3200
@@ -158,7 +159,7 @@ class TestTauxAPI:
         if not mongo_url or not db_name:
             pytest.skip("MONGO_URL/DB_NAME absents de l'env local")
         for v in (2950, 3020, 3080):
-            requests.put(f"{API}/admin/config", json={"tauxFC": v}, headers=_h(admin_tok), timeout=10)
+            requests.put(f"{API}/admin/config", json={"tauxFC": v}, headers=_h(jeton_superadmin()), timeout=10)
         c = MongoClient(mongo_url)
         try:
             col = c[db_name].parametres
@@ -180,14 +181,14 @@ class TestNonRegression:
     def test_admin_zones_crud(self, admin_tok):
         # cree une zone jetable (unique)
         nom = f"TEST_ZONE_ITER12_{int(time.time())}"
-        r = requests.post(f"{API}/admin/zones", json={"commune": nom}, headers=_h(admin_tok), timeout=10)
+        r = requests.post(f"{API}/admin/zones", json={"commune": nom}, headers=_h(jeton_superadmin()), timeout=10)
         assert r.status_code in (200, 201), r.text
         # recupere l'id via la route publique /api/zones
         zones = requests.get(f"{API}/zones", timeout=10)
         assert zones.status_code == 200
         cible = next((z for z in zones.json() if z.get("commune") == nom), None)
         assert cible, "Zone TEST non trouvee apres creation"
-        rd = requests.delete(f"{API}/admin/zones/{cible['id']}", headers=_h(admin_tok), timeout=10)
+        rd = requests.delete(f"{API}/admin/zones/{cible['id']}", headers=_h(jeton_superadmin()), timeout=10)
         assert rd.status_code in (200, 204)
 
     def test_admin_rapport_xlsx(self, admin_tok):

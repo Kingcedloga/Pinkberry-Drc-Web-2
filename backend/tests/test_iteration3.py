@@ -5,6 +5,7 @@ import os
 import pytest
 import requests
 from PIL import Image
+from outils_auth import jeton_superadmin  # configuration : reservee au super admin
 
 BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-drc.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
@@ -56,10 +57,10 @@ class TestPhotos:
 
     def test_upload_type_refuse(self, admin_tok):
         files = {"file": ("t.txt", b"hello", "text/plain")}
-        r = requests.post(f"{API}/admin/photos", files=files, headers=_h(admin_tok), timeout=30)
+        r = requests.post(f"{API}/admin/photos", files=files, headers=_h(jeton_superadmin()), timeout=30)
         assert r.status_code == 400
         files2 = {"file": ("t.pdf", b"%PDF-1.4 test", "application/pdf")}
-        r2 = requests.post(f"{API}/admin/photos", files=files2, headers=_h(admin_tok), timeout=30)
+        r2 = requests.post(f"{API}/admin/photos", files=files2, headers=_h(jeton_superadmin()), timeout=30)
         assert r2.status_code == 400
 
     def test_upload_trop_gros(self, admin_tok):
@@ -67,12 +68,12 @@ class TestPhotos:
         import secrets
         data = secrets.token_bytes(5 * 1024 * 1024 + 1024)  # 5Mo + 1Ko
         files = {"file": ("big.png", data, "image/png")}
-        r = requests.post(f"{API}/admin/photos", files=files, headers=_h(admin_tok), timeout=60)
+        r = requests.post(f"{API}/admin/photos", files=files, headers=_h(jeton_superadmin()), timeout=60)
         assert r.status_code == 400, f"expected 400 but got {r.status_code}: {r.text[:200]}"
 
     def test_upload_png_ok_et_lecture(self, admin_tok):
         files = {"file": ("photo.png", _png(1600, 1200), "image/png")}
-        r = requests.post(f"{API}/admin/photos", files=files, headers=_h(admin_tok), timeout=60)
+        r = requests.post(f"{API}/admin/photos", files=files, headers=_h(jeton_superadmin()), timeout=60)
         assert r.status_code == 200, f"{r.status_code} {r.text[:200]}"
         j = r.json()
         assert "id" in j and j["url"] == f"/api/fichiers/{j['id']}"
@@ -99,7 +100,7 @@ class TestPhotos:
             "garnitures": [],
             "image": j["url"],
         }
-        rp = requests.post(f"{API}/admin/produits", json=payload, headers=_h(admin_tok), timeout=15)
+        rp = requests.post(f"{API}/admin/produits", json=payload, headers=_h(jeton_superadmin()), timeout=15)
         assert rp.status_code == 200, rp.text
         prod = rp.json()
         # champ image contient une URL courte (pas de base64)
@@ -108,7 +109,7 @@ class TestPhotos:
         assert len(prod.get("image") or "") < 200
 
         # cleanup
-        requests.delete(f"{API}/admin/produits/{prod['id']}", headers=_h(admin_tok), timeout=10)
+        requests.delete(f"{API}/admin/produits/{prod['id']}", headers=_h(jeton_superadmin()), timeout=10)
 
 
 # ---------------------------------------------------------------- AUTH SESSION

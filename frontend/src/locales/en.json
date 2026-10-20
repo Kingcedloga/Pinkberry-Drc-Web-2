@@ -215,7 +215,9 @@
     "comptesSupprimes": "{{count}} account(s) deleted",
     "zonesSupprimees": "{{count}} zone(s) deleted",
     "exempleCommune": "e.g. Ngaliema",
-    "vehiculeDefaut": "Motorbike"
+    "vehiculeDefaut": "Motorbike",
+    "livreurActif": "Active",
+    "livreurInactif": "Inactive"
   },
   "archives": {
     "titre": "Archives",
@@ -556,7 +558,8 @@
     "compose": "Build your own",
     "yogourtCompose": "Build-your-own frozen yogurt",
     "yogourtComposeAide": "Size, container and toppings picked by the customer, at the prices set in “Composition”.",
-    "tauxActuel": "1 USD = {{taux}}"
+    "tauxActuel": "1 USD = {{taux}}",
+    "nonRecommande": "Not featured"
   },
   "feuilleProduit": {
     "choisirTaille": "Choose size",
@@ -1030,5 +1033,10 @@
         }
       ]
     }
+  },
+  "droits": {
+    "reserve": "Action reserved for the Super Admin",
+    "lectureSeule": "View only",
+    "lectureSeuleDetail": "Creating, editing and deleting are reserved for the Super Admin."
   }
 }

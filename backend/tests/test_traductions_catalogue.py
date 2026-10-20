@@ -7,6 +7,7 @@ import os
 import uuid
 
 import requests
+from outils_auth import entetes_superadmin
 
 BASE = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
 API = f"{BASE}/api"
@@ -41,7 +42,7 @@ def _produit(admin, **extra):
 
 
 def test_creation_complete_les_champs_vides_et_garde_la_saisie():
-    admin = _h(ADMIN_TEL, ADMIN_PWD)
+    admin = entetes_superadmin()
     _, p = _produit(admin)
     try:
         assert p["nomEn"] == "TEST English name"
@@ -57,7 +58,7 @@ def test_creation_complete_les_champs_vides_et_garde_la_saisie():
 
 
 def test_renommage_fr_invalide_la_traduction_non_modifiee():
-    admin = _h(ADMIN_TEL, ADMIN_PWD)
+    admin = entetes_superadmin()
     body, p = _produit(admin)
     try:
         maj = {
@@ -78,7 +79,7 @@ def test_renommage_fr_invalide_la_traduction_non_modifiee():
 
 
 def test_commande_copie_les_libelles_anglais():
-    admin = _h(ADMIN_TEL, ADMIN_PWD)
+    admin = entetes_superadmin()
     client = _h(CLIENT_TEL, CLIENT_PWD)
     _, p = _produit(admin)
     cmd_id = None
@@ -109,7 +110,7 @@ def test_commande_copie_les_libelles_anglais():
 
 
 def test_categories_details_et_traduction_manuelle():
-    admin = _h(ADMIN_TEL, ADMIN_PWD)
+    admin = entetes_superadmin()
     noms = requests.get(f"{API}/categories", timeout=15).json()
     assert noms[0] == "Tous"  # format historique inchange
 
@@ -130,7 +131,7 @@ def test_categories_details_et_traduction_manuelle():
 
 
 def test_sous_categories_et_prix_en_fc():
-    admin = _h(ADMIN_TEL, ADMIN_PWD)
+    admin = entetes_superadmin()
     r = requests.post(f"{API}/admin/categories", json={"nom": f"TEST_Cat {uuid.uuid4().hex[:6]}", "nomEn": "TEST Cat"},
                       headers=admin, timeout=60)
     assert r.status_code == 200, r.text

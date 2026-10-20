@@ -14,6 +14,7 @@ import os
 import uuid
 import pytest
 import requests
+from outils_auth import jeton_superadmin  # configuration : reservee au super admin
 
 BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-drc.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
@@ -77,7 +78,7 @@ class TestCreateProduitEnAvant:
             "garnitures": [],
         }
         r = requests.post(f"{API}/admin/produits", json=payload,
-                          headers={"Authorization": f"Bearer {admin_token}"}, timeout=15)
+                          headers={"Authorization": f"Bearer {jeton_superadmin()}"}, timeout=15)
         assert r.status_code == 200, r.text
         data = r.json()
         assert data["enAvant"] is False
@@ -100,7 +101,7 @@ class TestCreateProduitEnAvant:
             "garnitures": [],
         }
         r = requests.post(f"{API}/admin/produits", json=payload,
-                          headers={"Authorization": f"Bearer {admin_token}"}, timeout=15)
+                          headers={"Authorization": f"Bearer {jeton_superadmin()}"}, timeout=15)
         assert r.status_code == 200
         data = r.json()
         assert data["enAvant"] is True
@@ -114,7 +115,7 @@ class TestCreateProduitEnAvant:
     def test_zzz_cleanup_created_products(self, admin_token):
         for pid in self.__class__.created_ids:
             r = requests.delete(f"{API}/admin/produits/{pid}",
-                                headers={"Authorization": f"Bearer {admin_token}"}, timeout=15)
+                                headers={"Authorization": f"Bearer {jeton_superadmin()}"}, timeout=15)
             assert r.status_code == 200
 
 
@@ -144,7 +145,7 @@ class TestUpdateProduitEnAvant:
             "garnitures": candidat.get("garnitures", []),
         }
         r = requests.put(f"{API}/admin/produits/{pid}", json=payload,
-                         headers={"Authorization": f"Bearer {admin_token}"}, timeout=15)
+                         headers={"Authorization": f"Bearer {jeton_superadmin()}"}, timeout=15)
         assert r.status_code == 200, r.text
         assert r.json()["enAvant"] is True
 
@@ -156,7 +157,7 @@ class TestUpdateProduitEnAvant:
         # toggle OFF and verify
         payload["enAvant"] = False
         r = requests.put(f"{API}/admin/produits/{pid}", json=payload,
-                         headers={"Authorization": f"Bearer {admin_token}"}, timeout=15)
+                         headers={"Authorization": f"Bearer {jeton_superadmin()}"}, timeout=15)
         assert r.status_code == 200
         assert r.json()["enAvant"] is False
 
@@ -167,7 +168,7 @@ class TestUpdateProduitEnAvant:
         # restore original state (was False anyway, keep coherent name/prix)
         payload["enAvant"] = bool(original.get("enAvant", False))
         r = requests.put(f"{API}/admin/produits/{pid}", json=payload,
-                         headers={"Authorization": f"Bearer {admin_token}"}, timeout=15)
+                         headers={"Authorization": f"Bearer {jeton_superadmin()}"}, timeout=15)
         assert r.status_code == 200
 
 
@@ -219,7 +220,7 @@ class TestZZZRestauration:
                     "garnitures": actuel.get("garnitures", []),
                 }
                 r2 = requests.put(f"{API}/admin/produits/{actuel['id']}", json=payload,
-                                  headers={"Authorization": f"Bearer {admin_token}"}, timeout=15)
+                                  headers={"Authorization": f"Bearer {jeton_superadmin()}"}, timeout=15)
                 assert r2.status_code == 200
 
         # final assert : at least 1 enAvant remains

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 import pytest
 import requests
+from outils_auth import jeton_superadmin  # configuration : reservee au super admin
 
 BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-drc.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
@@ -136,7 +137,7 @@ def test_commande_refus_zone_non_couverte(client_ctx, admin_ctx):
     zone = next(z for z in requests.get(f"{API}/zones", timeout=10).json() if z["commune"] == "Masina")
     etat_initial = zone["active"]
     requests.put(f"{API}/admin/zones/{zone['id']}", json={"active": False},
-                 headers=_h(admin_ctx["tok"]), timeout=10)
+                 headers=_h(jeton_superadmin()), timeout=10)
     try:
         body = _cmd_payload(client_ctx["prods"], commune="Masina")
         r = requests.post(f"{API}/commandes", json=body, headers=_h(client_ctx["tok"]), timeout=15)
@@ -144,7 +145,7 @@ def test_commande_refus_zone_non_couverte(client_ctx, admin_ctx):
         assert "Masina" in r.text
     finally:
         requests.put(f"{API}/admin/zones/{zone['id']}", json={"active": etat_initial},
-                     headers=_h(admin_ctx["tok"]), timeout=10)
+                     headers=_h(jeton_superadmin()), timeout=10)
 
 
 def test_commande_gombe_success(client_ctx):
@@ -200,13 +201,13 @@ def test_admin_commandes_and_stats(admin_ctx):
 def test_admin_produit_crud(admin_ctx):
     payload = {"nom": "TEST Sorbet", "categorie": "Pots de crème", "prix": 3.5,
                "emoji": "🍧", "description": "test", "tailles": [], "garnitures": []}
-    r = requests.post(f"{API}/admin/produits", json=payload, headers=_h(admin_ctx["tok"]), timeout=15)
+    r = requests.post(f"{API}/admin/produits", json=payload, headers=_h(jeton_superadmin()), timeout=15)
     assert r.status_code == 200, r.text
     pid = r.json()["id"]
     payload["prix"] = 4.0
-    r2 = requests.put(f"{API}/admin/produits/{pid}", json=payload, headers=_h(admin_ctx["tok"]), timeout=10)
+    r2 = requests.put(f"{API}/admin/produits/{pid}", json=payload, headers=_h(jeton_superadmin()), timeout=10)
     assert r2.status_code == 200 and r2.json()["prix"] == 4.0
-    r3 = requests.delete(f"{API}/admin/produits/{pid}", headers=_h(admin_ctx["tok"]), timeout=10)
+    r3 = requests.delete(f"{API}/admin/produits/{pid}", headers=_h(jeton_superadmin()), timeout=10)
     assert r3.status_code == 200
 
 
@@ -214,11 +215,11 @@ def test_admin_zone_toggle(admin_ctx):
     zones = requests.get(f"{API}/zones", timeout=10).json()
     masina = next(z for z in zones if z["commune"] == "Masina")
     r = requests.put(f"{API}/admin/zones/{masina['id']}", json={"active": True},
-                     headers=_h(admin_ctx["tok"]), timeout=10)
+                     headers=_h(jeton_superadmin()), timeout=10)
     assert r.status_code == 200 and r.json()["active"] is True
     # revert
     r2 = requests.put(f"{API}/admin/zones/{masina['id']}", json={"active": False},
-                      headers=_h(admin_ctx["tok"]), timeout=10)
+                      headers=_h(jeton_superadmin()), timeout=10)
     assert r2.status_code == 200 and r2.json()["active"] is False
 
 
@@ -242,7 +243,7 @@ def test_admin_livreurs_and_assign(admin_ctx, client_ctx):
 
 
 def test_admin_livreur_create_update(admin_ctx):
-    """POST /admin/livreurs is superadmin-only (iter6); PUT reste admin."""
+    """Creation, modification et suppression de livreurs : reservees au super admin."""
     super_tok = _forge_super_token()
     tel = f"082{int(time.time())%1_000_000:06d}"
     payload = {"nom": "TEST Coursier", "telephone": tel, "vehicule": "Vélo",
@@ -256,7 +257,7 @@ def test_admin_livreur_create_update(admin_ctx):
     lv_id = r.json()["id"]
     try:
         payload["vehicule"] = "Moto"
-        r2 = requests.put(f"{API}/admin/livreurs/{lv_id}", json=payload, headers=_h(admin_ctx["tok"]), timeout=10)
+        r2 = requests.put(f"{API}/admin/livreurs/{lv_id}", json=payload, headers=_h(jeton_superadmin()), timeout=10)
         assert r2.status_code == 200 and r2.json()["vehicule"] == "Moto"
     finally:
         requests.delete(f"{API}/admin/livreurs/{lv_id}", headers=_h(super_tok), timeout=10)

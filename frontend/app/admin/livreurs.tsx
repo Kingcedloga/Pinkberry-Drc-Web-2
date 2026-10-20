@@ -8,10 +8,10 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
-import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { TitrePage } from "@/src/components/TitrePage";
+import { BandeauLectureSeule, useDroits } from "@/src/droits";
 import { useLangue } from "@/src/i18n";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -26,8 +26,8 @@ export default function Livreurs() {
   const toast = useToast();
   const { t } = useLangue();
   const qc = useQueryClient();
-  const { user } = useAuth();
-  const estSuper = user?.role === "superadmin";
+  // Admin : consultation seule ; création, modification et suppression réservées au super admin (serveur : 403).
+  const { peutGerer: estSuper, exiger } = useDroits();
   const q = useQuery({
     queryKey: ["admin-livreurs"],
     queryFn: () => apiFetch<any[]>("/admin/livreurs"),
@@ -44,6 +44,7 @@ export default function Livreurs() {
   const [motDePasse, setMotDePasse] = useState("livreur123");
 
   const ajouter = async () => {
+    if (!exiger()) return;
     if (!nom.trim() || telephone.trim().length < 9) {
       toast.show(t("admin.nomTelephoneRequis"), "erreur");
       return;
@@ -65,6 +66,7 @@ export default function Livreurs() {
   };
 
   const basculerActif = async (l: any, actif: boolean) => {
+    if (!exiger()) return;
     try {
       await apiFetch(`/admin/livreurs/${l.id}`, {
         method: "PUT",
@@ -77,6 +79,7 @@ export default function Livreurs() {
   };
 
   const supprimerSelection = async () => {
+    if (!exiger()) return;
     try {
       const count = selection.selectedIds.length;
       await apiFetch("/admin/livreurs/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
@@ -105,6 +108,7 @@ export default function Livreurs() {
             ) : null
           }
         />
+        <BandeauLectureSeule />
       </View>
 
       {q.isLoading ? (
@@ -152,12 +156,18 @@ export default function Livreurs() {
                   </Text>
                 </View>
               </View>
-              <Switch
-                testID={`switch-livreur-${item.nom}`}
-                value={item.actif}
-                onValueChange={(v) => basculerActif(item, v)}
-                trackColor={{ true: colors.success, false: colors.border }}
-              />
+              {estSuper ? (
+                <Switch
+                  testID={`switch-livreur-${item.nom}`}
+                  value={item.actif}
+                  onValueChange={(v) => basculerActif(item, v)}
+                  trackColor={{ true: colors.success, false: colors.border }}
+                />
+              ) : (
+                <Text testID={`etat-livreur-${item.nom}`} style={[styles.etat, { color: item.actif ? colors.success : colors.muted }]}>
+                  {item.actif ? t("admin.livreurActif") : t("admin.livreurInactif")}
+                </Text>
+              )}
             </View>
             )
           }
@@ -216,7 +226,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
   liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.md },
-  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
+  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl, gap: spacing.md },
   rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
   carteGrille: { flex: 1 },
   btnPrimaire: {
@@ -255,6 +265,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   detail: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   posRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   pos: { fontFamily: fonts.text, fontSize: 11, color: colors.brandPrimary },
+  etat: { fontFamily: fonts.text, fontSize: 12, fontWeight: "800" },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {
     ...LARGEUR_FEUILLE,

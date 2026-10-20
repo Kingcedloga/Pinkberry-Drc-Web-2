@@ -26,6 +26,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { useLibelle } from "@/src/catalogue-i18n";
+import { BandeauLectureSeule, useDroits } from "@/src/droits";
 import { useT } from "@/src/i18n";
 import { prix } from "@/src/money";
 import { TitrePage } from "@/src/components/TitrePage";
@@ -78,6 +79,8 @@ export default function Catalogue() {
   });
   const categories = categoriesQ.data ?? CATEGORIES_VIDES;
   const { taux, fc } = useMontant();
+  // Admin : consultation seule ; super admin : gestion complète (le serveur applique la même règle).
+  const { peutGerer, exiger } = useDroits();
 
   const [tauxOuvert, setTauxOuvert] = useState(false);
   const [tauxTexte, setTauxTexte] = useState("");
@@ -151,6 +154,7 @@ export default function Catalogue() {
   };
 
   const ouvrir = (p: any | null) => {
+    if (!exiger()) return;
     const nomCat = p?.categorie ?? categories[0]?.nom ?? "";
     setEdition(p ?? { nouveau: true });
     setNom(p?.nom ?? "");
@@ -176,6 +180,7 @@ export default function Catalogue() {
   };
 
   const choisirPhoto = async () => {
+    if (!exiger()) return;
     const actuelle = await ImagePicker.getMediaLibraryPermissionsAsync();
     let statut = actuelle.status;
     if (statut !== "granted") {
@@ -274,6 +279,7 @@ export default function Catalogue() {
   };
 
   const enregistrer = async () => {
+    if (!exiger()) return;
     const prixFC = parseFloat(prixTexte.replace(/\s/g, "").replace(",", "."));
     if (!nom.trim() || (!configurable && (isNaN(prixFC) || prixFC < 0))) {
       toast.show(t("catalogue.nomPrixRequis"), "erreur");
@@ -319,6 +325,7 @@ export default function Catalogue() {
   };
 
   const enregistrerTaux = async () => {
+    if (!exiger()) return;
     const valeur = parseFloat(tauxTexte.replace(/\s/g, "").replace(",", "."));
     if (isNaN(valeur) || valeur <= 0) {
       toast.show(t("catalogue.tauxInvalide"), "erreur");
@@ -341,6 +348,7 @@ export default function Catalogue() {
   };
 
   const ajouterCategorie = async () => {
+    if (!exiger()) return;
     const nomCat = nouvelleCat.trim();
     if (nomCat.length < 2) {
       toast.show(t("catalogue.categorieNomCourt"), "erreur");
@@ -358,6 +366,7 @@ export default function Catalogue() {
   };
 
   const enregistrerCategorieEn = async (c: CategorieAdmin) => {
+    if (!exiger()) return;
     const saisie = categoriesEn[c.id];
     if (saisie === undefined || saisie.trim() === (c.nomEn ?? "")) return;
     try {
@@ -374,6 +383,7 @@ export default function Catalogue() {
   };
 
   const enregistrerSousCategories = async (c: CategorieAdmin, liste: SousCategorie[], message: string) => {
+    if (!exiger()) return false;
     try {
       await apiFetch(`/admin/categories/${c.id}`, { method: "PUT", body: { sousCategories: liste } });
       await qc.invalidateQueries({ queryKey: ["admin-categories"] });
@@ -406,6 +416,7 @@ export default function Catalogue() {
     );
 
   const supprimerCategorie = async () => {
+    if (!exiger()) return;
     if (!catASupprimer) return;
     try {
       const r = await apiFetch<{ produitsSupprimes: number }>(`/admin/categories/${catASupprimer.id}`, {
@@ -427,6 +438,7 @@ export default function Catalogue() {
   };
 
   const supprimer = async (id: string) => {
+    if (!exiger()) return;
     try {
       await apiFetch(`/admin/produits/${id}`, { method: "DELETE" });
       qc.invalidateQueries({ queryKey: ["produits"] });
@@ -440,6 +452,7 @@ export default function Catalogue() {
   // si le serveur refuse (ex. produit à 0 FC qu'on voudrait rendre disponible).
   const [etatsEnCours, setEtatsEnCours] = useState<Set<string>>(() => new Set());
   const changerEtat = async (item: any, maj: { disponible?: boolean; enAvant?: boolean }) => {
+    if (!exiger()) return;
     if (etatsEnCours.has(item.id)) return;
     setEtatsEnCours((s) => new Set(s).add(item.id));
     qc.setQueryData<any[]>(["produits"], (liste) => liste?.map((p) => (p.id === item.id ? { ...p, ...maj } : p)));
@@ -458,6 +471,7 @@ export default function Catalogue() {
   };
 
   const changerEtatSelection = async (maj: { disponible?: boolean; enAvant?: boolean }) => {
+    if (!exiger()) return;
     try {
       const r = await apiFetch<{ updated_count: number; ignores: string[] }>("/admin/produits/bulk/etat", {
         method: "POST",
@@ -476,8 +490,9 @@ export default function Catalogue() {
       <Pressable
         testID={`btn-etat-disponible-${item.nom}`}
         accessibilityRole="switch"
-        accessibilityState={{ checked: !!item.disponible }}
+        accessibilityState={{ checked: !!item.disponible, disabled: !peutGerer }}
         accessibilityLabel={t("catalogue.disponible")}
+        disabled={!peutGerer}
         onPress={() => changerEtat(item, { disponible: !item.disponible })}
         style={styles.badgeZone}
       >
@@ -490,14 +505,19 @@ export default function Catalogue() {
       <Pressable
         testID={`btn-etat-recommande-${item.nom}`}
         accessibilityRole="switch"
-        accessibilityState={{ checked: !!item.enAvant }}
+        accessibilityState={{ checked: !!item.enAvant, disabled: !peutGerer }}
         accessibilityLabel={t("catalogue.recommande")}
+        disabled={!peutGerer}
         onPress={() => changerEtat(item, { enAvant: !item.enAvant })}
         style={styles.badgeZone}
       >
         <View style={[styles.badge, item.enAvant ? styles.badgeRecommande : styles.badgeNeutre]}>
           <Text style={[styles.badgeTexte, { color: item.enAvant ? colors.brandPrimary : colors.muted }]}>
-            {item.enAvant ? `⭐ ${t("catalogue.recommande")}` : `☆ ${t("catalogue.recommander")}`}
+            {item.enAvant
+              ? `⭐ ${t("catalogue.recommande")}`
+              : peutGerer
+                ? `☆ ${t("catalogue.recommander")}`
+                : t("catalogue.nonRecommande")}
           </Text>
         </View>
       </Pressable>
@@ -505,6 +525,7 @@ export default function Catalogue() {
   );
 
   const supprimerSelection = async () => {
+    if (!exiger()) return;
     const count = selection.selectedIds.length;
     try {
       await apiFetch("/admin/produits/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
@@ -533,22 +554,30 @@ export default function Catalogue() {
                 <Icone name="ice-cream" size={16} color={colors.brandPrimary} />
                 <Text style={styles.btnSecondaireTexte}>{t("composition.titre")}</Text>
               </Pressable>
-              <Pressable testID="btn-gerer-categories" onPress={() => setCatsOuvert(true)} style={styles.btnSecondaire}>
-                <Icone name="grid" size={16} color={colors.brandPrimary} />
-                <Text style={styles.btnSecondaireTexte}>{t("catalogue.gererCategories")}</Text>
-              </Pressable>
-              <Pressable testID="btn-ajouter-produit" onPress={() => ouvrir(null)} style={styles.btnPrimaire}>
-                <Icone name="plus" size={16} color={colors.onBrandPrimary} />
-                <Text style={styles.btnPrimaireTexte}>{t("catalogue.nouveauProduit")}</Text>
-              </Pressable>
+              {peutGerer ? (
+                <>
+                  <Pressable testID="btn-gerer-categories" onPress={() => setCatsOuvert(true)} style={styles.btnSecondaire}>
+                    <Icone name="grid" size={16} color={colors.brandPrimary} />
+                    <Text style={styles.btnSecondaireTexte}>{t("catalogue.gererCategories")}</Text>
+                  </Pressable>
+                  <Pressable testID="btn-ajouter-produit" onPress={() => ouvrir(null)} style={styles.btnPrimaire}>
+                    <Icone name="plus" size={16} color={colors.onBrandPrimary} />
+                    <Text style={styles.btnPrimaireTexte}>{t("catalogue.nouveauProduit")}</Text>
+                  </Pressable>
+                </>
+              ) : null}
             </>
           }
         />
+        <BandeauLectureSeule />
       </View>
 
       <Pressable
         testID="banniere-taux"
+        disabled={!peutGerer}
+        accessibilityRole={peutGerer ? "button" : "text"}
         onPress={() => {
+          if (!exiger()) return;
           setTauxTexte(String(taux));
           setTauxOuvert(true);
         }}
@@ -561,7 +590,7 @@ export default function Catalogue() {
             {t("catalogue.tauxActuel", { taux: fc(taux) })}
           </Text>
         </View>
-        <Text style={styles.banniereLien}>{t("catalogue.modifier")}</Text>
+        {peutGerer ? <Text style={styles.banniereLien}>{t("catalogue.modifier")}</Text> : null}
       </Pressable>
 
       {q.isLoading ? (
@@ -578,11 +607,13 @@ export default function Catalogue() {
           onRefresh={() => q.refetch()}
           ListHeaderComponent={
             <View style={styles.outils}>
-              <SelectionHeader
-                checked={selection.allSelected}
-                onToggle={selection.toggleAll}
-                totalCount={selection.totalCount}
-              />
+              {peutGerer ? (
+                <SelectionHeader
+                  checked={selection.allSelected}
+                  onToggle={selection.toggleAll}
+                  totalCount={selection.totalCount}
+                />
+              ) : null}
               <View style={styles.rechercheWrap}>
                 <Icone name="search" size={16} color={colors.muted} />
                 <TextInput
@@ -603,7 +634,9 @@ export default function Catalogue() {
                   <Text style={[styles.celluleEntete, styles.colCategorie]}>{t("catalogue.categorie")}</Text>
                   <Text style={[styles.celluleEntete, styles.colPrix]}>{t("catalogue.prix")}</Text>
                   <Text style={[styles.celluleEntete, styles.colEtat]}>{t("catalogue.etat")}</Text>
-                  <Text style={[styles.celluleEntete, styles.colActions]}>{t("catalogue.actions")}</Text>
+                  {peutGerer ? (
+                    <Text style={[styles.celluleEntete, styles.colActions]}>{t("catalogue.actions")}</Text>
+                  ) : null}
                 </View>
               ) : null}
             </View>
@@ -611,11 +644,13 @@ export default function Catalogue() {
           renderItem={({ item }) =>
             bureau ? (
               <View testID={`admin-produit-${item.nom}`} style={styles.ligneTable}>
-                <ToggleSelection
-                  checked={selection.selectedIds.includes(item.id)}
-                  onToggle={() => selection.toggle(item.id)}
-                  testID={`selection-produit-${item.nom}`}
-                />
+                {peutGerer ? (
+                  <ToggleSelection
+                    checked={selection.selectedIds.includes(item.id)}
+                    onToggle={() => selection.toggle(item.id)}
+                    testID={`selection-produit-${item.nom}`}
+                  />
+                ) : null}
                 <View style={[styles.colProduit, styles.cellProduit]}>
                   <PhotoProduit image={item.image} taille={44} rayon={radius.md} />
                   <Text style={styles.nom} numberOfLines={1}>
@@ -630,23 +665,27 @@ export default function Catalogue() {
                   {item.configurable ? t("catalogue.compose") : prix(item.prix)}
                 </Text>
                 <View style={[styles.colEtat, styles.cellEtat]}>{badgesEtat(item)}</View>
-                <View style={[styles.colActions, styles.cellActions]}>
-                  <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
-                    <Icone name="edit-2" size={17} color={colors.brandPrimary} />
-                  </Pressable>
-                  <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
-                    <Icone name="trash-2" size={17} color={colors.error} />
-                  </Pressable>
-                </View>
+                {peutGerer ? (
+                  <View style={[styles.colActions, styles.cellActions]}>
+                    <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
+                      <Icone name="edit-2" size={17} color={colors.brandPrimary} />
+                    </Pressable>
+                    <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
+                      <Icone name="trash-2" size={17} color={colors.error} />
+                    </Pressable>
+                  </View>
+                ) : null}
               </View>
             ) : (
               <View testID={`admin-produit-${item.nom}`} style={styles.carteMobile}>
               <View style={styles.carte}>
-                <ToggleSelection
-                  checked={selection.selectedIds.includes(item.id)}
-                  onToggle={() => selection.toggle(item.id)}
-                  testID={`selection-produit-${item.nom}`}
-                />
+                {peutGerer ? (
+                  <ToggleSelection
+                    checked={selection.selectedIds.includes(item.id)}
+                    onToggle={() => selection.toggle(item.id)}
+                    testID={`selection-produit-${item.nom}`}
+                  />
+                ) : null}
                 <PhotoProduit image={item.image} taille={56} rayon={radius.md} />
                 <View style={styles.texte}>
                   <Text style={styles.nom}>{libelle(item.nom, item.nomEn)}</Text>
@@ -656,12 +695,16 @@ export default function Catalogue() {
                   </Text>
                   <Text style={styles.prix}>{item.configurable ? t("catalogue.compose") : prix(item.prix)}</Text>
                 </View>
-                <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
-                  <Icone name="edit-2" size={17} color={colors.brandPrimary} />
-                </Pressable>
-                <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
-                  <Icone name="trash-2" size={17} color={colors.error} />
-                </Pressable>
+                {peutGerer ? (
+                  <>
+                    <Pressable testID={`btn-modifier-${item.nom}`} onPress={() => ouvrir(item)} style={styles.iconeBtn}>
+                      <Icone name="edit-2" size={17} color={colors.brandPrimary} />
+                    </Pressable>
+                    <Pressable testID={`btn-supprimer-${item.nom}`} onPress={() => supprimer(item.id)} style={styles.iconeBtn}>
+                      <Icone name="trash-2" size={17} color={colors.error} />
+                    </Pressable>
+                  </>
+                ) : null}
               </View>
               {badgesEtat(item)}
               </View>
@@ -983,7 +1026,7 @@ export default function Catalogue() {
         </View>
       </Modal>
       <SelectionBar
-        selectedCount={selection.selectedIds.length}
+        selectedCount={peutGerer ? selection.selectedIds.length : 0}
         onClear={selection.clear}
         onDelete={() => setConfirmerSuppressionMultiple(true)}
         actions={[
@@ -1061,7 +1104,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   alerteTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
   liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.md },
-  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
+  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl, gap: spacing.md },
   btnSecondaire: {
     flexDirection: "row",
     alignItems: "center",

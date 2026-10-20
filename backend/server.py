@@ -119,6 +119,7 @@ ERREURS_EN: Dict[str, str] = {
     "Compte desactive": "Account disabled",
     "Acces reserve a l'administrateur": "Restricted to administrators",
     "Acces reserve au super admin": "Restricted to the super admin",
+    "Action réservée au Super Admin": "Action reserved for the Super Admin",
     "Acces reserve au livreur": "Restricted to couriers",
     "Acces refuse": "Access denied",
     "Patientez une minute avant de demander un nouveau code": "Please wait a minute before requesting a new code",
@@ -489,6 +490,20 @@ async def require_admin(user=Depends(get_current_user)) -> Dict[str, Any]:
 async def require_superadmin(user=Depends(get_current_user)) -> Dict[str, Any]:
     if user.get("role") != "superadmin":
         raise HTTPException(status_code=403, detail="Acces reserve au super admin")
+    return user
+
+
+# Hierarchie : superadmin > admin > livreur > client. La configuration (menu,
+# composition, zones, promotions, bannieres, taux, comptes) est en lecture seule
+# pour l'admin : seul le super admin cree, modifie ou supprime. L'admin garde
+# l'operationnel (commandes, assignations, suivi des livraisons, rapports).
+ACTION_RESERVEE = "Action réservée au Super Admin"
+
+
+async def require_gestion(user=Depends(get_current_user)) -> Dict[str, Any]:
+    """Toute ecriture de configuration : 403 pour un admin normal, meme par appel direct a l'API."""
+    if user.get("role") != "superadmin":
+        raise HTTPException(status_code=403, detail=ACTION_RESERVEE)
     return user
 
 
@@ -1167,7 +1182,7 @@ def compresser(brut: bytes) -> bytes:
 
 
 @api_router.post("/admin/photos")
-async def envoyer_photo(file: UploadFile = File(...), admin=Depends(require_admin)):
+async def envoyer_photo(file: UploadFile = File(...), admin=Depends(require_gestion)):
     if (file.content_type or "").lower() not in TYPES_IMAGE:
         raise HTTPException(status_code=400, detail="Formats acceptes : JPG, PNG ou WebP")
     brut = await file.read()
@@ -2381,7 +2396,7 @@ async def liste_categories(details: bool = False):
 
 
 @api_router.post("/admin/traduire")
-async def traduire(body: TraductionIn, _=Depends(require_admin)):
+async def traduire(body: TraductionIn, _=Depends(require_gestion)):
     """Pre-remplissage des champs EN du formulaire (l'admin relit avant d'enregistrer)."""
     trad = await traduire_en(body.textes)
     return {"traductions": [trad.get(_texte(t)) for t in body.textes]}
@@ -2400,7 +2415,7 @@ async def admin_categories(_=Depends(require_admin)):
 
 
 @api_router.post("/admin/categories")
-async def creer_categorie(body: CategorieIn, _=Depends(require_admin)):
+async def creer_categorie(body: CategorieIn, _=Depends(require_gestion)):
     nom = body.nom.strip()
     if len(nom) < 2:
         raise HTTPException(status_code=400, detail="Nom de categorie trop court")
@@ -2416,7 +2431,7 @@ async def creer_categorie(body: CategorieIn, _=Depends(require_admin)):
 
 
 @api_router.put("/admin/categories/{categorie_id}")
-async def modifier_categorie(categorie_id: str, body: CategorieMajIn, _=Depends(require_admin)):
+async def modifier_categorie(categorie_id: str, body: CategorieMajIn, _=Depends(require_gestion)):
     """Libelle anglais et sous-categories. Les produits d'une sous-categorie
     retiree restent dans la categorie, sans section."""
     cat = await db.categories.find_one({"id": categorie_id}, {"_id": 0})
@@ -2437,7 +2452,7 @@ async def modifier_categorie(categorie_id: str, body: CategorieMajIn, _=Depends(
 
 
 @api_router.delete("/admin/categories/{categorie_id}")
-async def supprimer_categorie(categorie_id: str, _=Depends(require_admin)):
+async def supprimer_categorie(categorie_id: str, _=Depends(require_gestion)):
     cat = await db.categories.find_one({"id": categorie_id}, {"_id": 0})
     if not cat:
         raise HTTPException(status_code=404, detail="Categorie introuvable")
@@ -2447,7 +2462,7 @@ async def supprimer_categorie(categorie_id: str, _=Depends(require_admin)):
 
 
 @api_router.post("/admin/produits")
-async def creer_produit(body: ProduitIn, _=Depends(require_admin)):
+async def creer_produit(body: ProduitIn, _=Depends(require_gestion)):
     doc = body.model_dump()
     await normaliser_produit(doc)
     await completer_traductions_produit(doc)
@@ -2457,7 +2472,7 @@ async def creer_produit(body: ProduitIn, _=Depends(require_admin)):
 
 
 @api_router.put("/admin/produits/{produit_id}")
-async def modifier_produit(produit_id: str, body: ProduitIn, _=Depends(require_admin)):
+async def modifier_produit(produit_id: str, body: ProduitIn, _=Depends(require_gestion)):
     ancien = await db.produits.find_one({"id": produit_id}, {"_id": 0})
     if not ancien:
         raise HTTPException(status_code=404, detail="Produit introuvable")
@@ -2474,7 +2489,7 @@ async def modifier_produit(produit_id: str, body: ProduitIn, _=Depends(require_a
 
 
 @api_router.delete("/admin/produits/{produit_id}")
-async def supprimer_produit(produit_id: str, _=Depends(require_admin)):
+async def supprimer_produit(produit_id: str, _=Depends(require_gestion)):
     await db.produits.delete_one({"id": produit_id})
     return {"ok": True}
 
@@ -2487,7 +2502,7 @@ def _maj_etat(body: EtatProduitIn) -> Dict[str, bool]:
 
 
 @api_router.patch("/admin/produits/{produit_id}/etat")
-async def modifier_etat_produit(produit_id: str, body: EtatProduitIn, _=Depends(require_admin)):
+async def modifier_etat_produit(produit_id: str, body: EtatProduitIn, _=Depends(require_gestion)):
     maj = _maj_etat(body)
     produit = await db.produits.find_one({"id": produit_id}, {"_id": 0})
     if not produit:
@@ -2499,7 +2514,7 @@ async def modifier_etat_produit(produit_id: str, body: EtatProduitIn, _=Depends(
 
 
 @api_router.post("/admin/produits/bulk/etat")
-async def modifier_etat_produits_bulk(body: BulkEtatIn, _=Depends(require_admin)):
+async def modifier_etat_produits_bulk(body: BulkEtatIn, _=Depends(require_gestion)):
     """Les produits a 0 FC sont laisses en rupture et listes dans `ignores`."""
     maj = _maj_etat(body)
     ids = list(dict.fromkeys(i for i in body.ids if i))
@@ -2513,7 +2528,7 @@ async def modifier_etat_produits_bulk(body: BulkEtatIn, _=Depends(require_admin)
 
 
 @api_router.delete("/admin/produits/bulk/delete")
-async def supprimer_produits_bulk(body: BulkIdsIn, _=Depends(require_admin)):
+async def supprimer_produits_bulk(body: BulkIdsIn, _=Depends(require_gestion)):
     ids = [i for i in body.ids if i]
     if not ids:
         return {"ok": True, "deleted_count": 0}
@@ -2603,7 +2618,7 @@ async def _introuvable(collection, ident: str, libelle: str) -> Dict[str, Any]:
 
 # Tailles
 @api_router.post("/admin/tailles")
-async def creer_taille(body: TailleYogourtIn, _=Depends(require_admin)):
+async def creer_taille(body: TailleYogourtIn, _=Depends(require_gestion)):
     doc = {
         "id": str(uuid.uuid4()),
         **await _libelles(body.nom, body.nomEn),
@@ -2616,7 +2631,7 @@ async def creer_taille(body: TailleYogourtIn, _=Depends(require_admin)):
 
 
 @api_router.put("/admin/tailles/{taille_id}")
-async def modifier_taille(taille_id: str, body: TailleYogourtIn, _=Depends(require_admin)):
+async def modifier_taille(taille_id: str, body: TailleYogourtIn, _=Depends(require_gestion)):
     ancien = await _introuvable(db.tailles, taille_id, "Taille")
     maj = {
         **await _libelles(body.nom, body.nomEn, ancien),
@@ -2628,7 +2643,7 @@ async def modifier_taille(taille_id: str, body: TailleYogourtIn, _=Depends(requi
 
 
 @api_router.delete("/admin/tailles/{taille_id}")
-async def supprimer_taille(taille_id: str, _=Depends(require_admin)):
+async def supprimer_taille(taille_id: str, _=Depends(require_gestion)):
     await _introuvable(db.tailles, taille_id, "Taille")
     if await db.tailles.count_documents({}) <= 1:
         raise HTTPException(status_code=400, detail="Gardez au moins une taille")
@@ -2638,7 +2653,7 @@ async def supprimer_taille(taille_id: str, _=Depends(require_admin)):
 
 # Recipients
 @api_router.post("/admin/contenants")
-async def creer_contenant(body: ContenantIn, _=Depends(require_admin)):
+async def creer_contenant(body: ContenantIn, _=Depends(require_gestion)):
     doc = {
         "id": str(uuid.uuid4()),
         **await _libelles(body.nom, body.nomEn),
@@ -2650,7 +2665,7 @@ async def creer_contenant(body: ContenantIn, _=Depends(require_admin)):
 
 
 @api_router.put("/admin/contenants/{contenant_id}")
-async def modifier_contenant(contenant_id: str, body: ContenantIn, _=Depends(require_admin)):
+async def modifier_contenant(contenant_id: str, body: ContenantIn, _=Depends(require_gestion)):
     ancien = await _introuvable(db.contenants, contenant_id, "Recipient")
     maj = {**await _libelles(body.nom, body.nomEn, ancien), "disponible": body.disponible}
     await db.contenants.update_one({"id": contenant_id}, {"$set": maj})
@@ -2658,7 +2673,7 @@ async def modifier_contenant(contenant_id: str, body: ContenantIn, _=Depends(req
 
 
 @api_router.delete("/admin/contenants/{contenant_id}")
-async def supprimer_contenant(contenant_id: str, _=Depends(require_admin)):
+async def supprimer_contenant(contenant_id: str, _=Depends(require_gestion)):
     await _introuvable(db.contenants, contenant_id, "Recipient")
     await db.contenants.delete_one({"id": contenant_id})
     return {"ok": True}
@@ -2666,7 +2681,7 @@ async def supprimer_contenant(contenant_id: str, _=Depends(require_admin)):
 
 # Categories de garnitures (liste fixe : on gere leur nom et leur disponibilite)
 @api_router.put("/admin/categories-garnitures/{categorie_id}")
-async def modifier_categorie_garnitures(categorie_id: str, body: CategorieGarnitureMajIn, _=Depends(require_admin)):
+async def modifier_categorie_garnitures(categorie_id: str, body: CategorieGarnitureMajIn, _=Depends(require_gestion)):
     ancien = await _introuvable(db.categories_garnitures, categorie_id, "Categorie de garnitures")
     maj: Dict[str, Any] = {}
     if body.nom is not None or body.nomEn is not None:
@@ -2684,7 +2699,7 @@ async def modifier_categorie_garnitures(categorie_id: str, body: CategorieGarnit
 
 # Garnitures
 @api_router.post("/admin/garnitures")
-async def creer_garniture(body: GarnitureIn, _=Depends(require_admin)):
+async def creer_garniture(body: GarnitureIn, _=Depends(require_gestion)):
     await _introuvable(db.categories_garnitures, body.categorieId, "Categorie de garnitures")
     doc = {
         "id": str(uuid.uuid4()),
@@ -2698,7 +2713,7 @@ async def creer_garniture(body: GarnitureIn, _=Depends(require_admin)):
 
 
 @api_router.put("/admin/garnitures/{garniture_id}")
-async def modifier_garniture(garniture_id: str, body: GarnitureIn, _=Depends(require_admin)):
+async def modifier_garniture(garniture_id: str, body: GarnitureIn, _=Depends(require_gestion)):
     ancien = await _introuvable(db.garnitures, garniture_id, "Garniture")
     await _introuvable(db.categories_garnitures, body.categorieId, "Categorie de garnitures")
     maj = {"categorieId": body.categorieId, **await _libelles(body.nom, body.nomEn, ancien), "disponible": body.disponible}
@@ -2707,7 +2722,7 @@ async def modifier_garniture(garniture_id: str, body: GarnitureIn, _=Depends(req
 
 
 @api_router.delete("/admin/garnitures/{garniture_id}")
-async def supprimer_garniture(garniture_id: str, _=Depends(require_admin)):
+async def supprimer_garniture(garniture_id: str, _=Depends(require_gestion)):
     await _introuvable(db.garnitures, garniture_id, "Garniture")
     await db.garnitures.delete_one({"id": garniture_id})
     return {"ok": True}
@@ -2715,7 +2730,7 @@ async def supprimer_garniture(garniture_id: str, _=Depends(require_admin)):
 
 # Regle de selection : nombre exact par categorie, en une seule requete.
 @api_router.put("/admin/regle-garnitures")
-async def modifier_regle_garnitures(body: RegleGarnituresIn, _=Depends(require_admin)):
+async def modifier_regle_garnitures(body: RegleGarnituresIn, _=Depends(require_gestion)):
     existantes = {c["id"] for c in await db.categories_garnitures.find({}, {"_id": 0, "id": 1}).to_list(50)}
     if not body.categories or not set(body.categories) <= existantes:
         raise HTTPException(status_code=400, detail="Categorie de garnitures introuvable")
@@ -2859,7 +2874,7 @@ async def admin_promotions(_=Depends(require_admin)):
 
 
 @api_router.post("/admin/promotions")
-async def creer_promotion(body: PromotionIn, _=Depends(require_admin)):
+async def creer_promotion(body: PromotionIn, _=Depends(require_gestion)):
     doc = {"id": str(uuid.uuid4()), **await _valider_promotion(body), "nombreUtilisations": 0, "createdAt": iso(now_utc())}
     await db.promotions.insert_one(dict(doc))
     await annoncer_promotion(doc)
@@ -2867,7 +2882,7 @@ async def creer_promotion(body: PromotionIn, _=Depends(require_admin)):
 
 
 @api_router.put("/admin/promotions/{promo_id}")
-async def modifier_promotion(promo_id: str, body: PromotionIn, _=Depends(require_admin)):
+async def modifier_promotion(promo_id: str, body: PromotionIn, _=Depends(require_gestion)):
     ancien = await _introuvable(db.promotions, promo_id, "Promotion")
     maj = await _valider_promotion(body, promo_id)
     if maj["nom"] != ancien["nom"] and _texte(body.nomEn) == _texte(ancien.get("nomEn")):
@@ -2879,7 +2894,7 @@ async def modifier_promotion(promo_id: str, body: PromotionIn, _=Depends(require
 
 
 @api_router.patch("/admin/promotions/{promo_id}/actif")
-async def basculer_promotion(promo_id: str, body: PromotionActifIn, _=Depends(require_admin)):
+async def basculer_promotion(promo_id: str, body: PromotionActifIn, _=Depends(require_gestion)):
     ancien = await _introuvable(db.promotions, promo_id, "Promotion")
     await db.promotions.update_one({"id": promo_id}, {"$set": {"actif": body.actif}})
     doc = {**ancien, "actif": body.actif}
@@ -2888,7 +2903,7 @@ async def basculer_promotion(promo_id: str, body: PromotionActifIn, _=Depends(re
 
 
 @api_router.delete("/admin/promotions/{promo_id}")
-async def supprimer_promotion(promo_id: str, _=Depends(require_admin)):
+async def supprimer_promotion(promo_id: str, _=Depends(require_gestion)):
     """Les commandes gardent leur copie de la promotion appliquee (historique)."""
     await _introuvable(db.promotions, promo_id, "Promotion")
     await db.promotions.delete_one({"id": promo_id})
@@ -3210,7 +3225,7 @@ async def envoyer_image_banniere(
     y: Optional[float] = Form(None),
     w: Optional[float] = Form(None),
     h: Optional[float] = Form(None),
-    admin=Depends(require_admin),
+    admin=Depends(require_gestion),
 ):
     if (file.content_type or "").lower() not in TYPES_IMAGE:
         raise HTTPException(status_code=400, detail="Formats acceptes : JPG, PNG ou WebP")
@@ -3310,7 +3325,7 @@ async def admin_bannieres(_=Depends(require_admin)):
 
 
 @api_router.post("/admin/bannieres")
-async def creer_banniere(body: BanniereIn, _=Depends(require_admin)):
+async def creer_banniere(body: BanniereIn, _=Depends(require_gestion)):
     doc = {
         "id": str(uuid.uuid4()),
         **await _valider_banniere(body),
@@ -3322,14 +3337,14 @@ async def creer_banniere(body: BanniereIn, _=Depends(require_admin)):
 
 
 @api_router.put("/admin/bannieres/ordre")
-async def ordonner_bannieres(body: OrdreIn, _=Depends(require_admin)):
+async def ordonner_bannieres(body: OrdreIn, _=Depends(require_gestion)):
     for rang, ident in enumerate(dict.fromkeys(body.ids)):
         await db.bannieres.update_one({"id": ident}, {"$set": {"ordre": rang}})
     return {"ok": True}
 
 
 @api_router.put("/admin/bannieres/{banniere_id}")
-async def modifier_banniere(banniere_id: str, body: BanniereIn, _=Depends(require_admin)):
+async def modifier_banniere(banniere_id: str, body: BanniereIn, _=Depends(require_gestion)):
     ancien = await _introuvable(db.bannieres, banniere_id, "Banniere")
     maj = await _valider_banniere(body)
     await db.bannieres.update_one({"id": banniere_id}, {"$set": maj})
@@ -3338,7 +3353,7 @@ async def modifier_banniere(banniere_id: str, body: BanniereIn, _=Depends(requir
 
 
 @api_router.patch("/admin/bannieres/{banniere_id}/actif")
-async def basculer_banniere(banniere_id: str, body: BanniereActifIn, _=Depends(require_admin)):
+async def basculer_banniere(banniere_id: str, body: BanniereActifIn, _=Depends(require_gestion)):
     ancien = await _introuvable(db.bannieres, banniere_id, "Banniere")
     await db.bannieres.update_one({"id": banniere_id}, {"$set": {"actif": body.actif}})
     doc = {**ancien, "actif": body.actif}
@@ -3346,7 +3361,7 @@ async def basculer_banniere(banniere_id: str, body: BanniereActifIn, _=Depends(r
 
 
 @api_router.delete("/admin/bannieres/{banniere_id}")
-async def supprimer_banniere(banniere_id: str, _=Depends(require_admin)):
+async def supprimer_banniere(banniere_id: str, _=Depends(require_gestion)):
     await _introuvable(db.bannieres, banniere_id, "Banniere")
     await db.bannieres.delete_one({"id": banniere_id})
     return {"ok": True}
@@ -3360,7 +3375,7 @@ async def liste_zones():
 
 
 @api_router.post("/admin/zones")
-async def creer_zone(body: ZoneCreationIn, _=Depends(require_admin)):
+async def creer_zone(body: ZoneCreationIn, _=Depends(require_gestion)):
     commune = body.commune.strip()
     if len(commune) < 2:
         raise HTTPException(status_code=400, detail="Nom de zone trop court")
@@ -3372,7 +3387,7 @@ async def creer_zone(body: ZoneCreationIn, _=Depends(require_admin)):
 
 
 @api_router.delete("/admin/zones/{zone_id}")
-async def supprimer_zone(zone_id: str, _=Depends(require_admin)):
+async def supprimer_zone(zone_id: str, _=Depends(require_gestion)):
     res = await db.zones.delete_one({"id": zone_id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Zone introuvable")
@@ -3380,7 +3395,7 @@ async def supprimer_zone(zone_id: str, _=Depends(require_admin)):
 
 
 @api_router.delete("/admin/zones/bulk/delete")
-async def supprimer_zones_bulk(body: BulkIdsIn, _=Depends(require_admin)):
+async def supprimer_zones_bulk(body: BulkIdsIn, _=Depends(require_gestion)):
     ids = [i for i in body.ids if i]
     if not ids:
         return {"ok": True, "deleted_count": 0}
@@ -3389,7 +3404,7 @@ async def supprimer_zones_bulk(body: BulkIdsIn, _=Depends(require_admin)):
 
 
 @api_router.put("/admin/zones/{zone_id}")
-async def modifier_zone(zone_id: str, body: ZoneIn, _=Depends(require_admin)):
+async def modifier_zone(zone_id: str, body: ZoneIn, _=Depends(require_gestion)):
     res = await db.zones.update_one({"id": zone_id}, {"$set": {"active": body.active}})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Zone introuvable")
@@ -3411,7 +3426,7 @@ async def admin_livreurs(_=Depends(require_admin)):
 
 
 @api_router.post("/admin/livreurs")
-async def creer_livreur(body: LivreurIn, _=Depends(require_superadmin)):
+async def creer_livreur(body: LivreurIn, _=Depends(require_gestion)):
     tel = norm_tel(body.telephone)
     doc = body.model_dump(exclude={"motDePasse"})
     doc["id"] = str(uuid.uuid4())
@@ -3438,7 +3453,7 @@ async def creer_livreur(body: LivreurIn, _=Depends(require_superadmin)):
 
 
 @api_router.put("/admin/livreurs/{livreur_id}")
-async def modifier_livreur(livreur_id: str, body: LivreurIn, _=Depends(require_admin)):
+async def modifier_livreur(livreur_id: str, body: LivreurIn, _=Depends(require_gestion)):
     doc = body.model_dump(exclude={"motDePasse"})
     doc["telephone"] = norm_tel(body.telephone)
     res = await db.livreurs.update_one({"id": livreur_id}, {"$set": doc})
@@ -3448,7 +3463,7 @@ async def modifier_livreur(livreur_id: str, body: LivreurIn, _=Depends(require_a
 
 
 @api_router.delete("/admin/livreurs/{livreur_id}")
-async def supprimer_livreur(livreur_id: str, _=Depends(require_superadmin)):
+async def supprimer_livreur(livreur_id: str, _=Depends(require_gestion)):
     en_cours = await db.commandes.find_one(
         {"livreurId": livreur_id, "statut": {"$nin": ["livree", "annulee"]}}, {"_id": 0, "id": 1}
     )
@@ -3460,7 +3475,7 @@ async def supprimer_livreur(livreur_id: str, _=Depends(require_superadmin)):
 
 
 @api_router.delete("/admin/livreurs/bulk/delete")
-async def supprimer_livreurs_bulk(body: BulkIdsIn, _=Depends(require_superadmin)):
+async def supprimer_livreurs_bulk(body: BulkIdsIn, _=Depends(require_gestion)):
     ids = list(dict.fromkeys(i for i in body.ids if i))
     if not ids:
         return {"ok": True, "deleted_count": 0}
@@ -3506,7 +3521,7 @@ async def superadmin_comptes(_=Depends(require_superadmin)):
 
 
 @api_router.post("/superadmin/admins")
-async def creer_admin(body: AdminIn, _=Depends(require_superadmin)):
+async def creer_admin(body: AdminIn, _=Depends(require_gestion)):
     tel = norm_tel(body.telephone)
     if len(tel) < 9:
         raise HTTPException(status_code=400, detail="Numero de telephone invalide")
@@ -3533,7 +3548,7 @@ async def creer_admin(body: AdminIn, _=Depends(require_superadmin)):
 
 
 @api_router.patch("/superadmin/comptes/{user_id}/actif")
-async def basculer_compte(user_id: str, body: ActifIn, _=Depends(require_superadmin)):
+async def basculer_compte(user_id: str, body: ActifIn, _=Depends(require_gestion)):
     cible = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not cible or cible.get("role") not in ("admin", "livreur"):
         raise HTTPException(status_code=404, detail="Compte introuvable")
@@ -3545,7 +3560,7 @@ async def basculer_compte(user_id: str, body: ActifIn, _=Depends(require_superad
 
 
 @api_router.delete("/superadmin/comptes/{user_id}")
-async def supprimer_compte(user_id: str, moi_meme=Depends(require_superadmin)):
+async def supprimer_compte(user_id: str, moi_meme=Depends(require_gestion)):
     if user_id == moi_meme["id"]:
         raise HTTPException(status_code=400, detail="Impossible de supprimer votre propre compte")
     cible = await db.users.find_one({"id": user_id}, {"_id": 0})
@@ -3559,7 +3574,7 @@ async def supprimer_compte(user_id: str, moi_meme=Depends(require_superadmin)):
 
 
 @api_router.delete("/superadmin/comptes/bulk/delete")
-async def supprimer_comptes_bulk(body: BulkIdsIn, moi_meme=Depends(require_superadmin)):
+async def supprimer_comptes_bulk(body: BulkIdsIn, moi_meme=Depends(require_gestion)):
     ids = list(dict.fromkeys(i for i in body.ids if i))
     if not ids:
         return {"ok": True, "deleted_count": 0}
@@ -4677,7 +4692,7 @@ async def config():
 
 
 @api_router.put("/admin/config")
-async def modifier_config(body: ConfigIn, _=Depends(require_admin)):
+async def modifier_config(body: ConfigIn, _=Depends(require_gestion)):
     if body.tauxFC <= 0:
         raise HTTPException(status_code=400, detail="Le taux doit être supérieur à zéro")
     res = await db.parametres.update_one(

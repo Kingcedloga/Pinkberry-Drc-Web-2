@@ -9,6 +9,7 @@ import { Icone } from "@/src/components/Icone";
 import { TitrePage } from "@/src/components/TitrePage";
 import type { CategorieGarnitures, Composition, Contenant, GarnitureYogourt, TailleYogourt } from "@/src/composition";
 import { useLibelle } from "@/src/catalogue-i18n";
+import { BandeauLectureSeule, useDroits } from "@/src/droits";
 import { useT } from "@/src/i18n";
 import { LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
@@ -32,8 +33,11 @@ function LigneEditable({
   onDisponible,
   onSupprimer,
   avecEtiquettes = false,
+  lectureSeule = false,
   testID,
 }: {
+  /** Admin : valeurs affichées, sans enregistrement ni suppression. */
+  lectureSeule?: boolean;
   id?: string;
   /** Libellé au-dessus de chaque champ (montants, règle) : un champ rempli n'affiche plus son placeholder. */
   avecEtiquettes?: boolean;
@@ -70,6 +74,7 @@ function LigneEditable({
             value={valeurs[c.cle] ?? ""}
             onChangeText={(v) => setValeurs((courant) => ({ ...courant, [c.cle]: v }))}
             onSubmitEditing={enregistrer}
+            editable={!lectureSeule}
             placeholder={c.libelle}
             placeholderTextColor={colors.muted}
             keyboardType={c.numerique ? "number-pad" : "default"}
@@ -83,20 +88,23 @@ function LigneEditable({
             testID={`${testID}-disponible`}
             accessibilityLabel={t("catalogue.disponible")}
             value={disponible}
+            disabled={lectureSeule}
             onValueChange={onDisponible}
             trackColor={{ true: colors.success, false: colors.border }}
           />
         ) : null}
-        <Pressable
-          testID={`${testID}-enregistrer`}
-          accessibilityLabel={nouvelle ? t("composition.ajouter") : t("commun.enregistrer")}
-          onPress={enregistrer}
-          disabled={!modifiee || envoi}
-          style={[styles.iconeBtn, styles.iconeBtnPrimaire, (!modifiee || envoi) && styles.iconeBtnInactif]}
-        >
-          <Icone name={nouvelle ? "plus" : "check"} size={16} color={colors.onBrandPrimary} />
-        </Pressable>
-        {onSupprimer ? (
+        {lectureSeule ? null : (
+          <Pressable
+            testID={`${testID}-enregistrer`}
+            accessibilityLabel={nouvelle ? t("composition.ajouter") : t("commun.enregistrer")}
+            onPress={enregistrer}
+            disabled={!modifiee || envoi}
+            style={[styles.iconeBtn, styles.iconeBtnPrimaire, (!modifiee || envoi) && styles.iconeBtnInactif]}
+          >
+            <Icone name={nouvelle ? "plus" : "check"} size={16} color={colors.onBrandPrimary} />
+          </Pressable>
+        )}
+        {onSupprimer && !lectureSeule ? (
           <Pressable
             testID={`${testID}-supprimer`}
             accessibilityLabel={t("commun.supprimer")}
@@ -129,10 +137,14 @@ export default function CompositionAdmin() {
   const libelle = useLibelle();
   const toast = useToast();
   const qc = useQueryClient();
+  // Admin : consultation seule ; le serveur refuse aussi toute écriture (403).
+  const { peutGerer, exiger } = useDroits();
+  const ls = !peutGerer;
   const q = useQuery({ queryKey: ["admin-composition"], queryFn: () => apiFetch<Composition>("/admin/composition") });
 
   // Toute modification rafraîchit la vue admin et la composition vue par les clients.
   const appeler = async (chemin: string, method: string, body?: unknown, message = t("composition.enregistre")) => {
+    if (!exiger()) return false;
     try {
       await apiFetch(chemin, { method, body });
       await qc.invalidateQueries({ queryKey: ["admin-composition"] });
@@ -201,12 +213,14 @@ export default function CompositionAdmin() {
       ) : (
         <KeyboardAwareScrollView bottomOffset={60} contentContainerStyle={styles.contenu}>
           <TitrePage titre={t("composition.titre")} sousTitre={t("composition.sousTitre")} retour="/admin/catalogue" />
+          <BandeauLectureSeule />
 
           <Section titre={t("composition.regle")} aide={t("composition.regleAide")}>
             <LigneEditable
               key={`regle-${categories.map((c) => `${c.id}:${c.nombre}`).join("-")}`}
               id="regle"
               testID="regle"
+              lectureSeule={ls}
               avecEtiquettes
               champs={champsRegle}
               initiales={valeursRegle}
@@ -233,6 +247,7 @@ export default function CompositionAdmin() {
                 key={`${x.id}-${x.nom}-${x.nomEn}-${x.prixBase}-${x.supplementGarnitures}`}
                 id={x.id}
                 testID={`taille-${x.nom}`}
+                lectureSeule={ls}
                 avecEtiquettes
                 champs={champsTaille}
                 initiales={valeursTaille(x)}
@@ -240,13 +255,15 @@ export default function CompositionAdmin() {
                 onSupprimer={() => appeler(`/admin/tailles/${x.id}`, "DELETE", undefined, t("composition.supprime"))}
               />
             ))}
-            <LigneEditable
-              testID="nouvelle-taille"
-              avecEtiquettes
-              champs={champsTaille}
-              initiales={valeursTaille()}
-              onEnregistrer={(v) => appeler("/admin/tailles", "POST", corpsTaille(v))}
-            />
+            {peutGerer ? (
+              <LigneEditable
+                testID="nouvelle-taille"
+                avecEtiquettes
+                champs={champsTaille}
+                initiales={valeursTaille()}
+                onEnregistrer={(v) => appeler("/admin/tailles", "POST", corpsTaille(v))}
+              />
+            ) : null}
           </Section>
 
           <Section titre={t("composition.contenants")} aide={t("composition.contenantsAide")}>
@@ -255,6 +272,7 @@ export default function CompositionAdmin() {
                 key={`${c.id}-${c.nom}-${c.nomEn}`}
                 id={c.id}
                 testID={`contenant-${c.nom}`}
+                lectureSeule={ls}
                 champs={champsNom}
                 initiales={{ nom: c.nom, nomEn: c.nomEn ?? "" }}
                 disponible={c.disponible}
@@ -265,12 +283,14 @@ export default function CompositionAdmin() {
                 onSupprimer={() => appeler(`/admin/contenants/${c.id}`, "DELETE", undefined, t("composition.supprime"))}
               />
             ))}
-            <LigneEditable
-              testID="nouveau-contenant"
-              champs={champsNom}
-              initiales={{ nom: "", nomEn: "" }}
-              onEnregistrer={(v) => appeler("/admin/contenants", "POST", corpsContenant(undefined, v))}
-            />
+            {peutGerer ? (
+              <LigneEditable
+                testID="nouveau-contenant"
+                champs={champsNom}
+                initiales={{ nom: "", nomEn: "" }}
+                onEnregistrer={(v) => appeler("/admin/contenants", "POST", corpsContenant(undefined, v))}
+              />
+            ) : null}
           </Section>
 
           <Section titre={t("composition.garnitures")} aide={t("composition.garnituresAide")}>
@@ -290,6 +310,7 @@ export default function CompositionAdmin() {
                       testID={`categorie-${cat.nom}-disponible`}
                       accessibilityLabel={t("catalogue.disponible")}
                       value={cat.disponible}
+                      disabled={ls}
                       onValueChange={(d) => {
                         void appeler(`/admin/categories-garnitures/${cat.id}`, "PUT", { disponible: d });
                       }}
@@ -308,6 +329,7 @@ export default function CompositionAdmin() {
                       key={`${g.id}-${g.nom}-${g.nomEn}`}
                       id={g.id}
                       testID={`garniture-${g.nom}`}
+                      lectureSeule={ls}
                       champs={champsNom}
                       initiales={{ nom: g.nom, nomEn: g.nomEn ?? "" }}
                       disponible={g.disponible}
@@ -318,15 +340,17 @@ export default function CompositionAdmin() {
                       onSupprimer={() => appeler(`/admin/garnitures/${g.id}`, "DELETE", undefined, t("composition.supprime"))}
                     />
                   ))}
-                  <LigneEditable
-                    testID={`nouvelle-garniture-${cat.nom}`}
-                    champs={[
-                      { cle: "nom", libelle: t("composition.nouvelleGarniture") },
-                      { cle: "nomEn", libelle: t("composition.nomEn") },
-                    ]}
-                    initiales={{ nom: "", nomEn: "" }}
-                    onEnregistrer={(v) => appeler("/admin/garnitures", "POST", corpsGarniture(cat, undefined, v))}
-                  />
+                  {peutGerer ? (
+                    <LigneEditable
+                      testID={`nouvelle-garniture-${cat.nom}`}
+                      champs={[
+                        { cle: "nom", libelle: t("composition.nouvelleGarniture") },
+                        { cle: "nomEn", libelle: t("composition.nomEn") },
+                      ]}
+                      initiales={{ nom: "", nomEn: "" }}
+                      onEnregistrer={(v) => appeler("/admin/garnitures", "POST", corpsGarniture(cat, undefined, v))}
+                    />
+                  ) : null}
                 </View>
               );
             })}

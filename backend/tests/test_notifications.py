@@ -10,6 +10,7 @@ import uuid
 
 import pytest
 import requests
+from outils_auth import entetes_superadmin
 
 BASE = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
 API = f"{BASE}/api"
@@ -38,8 +39,8 @@ def livreur():
 
 
 @pytest.fixture(scope="module")
-def produit(admin):
-    h, _ = admin
+def produit():
+    h = entetes_superadmin()  # creation de produit : reservee au super admin
     cat = requests.post(f"{API}/admin/categories", json={"nom": f"TEST_Notif {uuid.uuid4().hex[:6]}", "nomEn": "TEST"},
                         headers=h, timeout=60).json()
     p = requests.post(f"{API}/admin/produits", headers=h, timeout=60, json={

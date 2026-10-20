@@ -2,6 +2,7 @@ import os
 import uuid
 
 import requests
+from outils_auth import jeton_superadmin
 
 BASE = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
 API = f"{BASE}/api"
@@ -23,7 +24,7 @@ def _h(token: str):
 
 
 def test_admin_bulk_produits_delete_is_non_destructive():
-    admin = _login(ADMIN_TEL, ADMIN_PWD)
+    admin = jeton_superadmin()  # gestion du menu : reservee au super admin
     ids = [f"missing-{uuid.uuid4()}" for _ in range(2)]
 
     r = requests.delete(f"{API}/admin/produits/bulk/delete", headers=_h(admin), json={"ids": ids}, timeout=15)
@@ -32,7 +33,7 @@ def test_admin_bulk_produits_delete_is_non_destructive():
 
 
 def test_admin_bulk_zones_delete_is_non_destructive():
-    admin = _login(ADMIN_TEL, ADMIN_PWD)
+    admin = jeton_superadmin()
     ids = [f"missing-{uuid.uuid4()}" for _ in range(2)]
 
     r = requests.delete(f"{API}/admin/zones/bulk/delete", headers=_h(admin), json={"ids": ids}, timeout=15)

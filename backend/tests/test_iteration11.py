@@ -245,7 +245,7 @@ class TestZones:
         commune = f"TEST_ITER11_{uuid.uuid4().hex[:6]}"
         r = requests.post(f"{API}/admin/zones",
                           json={"commune": commune, "active": True},
-                          headers=_h(tokens["admin"]), timeout=15)
+                          headers=_h(tokens["super"]), timeout=15)
         assert r.status_code == 200, r.text
         zone_id = r.json()["id"]
 
@@ -255,43 +255,43 @@ class TestZones:
             assert any(zo["commune"] == commune for zo in z)
         finally:
             requests.delete(f"{API}/admin/zones/{zone_id}",
-                            headers=_h(tokens["admin"]), timeout=15)
+                            headers=_h(tokens["super"]), timeout=15)
 
     def test_creer_zone_nom_trop_court(self, tokens):
         r = requests.post(f"{API}/admin/zones",
                           json={"commune": "A", "active": True},
-                          headers=_h(tokens["admin"]), timeout=15)
+                          headers=_h(tokens["super"]), timeout=15)
         assert r.status_code == 400
 
     def test_creer_zone_doublon_insensible_casse(self, tokens):
         commune = f"TEST_ITER11_{uuid.uuid4().hex[:6]}"
         r = requests.post(f"{API}/admin/zones",
                           json={"commune": commune, "active": True},
-                          headers=_h(tokens["admin"]), timeout=15)
+                          headers=_h(tokens["super"]), timeout=15)
         assert r.status_code == 200
         zid = r.json()["id"]
         try:
             r2 = requests.post(f"{API}/admin/zones",
                                json={"commune": commune.upper(), "active": True},
-                               headers=_h(tokens["admin"]), timeout=15)
+                               headers=_h(tokens["super"]), timeout=15)
             assert r2.status_code == 400
             r3 = requests.post(f"{API}/admin/zones",
                                json={"commune": commune.lower(), "active": True},
-                               headers=_h(tokens["admin"]), timeout=15)
+                               headers=_h(tokens["super"]), timeout=15)
             assert r3.status_code == 400
         finally:
             requests.delete(f"{API}/admin/zones/{zid}",
-                            headers=_h(tokens["admin"]), timeout=15)
+                            headers=_h(tokens["super"]), timeout=15)
 
     def test_supprimer_zone_ok(self, tokens):
         commune = f"TEST_ITER11_{uuid.uuid4().hex[:6]}"
         r = requests.post(f"{API}/admin/zones",
                           json={"commune": commune, "active": True},
-                          headers=_h(tokens["admin"]), timeout=15)
+                          headers=_h(tokens["super"]), timeout=15)
         zid = r.json()["id"]
 
         r2 = requests.delete(f"{API}/admin/zones/{zid}",
-                             headers=_h(tokens["admin"]), timeout=15)
+                             headers=_h(tokens["super"]), timeout=15)
         assert r2.status_code == 200
 
         z = requests.get(f"{API}/zones", timeout=15).json()
@@ -299,7 +299,7 @@ class TestZones:
 
     def test_supprimer_zone_404(self, tokens):
         r = requests.delete(f"{API}/admin/zones/inexistant",
-                            headers=_h(tokens["admin"]), timeout=15)
+                            headers=_h(tokens["super"]), timeout=15)
         assert r.status_code == 404
 
     def test_rbac_zones(self, tokens):
@@ -335,7 +335,7 @@ class TestZones:
         commune = f"TEST_ITER11_{uuid.uuid4().hex[:6]}"
         r = requests.post(f"{API}/admin/zones",
                           json={"commune": commune, "active": False},
-                          headers=_h(tokens["admin"]), timeout=15)
+                          headers=_h(tokens["super"]), timeout=15)
         zid = r.json()["id"]
 
         tel, ctok, cuid = _create_test_client()
@@ -354,7 +354,7 @@ class TestZones:
             # Activer
             ru = requests.put(f"{API}/admin/zones/{zid}",
                               json={"commune": commune, "active": True},
-                              headers=_h(tokens["admin"]), timeout=15)
+                              headers=_h(tokens["super"]), timeout=15)
             assert ru.status_code == 200
 
             # Zone active -> commande accepte
@@ -363,7 +363,7 @@ class TestZones:
 
             # Supprimer zone
             rd = requests.delete(f"{API}/admin/zones/{zid}",
-                                 headers=_h(tokens["admin"]), timeout=15)
+                                 headers=_h(tokens["super"]), timeout=15)
             assert rd.status_code == 200
             zid = None
 
@@ -373,7 +373,7 @@ class TestZones:
         finally:
             if zid:
                 requests.delete(f"{API}/admin/zones/{zid}",
-                                headers=_h(tokens["admin"]), timeout=15)
+                                headers=_h(tokens["super"]), timeout=15)
             _mongo().commandes.delete_many({"userId": cuid})
             _cleanup_user(cuid)
 

@@ -215,7 +215,9 @@
     "comptesSupprimes": "{{count}} compte(s) supprimé(s)",
     "zonesSupprimees": "{{count}} zone(s) supprimée(s)",
     "exempleCommune": "Ex. Ngaliema",
-    "vehiculeDefaut": "Moto"
+    "vehiculeDefaut": "Moto",
+    "livreurActif": "Actif",
+    "livreurInactif": "Inactif"
   },
   "archives": {
     "titre": "Archives",
@@ -556,7 +558,8 @@
     "compose": "Composé",
     "yogourtCompose": "Frozen yogurt composé",
     "yogourtComposeAide": "Taille, récipient et garnitures choisis par le client, aux prix définis dans « Composition ».",
-    "tauxActuel": "1 USD = {{taux}}"
+    "tauxActuel": "1 USD = {{taux}}",
+    "nonRecommande": "Non recommandé"
   },
   "feuilleProduit": {
     "choisirTaille": "Choisir la taille",
@@ -1030,5 +1033,10 @@
         }
       ]
     }
+  },
+  "droits": {
+    "reserve": "Action réservée au Super Admin",
+    "lectureSeule": "Consultation seule",
+    "lectureSeuleDetail": "La création, la modification et la suppression sont réservées au Super Admin."
   }
 }

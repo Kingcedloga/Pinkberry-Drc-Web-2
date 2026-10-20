@@ -10,6 +10,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
 import { BulkDeleteDialog, SelectionBar, SelectionHeader, ToggleSelection, useListeSelection } from "@/src/components/ListeSelection";
+import { BandeauLectureSeule, useDroits } from "@/src/droits";
 import { useLangue } from "@/src/i18n";
 import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, completerGrille, useEcran } from "@/src/reactif";
@@ -24,6 +25,8 @@ export default function Zones() {
   const cols = large ? 3 : bureau ? 2 : 1;
   const toast = useToast();
   const { t } = useLangue();
+  // Admin : consultation seule ; le serveur refuse aussi toute écriture (403).
+  const { peutGerer, exiger } = useDroits();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["zones"], queryFn: () => apiFetch<any[]>("/zones") });
   const selection = useListeSelection((q.data ?? []).map((zone) => zone.id));
@@ -37,6 +40,7 @@ export default function Zones() {
   const rafraichir = () => qc.invalidateQueries({ queryKey: ["zones"] });
 
   const basculer = async (zone: any, valeur: boolean) => {
+    if (!exiger()) return;
     try {
       await apiFetch(`/admin/zones/${zone.id}`, { method: "PUT", body: { active: valeur } });
       rafraichir();
@@ -50,6 +54,7 @@ export default function Zones() {
   };
 
   const ajouter = async () => {
+    if (!exiger()) return;
     if (commune.trim().length < 2) {
       toast.show(t("admin.zoneNomCourt"), "erreur");
       return;
@@ -67,6 +72,7 @@ export default function Zones() {
   };
 
   const supprimer = async () => {
+    if (!exiger()) return;
     try {
       await apiFetch(`/admin/zones/${aSupprimer.id}`, { method: "DELETE" });
       rafraichir();
@@ -78,6 +84,7 @@ export default function Zones() {
   };
 
   const supprimerSelection = async () => {
+    if (!exiger()) return;
     try {
       await apiFetch("/admin/zones/bulk/delete", { method: "DELETE", body: { ids: selection.selectedIds } });
       const count = selection.selectedIds.length;
@@ -97,12 +104,15 @@ export default function Zones() {
           titre={t("admin.zonesTitre")}
           sousTitre={t("admin.zonesSousTitre")}
           actions={
-            <Pressable testID="btn-ajouter-zone" onPress={() => setOuvert(true)} style={styles.btnPrimaire}>
-              <Icone name="plus" size={16} color={colors.onBrandPrimary} />
-              <Text style={styles.btnPrimaireTexte}>{t("admin.nouvelleZone")}</Text>
-            </Pressable>
+            peutGerer ? (
+              <Pressable testID="btn-ajouter-zone" onPress={() => setOuvert(true)} style={styles.btnPrimaire}>
+                <Icone name="plus" size={16} color={colors.onBrandPrimary} />
+                <Text style={styles.btnPrimaireTexte}>{t("admin.nouvelleZone")}</Text>
+              </Pressable>
+            ) : undefined
           }
         />
+        <BandeauLectureSeule />
       </View>
 
       {q.isLoading ? (
@@ -126,38 +136,46 @@ export default function Zones() {
             </View>
           }
           ListHeaderComponent={
-            <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} totalCount={selection.totalCount} />
+            peutGerer ? (
+              <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} totalCount={selection.totalCount} />
+            ) : null
           }
           renderItem={({ item }: any) =>
             item.vide ? (
               <View style={styles.carteGrille} />
             ) : (
             <View testID={`zone-${item.commune}`} style={[styles.carte, cols > 1 && styles.carteGrille]}>
-              <ToggleSelection
-                checked={selection.selectedIds.includes(item.id)}
-                onToggle={() => selection.toggle(item.id)}
-                testID={`selection-zone-${item.commune}`}
-              />
+              {peutGerer ? (
+                <ToggleSelection
+                  checked={selection.selectedIds.includes(item.id)}
+                  onToggle={() => selection.toggle(item.id)}
+                  testID={`selection-zone-${item.commune}`}
+                />
+              ) : null}
               <View style={styles.texte}>
                 <Text style={styles.nom}>{item.commune}</Text>
                 <Text style={[styles.etat, { color: item.active ? colors.success : colors.muted }]}>
                   {item.active ? t("admin.couverte") : t("admin.nonCouverte")}
                 </Text>
               </View>
-              <Switch
-                testID={`switch-zone-${item.commune}`}
-                value={item.active}
-                onValueChange={(v) => basculer(item, v)}
-                trackColor={{ true: colors.success, false: colors.border }}
-              />
-              <Pressable
-                testID={`btn-supprimer-zone-${item.commune}`}
-                hitSlop={8}
-                onPress={() => setASupprimer(item)}
-                style={styles.corbeille}
-              >
-                <Icone name="trash-2" size={18} color={colors.error} />
-              </Pressable>
+              {peutGerer ? (
+                <>
+                  <Switch
+                    testID={`switch-zone-${item.commune}`}
+                    value={item.active}
+                    onValueChange={(v) => basculer(item, v)}
+                    trackColor={{ true: colors.success, false: colors.border }}
+                  />
+                  <Pressable
+                    testID={`btn-supprimer-zone-${item.commune}`}
+                    hitSlop={8}
+                    onPress={() => setASupprimer(item)}
+                    style={styles.corbeille}
+                  >
+                    <Icone name="trash-2" size={18} color={colors.error} />
+                  </Pressable>
+                </>
+              ) : null}
             </View>
             )
           }
@@ -219,7 +237,7 @@ export default function Zones() {
           </View>
         </View>
       </Modal>
-      <SelectionBar selectedCount={selection.selectedIds.length} onClear={selection.clear} onDelete={() => setConfirmerSuppressionMultiple(true)} />
+      <SelectionBar selectedCount={peutGerer ? selection.selectedIds.length : 0} onClear={selection.clear} onDelete={() => setConfirmerSuppressionMultiple(true)} />
       <BulkDeleteDialog
         visible={confirmerSuppressionMultiple}
         count={selection.selectedIds.length}
@@ -246,7 +264,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   sous: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
   liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.sm },
-  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
+  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl, gap: spacing.md },
   rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
   carteGrille: { flex: 1 },
   btnPrimaire: {

@@ -15,6 +15,7 @@ import time
 import uuid
 import pytest
 import requests
+from outils_auth import jeton_superadmin  # configuration : reservee au super admin
 
 
 def _read_env_file(path, key):
@@ -134,7 +135,7 @@ class TestUploadImage:
         files = {"file": ("test.png", io.BytesIO(png_1x1), "image/png")}
         r = requests.post(
             f"{API}/admin/photos",
-            headers={"Authorization": f"Bearer {admin_token}"},
+            headers={"Authorization": f"Bearer {jeton_superadmin()}"},
             files=files,
             timeout=45,
         )

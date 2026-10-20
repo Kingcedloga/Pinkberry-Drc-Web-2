@@ -21,6 +21,8 @@ import {
   CurrencyDollarIcon,
   EnvelopeIcon,
   ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  LockClosedIcon,
   EyeIcon,
   EyeSlashIcon,
   ForwardIcon,
@@ -71,6 +73,8 @@ import { colors } from "@/src/theme";
  */
 const REGISTRE = {
   "alert-circle": ExclamationCircleIcon,
+  "alert-triangle": ExclamationTriangleIcon,
+  lock: LockClosedIcon,
   archive: ArchiveBoxIcon,
   download: ArrowDownTrayIcon,
   "arrow-left": ArrowLeftIcon,

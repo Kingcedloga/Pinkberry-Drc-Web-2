@@ -11,6 +11,7 @@ import { Champ } from "@/src/components/Champ";
 import { Chargement } from "@/src/components/Chargement";
 import { Icone } from "@/src/components/Icone";
 import { TitrePage } from "@/src/components/TitrePage";
+import { BandeauLectureSeule, useDroits } from "@/src/droits";
 import { useLangue, useT, type CleTexte } from "@/src/i18n";
 import { versIso, versLocal } from "@/src/dates";
 import { Choix, Interrupteur } from "@/src/components/ChoixAdmin";
@@ -85,6 +86,8 @@ export default function PromotionsAdmin() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
+  // Admin : consultation seule ; le serveur refuse aussi toute écriture (403).
+  const { peutGerer, exiger } = useDroits();
   const q = useQuery({ queryKey: ["admin-promotions"], queryFn: () => apiFetch<Promotion[]>("/admin/promotions") });
   const categoriesQ = useQuery({
     queryKey: ["admin-categories"],
@@ -112,6 +115,7 @@ export default function PromotionsAdmin() {
   };
 
   const ouvrir = (p: Promotion | null) => {
+    if (!exiger()) return;
     setEdition(p ?? "nouvelle");
     setRechercheProduit("");
     setF(
@@ -140,6 +144,7 @@ export default function PromotionsAdmin() {
   };
 
   const enregistrer = async () => {
+    if (!exiger()) return;
     const dateDebut = versIso(f.dateDebut);
     const dateFin = versIso(f.dateFin);
     if (dateDebut === undefined || dateFin === undefined) {
@@ -180,6 +185,7 @@ export default function PromotionsAdmin() {
   };
 
   const basculer = async (p: Promotion, actif: boolean) => {
+    if (!exiger()) return;
     try {
       await apiFetch(`/admin/promotions/${p.id}/actif`, { method: "PATCH", body: { actif } });
       await rafraichir();
@@ -189,6 +195,7 @@ export default function PromotionsAdmin() {
   };
 
   const supprimer = async () => {
+    if (!exiger()) return;
     if (!aSupprimer) return;
     try {
       await apiFetch(`/admin/promotions/${aSupprimer.id}`, { method: "DELETE" });
@@ -223,15 +230,17 @@ export default function PromotionsAdmin() {
             <Text style={styles.carteTitre}>{libelle(p.nom, p.nomEn)}</Text>
             <Text style={styles.carteRemise}>{decrire(p)}</Text>
           </View>
-          <Switch
-            testID={`switch-promotion-${p.nom}`}
-            accessibilityLabel={t("promotions.actif")}
-            value={p.actif}
-            onValueChange={(v) => {
-              void basculer(p, v);
-            }}
-            trackColor={{ true: colors.success, false: colors.border }}
-          />
+          {peutGerer ? (
+            <Switch
+              testID={`switch-promotion-${p.nom}`}
+              accessibilityLabel={t("promotions.actif")}
+              value={p.actif}
+              onValueChange={(v) => {
+                void basculer(p, v);
+              }}
+              trackColor={{ true: colors.success, false: colors.border }}
+            />
+          ) : null}
         </View>
         <View style={styles.badges}>
           <Text style={[styles.badge, { backgroundColor: couleurs[statut].fond, color: couleurs[statut].texte }]}>
@@ -253,18 +262,20 @@ export default function PromotionsAdmin() {
           {p.limiteParClient ? ` · ${t("promotions.parClientCourt", { n: p.limiteParClient })}` : ""}
           {debut || fin ? ` · ${[debut ?? "…", fin ?? "…"].join(" → ")}` : ""}
         </Text>
-        <View style={styles.actions}>
-          <Pressable testID={`btn-modifier-promotion-${p.nom}`} onPress={() => ouvrir(p)} style={styles.iconeBtn}>
-            <Icone name="edit-2" size={17} color={colors.brandPrimary} />
-          </Pressable>
-          <Pressable
-            testID={`btn-supprimer-promotion-${p.nom}`}
-            onPress={() => setASupprimer(p)}
-            style={styles.iconeBtn}
-          >
-            <Icone name="trash-2" size={17} color={colors.error} />
-          </Pressable>
-        </View>
+        {peutGerer ? (
+          <View style={styles.actions}>
+            <Pressable testID={`btn-modifier-promotion-${p.nom}`} onPress={() => ouvrir(p)} style={styles.iconeBtn}>
+              <Icone name="edit-2" size={17} color={colors.brandPrimary} />
+            </Pressable>
+            <Pressable
+              testID={`btn-supprimer-promotion-${p.nom}`}
+              onPress={() => setASupprimer(p)}
+              style={styles.iconeBtn}
+            >
+              <Icone name="trash-2" size={17} color={colors.error} />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -284,16 +295,21 @@ export default function PromotionsAdmin() {
           onRefresh={() => q.refetch()}
           contentContainerStyle={styles.liste}
           ListHeaderComponent={
-            <TitrePage
-              titre={t("promotions.titre")}
-              sousTitre={t("promotions.sousTitre")}
-              actions={
-                <Pressable testID="btn-nouvelle-promotion" onPress={() => ouvrir(null)} style={styles.btnPrimaire}>
-                  <Icone name="plus" size={16} color={colors.onBrandPrimary} />
-                  <Text style={styles.btnPrimaireTexte}>{t("promotions.nouvelle")}</Text>
-                </Pressable>
-              }
-            />
+            <View style={styles.entete}>
+              <TitrePage
+                titre={t("promotions.titre")}
+                sousTitre={t("promotions.sousTitre")}
+                actions={
+                  peutGerer ? (
+                    <Pressable testID="btn-nouvelle-promotion" onPress={() => ouvrir(null)} style={styles.btnPrimaire}>
+                      <Icone name="plus" size={16} color={colors.onBrandPrimary} />
+                      <Text style={styles.btnPrimaireTexte}>{t("promotions.nouvelle")}</Text>
+                    </Pressable>
+                  ) : undefined
+                }
+              />
+              <BandeauLectureSeule />
+            </View>
           }
           ListEmptyComponent={<Text style={styles.vide}>{t("promotions.aucune")}</Text>}
         />
@@ -507,6 +523,7 @@ const styles = stylesDynamiques(() =>
     ecran: { flex: 1, backgroundColor: colors.surfaceSecondary },
     centre: { flex: 1, alignItems: "center", justifyContent: "center" },
     liste: { ...LARGEUR_LARGE, padding: spacing.xl, gap: spacing.md, paddingBottom: spacing.xxxl },
+    entete: { gap: spacing.md },
     vide: { fontFamily: fonts.text, fontSize: 14, color: colors.muted, textAlign: "center", paddingVertical: spacing.xl },
     btnPrimaire: {
       flexDirection: "row",

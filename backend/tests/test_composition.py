@@ -6,6 +6,7 @@ import uuid
 
 import pytest
 import requests
+from outils_auth import entetes_superadmin
 
 BASE = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
 API = f"{BASE}/api"
@@ -20,7 +21,8 @@ def _h(tel: str, pwd: str):
 
 @pytest.fixture(scope="module")
 def admin():
-    return _h("0810000000", "admin123")
+    # Ecritures de configuration : reservees au super admin.
+    return entetes_superadmin()
 
 
 @pytest.fixture(scope="module")
@@ -81,7 +83,9 @@ def test_composition_publique(compo):
         ("Garnitures sèches", "Dry toppings", 3), ("Fruits", "Fruits", 3),
     ]
     assert compo["regle"] == {"total": 6}
-    seches = {(g["nom"], g["nomEn"]) for g in compo["categories"][0]["garnitures"]}
+    # Noms FR / EN (vue admin : inclut les garnitures momentanement desactivees).
+    vue_admin = requests.get(f"{API}/admin/composition", headers=entetes_superadmin(), timeout=15).json()
+    seches = {(g["nom"], g["nomEn"]) for g in vue_admin["categories"][0]["garnitures"]}
     assert {("Bouchées de brownie", "Brownie bites"), ("Sauce chocolat", "Chocolate sauce"), ("Miel", "Honey")} <= seches
     assert {g["nomEn"] for g in compo["categories"][1]["garnitures"]} >= {"Pomegranate", "Blackberry"}
     assert {t["nom"] for t in compo["tailles"]} >= {"Régulière", "Moyen", "Grand"}

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 import requests
+from outils_auth import entetes_superadmin
 
 BASE = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
 API = f"{BASE}/api"
@@ -25,7 +26,8 @@ def _h(tel: str, pwd: str):
 
 @pytest.fixture(scope="module")
 def admin():
-    return _h("0810000000", "admin123")
+    # Ecritures de configuration : reservees au super admin.
+    return entetes_superadmin()
 
 
 @pytest.fixture(scope="module")

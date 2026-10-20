@@ -195,7 +195,7 @@ class TestCategoriesAdmin:
                             timeout=15).status_code == 403
 
     def test_creer_valide_puis_liste(self, tokens):
-        h = _h(tokens["admin"])
+        h = _h(tokens["super"])  # categories : reservees au super admin
         nom = f"TEST_Cat_{uuid.uuid4().hex[:6]}"
         r = requests.post(f"{API}/admin/categories", headers=h, json={"nom": nom}, timeout=15)
         assert r.status_code == 200, r.text
@@ -215,7 +215,7 @@ class TestCategoriesAdmin:
             assert r.status_code == 200
 
     def test_creer_validation_erreurs(self, tokens):
-        h = _h(tokens["admin"])
+        h = _h(tokens["super"])  # categories : reservees au super admin
         # trop court
         r = requests.post(f"{API}/admin/categories", headers=h, json={"nom": "A"}, timeout=15)
         assert r.status_code == 400
@@ -227,7 +227,7 @@ class TestCategoriesAdmin:
         assert r.status_code == 400
 
     def test_supprimer_avec_produits(self, tokens):
-        h = _h(tokens["admin"])
+        h = _h(tokens["super"])  # categories : reservees au super admin
         # créer cat de test avec produit
         nom = f"TEST_CatSupp_{uuid.uuid4().hex[:6]}"
         r = requests.post(f"{API}/admin/categories", headers=h, json={"nom": nom}, timeout=15)
@@ -252,7 +252,7 @@ class TestCategoriesAdmin:
         assert not any(c["id"] == cat_id for c in cats)
 
     def test_supprimer_404(self, tokens):
-        h = _h(tokens["admin"])
+        h = _h(tokens["super"])  # categories : reservees au super admin
         r = requests.delete(f"{API}/admin/categories/id-inexistant", headers=h, timeout=15)
         assert r.status_code == 404
 

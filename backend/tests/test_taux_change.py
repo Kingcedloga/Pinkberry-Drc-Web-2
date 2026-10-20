@@ -1,6 +1,7 @@
 """Tests for taux de change (USD -> FC) admin management (iteration 2)."""
 import os
 import requests
+from outils_auth import jeton_superadmin
 
 BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-drc.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
@@ -31,7 +32,7 @@ def test_config_public_has_taux_and_frais():
 
 
 def test_admin_update_taux_persists_via_get_config():
-    admin_tok = _login(ADMIN_TEL, ADMIN_PWD)
+    admin_tok = jeton_superadmin()  # taux : reserve au super admin
     # save current
     initial = requests.get(f"{API}/config", timeout=10).json()["tauxFC"]
     try:
@@ -49,7 +50,7 @@ def test_admin_update_taux_persists_via_get_config():
 
 
 def test_admin_reject_taux_zero_or_negative():
-    admin_tok = _login(ADMIN_TEL, ADMIN_PWD)
+    admin_tok = jeton_superadmin()  # taux : reserve au super admin
     r = requests.put(f"{API}/admin/config", json={"tauxFC": 0},
                      headers=_h(admin_tok), timeout=10)
     assert r.status_code == 400
@@ -81,7 +82,7 @@ def test_taux_seed_setoninsert_does_not_overwrite():
     """After changing taux and restarting-like effect, seed uses $setOnInsert -> should NOT overwrite.
     Simulated here by writing a value and confirming next GET returns it (seed runs at startup only,
     so we just validate the semantic that a subsequent read still reflects the update)."""
-    admin_tok = _login(ADMIN_TEL, ADMIN_PWD)
+    admin_tok = jeton_superadmin()  # taux : reserve au super admin
     initial = requests.get(f"{API}/config", timeout=10).json()["tauxFC"]
     try:
         requests.put(f"{API}/admin/config", json={"tauxFC": 3250},
@@ -95,7 +96,7 @@ def test_taux_seed_setoninsert_does_not_overwrite():
 
 def test_taux_reste_celui_de_ladmin():
     """Les tests ne doivent jamais ecraser durablement le taux choisi par l'admin."""
-    admin_tok = _login(ADMIN_TEL, ADMIN_PWD)
+    admin_tok = jeton_superadmin()  # taux : reserve au super admin
     initial = requests.get(f"{API}/config", timeout=10).json()["tauxFC"]
     requests.put(f"{API}/admin/config", json={"tauxFC": 2999},
                  headers=_h(admin_tok), timeout=10)
