@@ -572,26 +572,28 @@ export default function Catalogue() {
         <BandeauLectureSeule />
       </View>
 
-      <Pressable
-        testID="banniere-taux"
-        disabled={!peutGerer}
-        accessibilityRole={peutGerer ? "button" : "text"}
-        onPress={() => {
-          if (!exiger()) return;
-          setTauxTexte(String(taux));
-          setTauxOuvert(true);
-        }}
-        style={({ pressed }) => [styles.banniere, pressed && { backgroundColor: "#F7CFE1" }]}
-      >
-        <Icone name="repeat" size={18} color={colors.brandPrimary} />
-        <View style={styles.banniereTexte}>
-          <Text style={styles.banniereTitre}>{t("catalogue.tauxTitre")}</Text>
-          <Text testID="taux-actuel" style={styles.banniereValeur}>
-            {t("catalogue.tauxActuel", { taux: fc(taux) })}
-          </Text>
-        </View>
-        {peutGerer ? <Text style={styles.banniereLien}>{t("catalogue.modifier")}</Text> : null}
-      </Pressable>
+      <View style={styles.banniereZone}>
+        <Pressable
+          testID="banniere-taux"
+          disabled={!peutGerer}
+          accessibilityRole={peutGerer ? "button" : "text"}
+          onPress={() => {
+            if (!exiger()) return;
+            setTauxTexte(String(taux));
+            setTauxOuvert(true);
+          }}
+          style={({ pressed }) => [styles.banniere, pressed && { backgroundColor: "#F7CFE1" }]}
+        >
+          <Icone name="repeat" size={18} color={colors.brandPrimary} />
+          <View style={styles.banniereTexte}>
+            <Text style={styles.banniereTitre}>{t("catalogue.tauxTitre")}</Text>
+            <Text testID="taux-actuel" style={styles.banniereValeur}>
+              {t("catalogue.tauxActuel", { taux: fc(taux) })}
+            </Text>
+          </View>
+          {peutGerer ? <Text style={styles.banniereLien}>{t("catalogue.modifier")}</Text> : null}
+        </Pressable>
+      </View>
 
       {q.isLoading ? (
         <View style={styles.centre}>
@@ -1244,12 +1246,12 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   dialogueTexte: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   apercu: { fontFamily: fonts.display, fontSize: 15, color: colors.brandPrimary },
+  // Même largeur et mêmes marges que l'en-tête et la liste.
+  banniereZone: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingVertical: spacing.md },
   banniere: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
     backgroundColor: colors.brandTertiary,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.lg,

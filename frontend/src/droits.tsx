@@ -26,18 +26,25 @@ export function useDroits() {
   return { peutGerer, exiger };
 }
 
-/** Bandeau des pages de configuration pour un admin : consultation seule. */
+/**
+ * Notice des pages de configuration pour un admin : consultation seule.
+ * Discrète (fond de carte, fine bordure) pour ne pas se confondre avec les
+ * blocs d'information de la page ; le texte passe à la ligne sur mobile.
+ */
 export function BandeauLectureSeule() {
   const t = useT();
   const { peutGerer } = useDroits();
   if (peutGerer) return null;
   return (
     <View testID="bandeau-lecture-seule" accessibilityRole="text" style={styles.bandeau}>
-      <Icone name="lock" size={16} color={colors.brandPrimary} />
-      <View style={styles.texte}>
-        <Text style={styles.titre}>{t("droits.lectureSeule")}</Text>
-        <Text style={styles.detail}>{t("droits.lectureSeuleDetail")}</Text>
+      <View style={styles.pastille}>
+        <Icone name="lock" size={14} color={colors.brandPrimary} />
       </View>
+      <Text style={styles.texte}>
+        <Text style={styles.titre}>{t("droits.lectureSeule")}</Text>
+        <Text style={styles.separateur}>  ·  </Text>
+        {t("droits.lectureSeuleDetail")}
+      </Text>
     </View>
   );
 }
@@ -48,14 +55,23 @@ const styles = stylesDynamiques(() =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
-      padding: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    pastille: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: colors.brandTertiary,
     },
-    texte: { flex: 1, gap: 2 },
-    titre: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
-    detail: { fontFamily: fonts.text, fontSize: 12, color: colors.onSurface },
+    texte: { flex: 1, fontFamily: fonts.text, fontSize: 13, lineHeight: 19, color: colors.muted },
+    titre: { fontWeight: "800", color: colors.onSurface },
+    separateur: { color: colors.border },
   }),
 );

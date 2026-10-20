@@ -226,7 +226,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   centre: { alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxxl },
   liste: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.md },
-  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl, gap: spacing.md },
+  enteteWeb: { ...LARGEUR_LARGE, paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md, gap: spacing.md },
   rangeeGrille: { gap: spacing.md, alignItems: "stretch" },
   carteGrille: { flex: 1 },
   btnPrimaire: {
