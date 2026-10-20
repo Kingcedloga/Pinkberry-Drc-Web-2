@@ -1,5 +1,4 @@
 import { File, Paths } from "expo-file-system";
-import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -14,6 +13,7 @@ import { useLangue } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useToast } from "@/src/toast";
+import { useRetour } from "@/src/retour";
 
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -49,7 +49,7 @@ export function EcranRapport({
   prefixeFichier: string;
 }) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const retour = useRetour();
   const toast = useToast();
   const { t, langue } = useLangue();
   const p = periodes();
@@ -108,7 +108,7 @@ export function EcranRapport({
   return (
     <View testID="ecran-rapports" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable testID="btn-retour-rapports" onPress={() => router.back()} style={styles.iconeBtn}>
+        <Pressable testID="btn-retour-rapports" onPress={retour} style={styles.iconeBtn}>
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>

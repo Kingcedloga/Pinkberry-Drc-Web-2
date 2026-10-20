@@ -16,6 +16,7 @@ import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } f
 import { useTheme } from "@/src/theme-contexte";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
 import { useToast } from "@/src/toast";
+import { useRetour } from "@/src/retour";
 
 /** Lien partagé aux amis : remplacé par le lien Play Store / App Store dès qu'il existe. */
 const LIEN_APP = process.env.EXPO_PUBLIC_APP_STORE_URL || process.env.EXPO_PUBLIC_BACKEND_URL || "";
@@ -92,6 +93,7 @@ export default function ParametresClient() {
   useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const retour = useRetour("/compte");
   const toast = useToast();
   const { user, deconnexion } = useAuth();
   const { prefs, langue, t, enregistrerPrefs } = useLangue();
@@ -176,7 +178,7 @@ export default function ParametresClient() {
       <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Pressable
           testID="btn-retour-parametres-client"
-          onPress={() => (vue === "menu" ? router.back() : setVue("menu"))}
+          onPress={() => (vue === "menu" ? retour() : setVue("menu"))}
           style={styles.iconeBtn}
         >
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />

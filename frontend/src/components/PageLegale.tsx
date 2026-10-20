@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,10 +8,11 @@ import { useT } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
+import { useRetour } from "@/src/retour";
 
 export function PageLegale({ document }: { document: DocumentLegal }) {
   useTheme();
-  const router = useRouter();
+  const retour = useRetour();
   const insets = useSafeAreaInsets();
   const t = useT();
   const page = useDocLegal(document);
@@ -21,7 +21,7 @@ export function PageLegale({ document }: { document: DocumentLegal }) {
   return (
     <View testID={`page-legale-${document}`} style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable testID="btn-retour-legal" onPress={() => router.back()} style={styles.retour}>
+        <Pressable testID="btn-retour-legal" onPress={retour} style={styles.retour}>
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
         <Text style={styles.marque}>{t("commun.marque")}</Text>

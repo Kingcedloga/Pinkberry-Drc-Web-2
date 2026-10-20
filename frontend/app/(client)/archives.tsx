@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,11 +14,12 @@ import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
+import { useRetour } from "@/src/retour";
 
 export default function ArchivesClient() {
   useTheme();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const retour = useRetour("/commandes");
   const toast = useToast();
   const t = useT();
   const libelle = useLibelle();
@@ -61,7 +61,7 @@ export default function ArchivesClient() {
   return (
     <View testID="ecran-archives-client" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: spacing.lg }]}>
-        <Pressable testID="btn-retour-archives-client" onPress={() => router.back()} style={styles.iconeBtn}>
+        <Pressable testID="btn-retour-archives-client" onPress={retour} style={styles.iconeBtn}>
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
         <Text style={styles.titre}>{t("commandes.archivesTitre")}</Text>

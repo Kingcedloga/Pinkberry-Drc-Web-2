@@ -14,10 +14,12 @@ import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/t
 import { useLangue } from "@/src/i18n";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
+import { useRetour } from "@/src/retour";
 
 export default function Connexion() {
   useTheme();
   const router = useRouter();
+  const retour = useRetour("/bienvenue");
   const { connexion, connexionGoogle } = useAuth();
   const { t } = useLangue();
   const toast = useToast();
@@ -95,7 +97,7 @@ export default function Connexion() {
         </Pressable>
       </KeyboardAwareScrollView>
 
-      <Pressable testID="btn-retour-connexion" onPress={() => router.back()} style={styles.retour} hitSlop={10}>
+      <Pressable testID="btn-retour-connexion" onPress={retour} style={styles.retour} hitSlop={10}>
         <Icone name="arrow-left" size={20} color={colors.onSurface} />
       </Pressable>
     </CarteAuth>

@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,11 +14,12 @@ import { LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
+import { useRetour } from "@/src/retour";
 
 export default function Archives() {
   useTheme();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const retour = useRetour("/admin");
   const toast = useToast();
   const { langue, t } = useLangue();
   const qc = useQueryClient();
@@ -74,7 +74,7 @@ export default function Archives() {
   return (
     <View testID="ecran-archives" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: spacing.lg }]}>
-        <Pressable testID="btn-retour-archives" onPress={() => router.back()} style={styles.iconeBtn}>
+        <Pressable testID="btn-retour-archives" onPress={retour} style={styles.iconeBtn}>
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>

@@ -14,11 +14,13 @@ import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
+import { useRetour } from "@/src/retour";
 
 export default function ParametresLivreur() {
   useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const retour = useRetour("/livreur");
   const toast = useToast();
   const { user, deconnexion } = useAuth();
   const { langue, t, enregistrerPrefs } = useLangue();
@@ -26,7 +28,7 @@ export default function ParametresLivreur() {
   return (
     <View testID="ecran-parametres-livreur" style={styles.ecran}>
       <View style={[styles.entete, { paddingTop: spacing.lg }]}>
-        <Pressable testID="btn-retour-parametres-livreur" onPress={() => router.back()} style={styles.iconeBtn}>
+        <Pressable testID="btn-retour-parametres-livreur" onPress={retour} style={styles.iconeBtn}>
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>

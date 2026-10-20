@@ -14,10 +14,12 @@ import { useLangue } from "@/src/i18n";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
+import { useRetour } from "@/src/retour";
 
 export default function Inscription() {
   useTheme();
   const router = useRouter();
+  const retour = useRetour("/bienvenue");
   const { inscription, connexionGoogle } = useAuth();
   const { t } = useLangue();
   const toast = useToast();
@@ -129,7 +131,7 @@ export default function Inscription() {
         </Pressable>
       </KeyboardAwareScrollView>
 
-      <Pressable testID="btn-retour" onPress={() => router.back()} style={styles.retour} hitSlop={10}>
+      <Pressable testID="btn-retour" onPress={retour} style={styles.retour} hitSlop={10}>
         <Icone name="arrow-left" size={20} color={colors.onSurface} />
       </Pressable>
     </CarteAuth>

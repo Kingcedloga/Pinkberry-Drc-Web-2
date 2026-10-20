@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,6 +11,7 @@ import { useT } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
+import { useRetour } from "@/src/retour";
 
 type Etape = "formulaire" | "confirmation" | "termine";
 
@@ -24,7 +24,7 @@ type Etape = "formulaire" | "confirmation" | "termine";
 export default function SuppressionCompte() {
   useTheme();
   const t = useT();
-  const router = useRouter();
+  const retour = useRetour();
   const insets = useSafeAreaInsets();
   const { user, deconnexion } = useAuth();
   const [etape, setEtape] = useState<Etape>("formulaire");
@@ -77,8 +77,6 @@ export default function SuppressionCompte() {
       setEnvoi(false);
     }
   };
-
-  const retour = () => (router.canGoBack() ? router.back() : router.replace("/"));
 
   return (
     <View testID="page-suppression-compte" style={styles.ecran}>

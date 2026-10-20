@@ -17,6 +17,7 @@ import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useToast } from "@/src/toast";
+import { useRetour } from "@/src/retour";
 
 /** Point d'entrée central de l'administration. Ajouter un nouveau réglage =
  *  ajouter une <Section> ou une <Ligne> ci-dessous. */
@@ -62,6 +63,7 @@ export default function Parametres() {
   useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const retour = useRetour("/admin");
   const toast = useToast();
   const { user, deconnexion } = useAuth();
   const { langue, t, enregistrerPrefs } = useLangue();
@@ -114,7 +116,7 @@ export default function Parametres() {
       <View style={[styles.entete, { paddingTop: spacing.lg }]}>
         <Pressable
           testID="btn-retour-parametres"
-          onPress={() => (vue === "menu" ? router.back() : setVue("menu"))}
+          onPress={() => (vue === "menu" ? retour() : setVue("menu"))}
           style={styles.iconeBtn}
         >
           <Icone name="arrow-left" size={20} color={colors.brandPrimary} />
