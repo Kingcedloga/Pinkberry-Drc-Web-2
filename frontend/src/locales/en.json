@@ -1,14 +1,7 @@
 {
   "langue": {
-    "nom": "English",
-    "autre": "Français",
     "fr": "Français",
     "en": "English"
-  },
-  "onglet": {
-    "accueil": "Home",
-    "commandes": "Orders",
-    "compte": "Account"
   },
   "nav": {
     "menu": "Menu",
@@ -233,7 +226,6 @@
   "commun": {
     "enregistrer": "Save",
     "annuler": "Cancel",
-    "retour": "Back",
     "supprimer": "Delete",
     "archiver": "Archive",
     "desarchiver": "Unarchive",
@@ -245,7 +237,6 @@
   },
   "compte": {
     "parametres": "Settings",
-    "parametresDetail": "Language, notifications, profile",
     "mesCommandes": "My orders",
     "deconnexion": "Sign out",
     "supprimerCompte": "Delete my account",
@@ -266,7 +257,6 @@
   "params": {
     "titre": "Settings",
     "langue": "Language",
-    "autoriserNotifications": "Allow notifications in your browser",
     "theme": "Theme",
     "themeClair": "Light",
     "themeSombre": "Dark",
@@ -359,16 +349,13 @@
     "rechercher": "Search a cup, a smoothie…",
     "erreur": "Could not load the menu",
     "recharger": "Reload",
-    "recommander": "Order again",
-    "aNouveau": "Order again",
     "recommande": "Recommended",
     "recommandeAccroche": "Pinkberry favourites",
     "notreCarte": "Our menu",
     "aucunProduit": "No product in this category",
     "rupture": "Out of stock",
     "voirPanier": "View my cart",
-    "ajoute": "Added to cart",
-    "panierRempli": "Cart filled with your previous order"
+    "ajoute": "Added to cart"
   },
   "adresse": {
     "positionImpossible": "Could not get your location",
@@ -460,8 +447,6 @@
     "votreLivreur": "Your rider",
     "attenteLivreur": "A rider will be assigned in a few moments…",
     "detail": "Details",
-    "frais": "Delivery fee",
-    "total": "Total",
     "annuler": "Cancel the order",
     "annulerTitre": "Cancel the order?",
     "annulerTexte": "This cannot be undone. Your cart will not be restored.",
@@ -736,7 +721,8 @@
     "notifierClientsAide": "Notification and push to eligible customers, once, when the promotion becomes active (per their preferences).",
     "afficherBanniere": "Show in the banner",
     "afficherBanniereAide": "The code appears in the customer banner, where it can be added in one tap. Turn off for a private code shared separately.",
-    "codePrive": "Private code"
+    "codePrive": "Private code",
+    "exempleCode": "WELCOME"
   },
   "notifs": {
     "titre": "Notifications",

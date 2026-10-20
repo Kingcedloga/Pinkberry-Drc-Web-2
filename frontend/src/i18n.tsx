@@ -1,33 +1,63 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import i18n from "i18next";
+import { Platform } from "react-native";
 import { initReactI18next, useTranslation } from "react-i18next";
 
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
-import { CLE_LANGUE, CLE_THEME } from "@/src/prefs";
+import { CLE_LANGUE, CLE_LANGUE_HORS_CONNEXION, CLE_THEME } from "@/src/prefs";
 import { storage } from "@/src/utils/storage";
 import fr from "@/src/locales/fr.json";
 import en from "@/src/locales/en.json";
 
 export type Langue = "fr" | "en";
 
+const estLangue = (v: unknown): v is Langue => v === "fr" || v === "en";
+
+/**
+ * Langue du tout premier rendu, lue de façon synchrone (pas de flash FR puis
+ * EN au chargement) : choix enregistré sur cet appareil, sinon langue de
+ * l'appareil (anglais si elle commence par « en »), sinon français.
+ */
+function langueInitiale(): Langue {
+  if (Platform.OS === "web" && typeof localStorage !== "undefined") {
+    try {
+      const enregistree = JSON.parse(localStorage.getItem(CLE_LANGUE) ?? "null");
+      if (estLangue(enregistree)) return enregistree;
+    } catch {
+      /* stockage illisible : langue de l'appareil */
+    }
+  }
+  try {
+    const appareil =
+      (typeof navigator !== "undefined" && navigator.language) || Intl.DateTimeFormat().resolvedOptions().locale;
+    return appareil?.toLowerCase().startsWith("en") ? "en" : "fr";
+  } catch {
+    return "fr";
+  }
+}
+
 i18n.use(initReactI18next).init({
   resources: { fr: { translation: fr }, en: { translation: en } },
-  lng: "fr",
+  lng: langueInitiale(),
+  supportedLngs: ["fr", "en"],
   fallbackLng: "fr",
+  // Clé absente : jamais de « section.cle » brut à l'écran (le dernier segment au pire),
+  // et un avertissement en développement pour la corriger.
+  parseMissingKeyHandler: (cle) => cle.split(".").pop() ?? cle,
+  saveMissing: __DEV__,
+  missingKeyHandler: (_lngs, _ns, cle) => console.warn(`[i18n] clé manquante : ${cle}`),
+  returnEmptyString: false,
   interpolation: { escapeValue: false },
   react: { useSuspense: false },
 });
 
-// Web : <html lang> suit la langue choisie (lecteurs d'écran, traduction du navigateur).
-i18n.on("languageChanged", (lng) => {
-  if (typeof document !== "undefined") document.documentElement.lang = lng;
-});
-
-// Web : l'attribut lang de la page suit la langue (lecteurs d'écran, traduction auto).
-i18n.on("languageChanged", (l) => {
+// Web : <html lang> suit la langue (lecteurs d'écran, traduction automatique du navigateur).
+const synchroniserHtml = (l: string) => {
   if (typeof document !== "undefined") document.documentElement.lang = l;
-});
+};
+synchroniserHtml(i18n.language);
+i18n.on("languageChanged", synchroniserHtml);
 
 /**
  * Les traductions vivent dans `src/locales/{fr,en}.json` (source unique). Pour
@@ -80,48 +110,77 @@ type LangueValue = {
 
 const LangueContext = createContext<LangueValue | null>(null);
 
+/**
+ * Une seule règle de priorité pour la langue :
+ * 1. Compte connecté : ses préférences font foi, sur tous les appareils…
+ * 2. …sauf si la personne vient de choisir une langue avant de se connecter :
+ *    ce choix explicite l'emporte et est enregistré sur son compte.
+ * 3. Hors connexion : choix enregistré sur l'appareil, sinon langue de l'appareil.
+ */
 export function LangueProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [prefs, setPrefs] = useState<Preferences>(PREFS_DEFAUT);
+  const [prefs, setPrefs] = useState<Preferences>(() => ({ ...PREFS_DEFAUT, langue: i18n.language as Langue }));
+  // Les préférences du compte arrivent : la lecture locale, plus lente, ne doit plus les écraser.
+  const compteApplique = useRef(false);
 
-  // 1. Reprise immédiate du choix local (avant même la connexion).
+  const appliquerLangue = useCallback((langue: Langue) => {
+    if (i18n.language !== langue) void i18n.changeLanguage(langue);
+    void storage.setItem(CLE_LANGUE, langue);
+  }, []);
+
+  // Choix local (thème ; langue sur mobile, où le stockage ne se lit pas de façon synchrone).
   useEffect(() => {
     (async () => {
-      const locale = await storage.getItem<string>(CLE_LANGUE, "");
-      const theme = await storage.getItem<string>(CLE_THEME, "");
-      const langue = locale === "fr" || locale === "en" ? locale : "fr";
-      await i18n.changeLanguage(langue);
+      const [locale, theme] = await Promise.all([
+        storage.getItem<string>(CLE_LANGUE, ""),
+        storage.getItem<string>(CLE_THEME, ""),
+      ]);
+      if (compteApplique.current) return;
+      const langue = estLangue(locale) ? locale : (i18n.language as Langue);
+      if (i18n.language !== langue) await i18n.changeLanguage(langue);
       setPrefs((p) => ({
         ...p,
         langue,
-        theme:
-          theme === "clair" || theme === "sombre" || theme === "systeme" ? (theme as ThemeChoisi) : p.theme,
+        theme: theme === "clair" || theme === "sombre" || theme === "systeme" ? (theme as ThemeChoisi) : p.theme,
       }));
     })();
   }, []);
 
-  // 2. Les préférences du compte font foi dès qu'on connaît l'utilisateur.
+  // Compte connecté : ses préférences font foi (sauf choix fait juste avant la connexion).
   useEffect(() => {
     const distantes = (user as any)?.preferences as Preferences | undefined;
-    if (distantes) {
-      const suivantes = { ...PREFS_DEFAUT, ...distantes };
-      void i18n.changeLanguage(suivantes.langue);
-      setPrefs(suivantes);
-      storage.setItem(CLE_LANGUE, distantes.langue ?? "fr");
-      storage.setItem(CLE_THEME, distantes.theme ?? "systeme");
+    if (!distantes) {
+      compteApplique.current = false;
+      return;
     }
-  }, [user]);
+    compteApplique.current = true;
+    let suivantes: Preferences = { ...PREFS_DEFAUT, ...distantes };
+    (async () => {
+      const choixHorsConnexion = await storage.getItem<string>(CLE_LANGUE_HORS_CONNEXION, "");
+      if (estLangue(choixHorsConnexion)) {
+        void storage.removeItem(CLE_LANGUE_HORS_CONNEXION);
+        if (choixHorsConnexion !== suivantes.langue) {
+          suivantes = { ...suivantes, langue: choixHorsConnexion };
+          apiFetch("/auth/preferences", { method: "PUT", body: suivantes }).catch(() => undefined);
+        }
+      }
+      appliquerLangue(suivantes.langue);
+      setPrefs(suivantes);
+      void storage.setItem(CLE_THEME, suivantes.theme ?? "systeme");
+    })();
+  }, [user, appliquerLangue]);
 
   const enregistrerPrefs = useCallback(
     async (maj: Partial<Preferences>) => {
       const suivantes = { ...prefs, ...maj };
-      await i18n.changeLanguage(suivantes.langue);
+      appliquerLangue(suivantes.langue);
       setPrefs(suivantes);
-      await storage.setItem(CLE_LANGUE, suivantes.langue);
       await storage.setItem(CLE_THEME, suivantes.theme);
       if (user) await apiFetch("/auth/preferences", { method: "PUT", body: suivantes });
+      // Hors connexion : retenu pour l'appliquer au compte à la prochaine connexion.
+      else if (maj.langue) await storage.setItem(CLE_LANGUE_HORS_CONNEXION, maj.langue);
     },
-    [prefs, user],
+    [prefs, user, appliquerLangue],
   );
 
   const value = useMemo<LangueValue>(
@@ -143,8 +202,8 @@ export function useLangue(): LangueValue {
   return ctx;
 }
 
-/** Raccourci : `const t = useT();` puis `t("params.titre")`. */
+/** Raccourci : `const t = useT();` puis `t("params.titre")`. Fonction stable tant que la langue ne change pas. */
 export function useT() {
   const { t } = useTranslation();
-  return (cle: CleTexte, vars?: Record<string, string | number>) => String(t(cle, vars));
+  return useCallback((cle: CleTexte, vars?: Record<string, string | number>) => String(t(cle, vars)), [t]);
 }

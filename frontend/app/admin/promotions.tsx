@@ -365,7 +365,7 @@ export default function PromotionsAdmin() {
                   value={f.code}
                   onChangeText={(v) => maj({ code: v.toUpperCase().replace(/\s/g, "") })}
                   autoCapitalize="characters"
-                  placeholder="BIENVENUE"
+                  placeholder={t("promotions.exempleCode")}
                 />
               ) : null}
 

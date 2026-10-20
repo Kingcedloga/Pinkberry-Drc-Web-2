@@ -1,14 +1,7 @@
 {
   "langue": {
-    "nom": "Français",
-    "autre": "English",
     "fr": "Français",
     "en": "English"
-  },
-  "onglet": {
-    "accueil": "Accueil",
-    "commandes": "Commandes",
-    "compte": "Compte"
   },
   "nav": {
     "menu": "Menu",
@@ -233,7 +226,6 @@
   "commun": {
     "enregistrer": "Enregistrer",
     "annuler": "Annuler",
-    "retour": "Retour",
     "supprimer": "Supprimer",
     "archiver": "Archiver",
     "desarchiver": "Désarchiver",
@@ -245,7 +237,6 @@
   },
   "compte": {
     "parametres": "Paramètres",
-    "parametresDetail": "Langue, notifications, profil",
     "mesCommandes": "Mes commandes",
     "deconnexion": "Se déconnecter",
     "supprimerCompte": "Supprimer mon compte",
@@ -266,7 +257,6 @@
   "params": {
     "titre": "Paramètres",
     "langue": "Langue",
-    "autoriserNotifications": "Autorisez les notifications dans votre navigateur",
     "theme": "Thème",
     "themeClair": "Clair",
     "themeSombre": "Sombre",
@@ -359,16 +349,13 @@
     "rechercher": "Rechercher un pot, un smoothie…",
     "erreur": "Impossible de charger le catalogue",
     "recharger": "Recharger",
-    "recommander": "Recommander",
-    "aNouveau": "Commander à nouveau",
     "recommande": "Recommandé",
     "recommandeAccroche": "Les coups de cœur Pinkberry",
     "notreCarte": "Notre carte",
     "aucunProduit": "Aucun produit dans cette catégorie",
     "rupture": "En rupture",
     "voirPanier": "Voir mon panier",
-    "ajoute": "Ajouté au panier",
-    "panierRempli": "Panier rempli avec votre ancienne commande"
+    "ajoute": "Ajouté au panier"
   },
   "adresse": {
     "positionImpossible": "Impossible d'obtenir votre position",
@@ -460,8 +447,6 @@
     "votreLivreur": "Votre livreur",
     "attenteLivreur": "Un livreur vous sera assigné dans quelques instants…",
     "detail": "Détail",
-    "frais": "Frais de livraison",
-    "total": "Total",
     "annuler": "Annuler la commande",
     "annulerTitre": "Annuler la commande ?",
     "annulerTexte": "Cette action est définitive. Votre panier ne sera pas rétabli.",
@@ -736,7 +721,8 @@
     "notifierClientsAide": "Notification et push aux clients concernés, une seule fois, quand la promotion devient active (selon leurs préférences).",
     "afficherBanniere": "Afficher dans la bannière",
     "afficherBanniereAide": "Le code apparaît dans la bannière des clients, qui peuvent l'ajouter d'un geste. Désactivez pour un code privé, distribué à part.",
-    "codePrive": "Code privé"
+    "codePrive": "Code privé",
+    "exempleCode": "BIENVENUE"
   },
   "notifs": {
     "titre": "Notifications",

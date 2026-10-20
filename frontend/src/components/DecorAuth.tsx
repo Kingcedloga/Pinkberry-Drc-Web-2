@@ -4,6 +4,7 @@ import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Line, Path } from "react-native-svg";
 
+import { ChoixLangueCompact } from "@/src/components/ChoixLangueCompact";
 import { Swirl } from "@/src/components/Logo";
 import { useEcran } from "@/src/reactif";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
@@ -110,6 +111,7 @@ export function CarteAuth({ children, testID }: { children: React.ReactNode; tes
         </View>
 
         <View style={styles.panneauForm}>
+          <ChoixLangueCompact style={styles.langueBureau} />
           <View style={styles.formBoite}>{children}</View>
         </View>
       </View>
@@ -127,6 +129,9 @@ export function CarteAuth({ children, testID }: { children: React.ReactNode; tes
         ]}
       >
         {children}
+        <View style={styles.piedLangue}>
+          <ChoixLangueCompact />
+        </View>
       </View>
     </View>
   );
@@ -168,6 +173,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   visuelArguments: { gap: spacing.xs },
   visuelArgument: { fontFamily: fonts.text, fontSize: 14, color: colors.onBrandPrimary, opacity: 0.92 },
   panneauForm: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl },
+  langueBureau: { position: "absolute", top: spacing.xl, right: spacing.xl },
+  piedLangue: { alignItems: "center", paddingTop: spacing.sm, paddingBottom: spacing.md },
   formBoite: {
     width: "100%",
     maxWidth: 460,

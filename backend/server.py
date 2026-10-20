@@ -204,6 +204,7 @@ ERREURS_EN: Dict[str, str] = {
     "Chaque categorie : entre 0 et {} garnitures": "Each category: between 0 and {} toppings",
     # Promotions
     "Date invalide : debut": "Invalid start date",
+    "Date invalide : {}": "Invalid date: {}",
     "Date invalide : fin": "Invalid end date",
     "Le pourcentage doit etre compris entre 1 et 100": "The percentage must be between 1 and 100",
     "Le montant de la reduction doit etre positif": "The discount amount must be positive",
@@ -262,22 +263,109 @@ ERREURS_EN: Dict[str, str] = {
         "Turn on location (GPS) to start the delivery: the customer must be able to track their order",
     "Enregistrement du taux impossible": "Unable to save the rate",
 }
-_ERREURS_MOTIFS = [
-    (re.compile("^" + re.escape(fr).replace(r"\{\}", "(.+?)") + "$"), en)
-    for fr, en in ERREURS_EN.items()
-    if "{}" in fr
-]
+# Version francaise affichee (accents, typographie) : les messages restent ecrits
+# sans accents dans le code ; `erreur_http` choisit la langue de la requete.
+ERREURS_FR: Dict[str, str] = {
+    "Non authentifie": "Non authentifié",
+    "Session expiree": "Session expirée, reconnectez-vous",
+    "Compte desactive": "Compte désactivé",
+    "Acces reserve a l'administrateur": "Accès réservé à l'administrateur",
+    "Acces reserve au super admin": "Accès réservé au Super Admin",
+    "Acces reserve au livreur": "Accès réservé au livreur",
+    "Acces refuse": "Accès refusé",
+    "Numero de telephone invalide": "Numéro de téléphone invalide",
+    "Mot de passe trop court (6 caracteres minimum)": "Mot de passe trop court (6 caractères minimum)",
+    "Ce numero est deja utilise": "Ce numéro est déjà utilisé",
+    "Ce compte est deja verifie, connectez-vous": "Ce compte est déjà vérifié, connectez-vous",
+    "Code expire, demandez un nouveau code": "Code expiré, demandez un nouveau code",
+    "Compte desactive, contactez le super admin": "Compte désactivé, contactez le Super Admin",
+    "Telephone ou mot de passe incorrect": "Téléphone ou mot de passe incorrect",
+    "Compte non verifie, verifiez votre code": "Compte non vérifié, vérifiez votre code",
+    "Cet email est deja utilise": "Cet e-mail est déjà utilisé",
+    "Une adresse email valide est requise": "Une adresse e-mail valide est requise",
+    "Mot de passe : 6 caracteres minimum": "Mot de passe : 6 caractères minimum",
+    "Les comptes du personnel sont geres par le super admin": "Les comptes du personnel sont gérés par le Super Admin",
+    "Session Google invalide ou deja utilisee": "Session Google invalide ou déjà utilisée",
+    "Email Google introuvable": "E-mail Google introuvable",
+    "Ce numero est deja utilise par un autre compte": "Ce numéro est déjà utilisé par un autre compte",
+    "Quota de stockage epuise": "Quota de stockage épuisé",
+    "Echec de l'envoi de l'image": "Échec de l'envoi de l'image",
+    "Formats acceptes : JPG, PNG ou WebP": "Formats acceptés : JPG, PNG ou WebP",
+    "Recherche d'adresse non configuree": "Recherche d'adresse non configurée",
+    "Cartographie non configuree": "Cartographie non configurée",
+    "Coordonnees invalides": "Coordonnées invalides",
+    "Itineraire introuvable": "Itinéraire introuvable",
+    "Numero mobile money invalide (ex. 0812345678)": "Numéro mobile money invalide (ex. 0812345678)",
+    "Paiement mobile money non configure": "Paiement mobile money non configuré",
+    "Callback non signe": "Callback non signé",
+    "Parametres de signature refuses": "Paramètres de signature refusés",
+    "Cle de signature inconnue": "Clé de signature inconnue",
+    "Operateur inconnu": "Opérateur inconnu",
+    "Devise non supportee": "Devise non prise en charge",
+    "Commande deja payee": "Commande déjà payée",
+    "Paiement refuse par l'operateur": "Paiement refusé par l'opérateur",
+    "Sous-categorie inconnue pour cette categorie": "Sous-catégorie inconnue pour cette catégorie",
+    "Nom de categorie trop court": "Nom de catégorie trop court",
+    "« Tous » est un filtre reserve": "« Tous » est un filtre réservé",
+    "Cette categorie existe deja": "Cette catégorie existe déjà",
+    "Categorie introuvable": "Catégorie introuvable",
+    "Aucun changement d'etat demande": "Aucun changement d'état demandé",
+    "Recipient introuvable": "Récipient introuvable",
+    "Categorie de garnitures introuvable": "Catégorie de garnitures introuvable",
+    "Banniere introuvable": "Bannière introuvable",
+    "Chaque categorie : entre 0 et {} garnitures": "Chaque catégorie : entre 0 et {} garnitures",
+    "Date invalide : debut": "Date de début invalide",
+    "Date invalide : fin": "Date de fin invalide",
+    "Le pourcentage doit etre compris entre 1 et 100": "Le pourcentage doit être compris entre 1 et 100",
+    "Le montant de la reduction doit etre positif": "Le montant de la réduction doit être positif",
+    "Code promo : 3 a 30 lettres, chiffres, - ou _": "Code promo : 3 à 30 lettres, chiffres, - ou _",
+    "Ce code promo existe deja": "Ce code promo existe déjà",
+    "Categorie ciblee introuvable": "Catégorie ciblée introuvable",
+    "Produit cible introuvable": "Produit ciblé introuvable",
+    "La date de fin doit suivre la date de debut": "La date de fin doit suivre la date de début",
+    "Ce code promo a expire": "Ce code promo a expiré",
+    "Vous avez deja utilise ce code promo": "Vous avez déjà utilisé ce code promo",
+    "Ce code est reserve a la premiere commande": "Ce code est réservé à la première commande",
+    "Votre panier ne contient pas les produits concernes par ce code": "Votre panier ne contient pas les produits concernés par ce code",
+    "Categorie du lien introuvable": "Catégorie du lien introuvable",
+    "Cette zone existe deja": "Cette zone existe déjà",
+    "Nous ne livrons pas encore a {}": "Nous ne livrons pas encore à {}",
+    "La position GPS indiquee se trouve a {}, hors de nos zones de livraison": "La position GPS indiquée se trouve à {}, hors de nos zones de livraison",
+    "Seule une commande terminee peut etre archivee": "Seule une commande terminée peut être archivée",
+    "Cette commande ne peut plus etre annulee": "Cette commande ne peut plus être annulée",
+    "Seules les commandes livrees ou annulees peuvent etre archivees": "Seules les commandes livrées ou annulées peuvent être archivées",
+    "Commande archivee introuvable": "Commande archivée introuvable",
+    "Seule une course terminee peut etre archivee": "Seule une course terminée peut être archivée",
+    "Seules les courses terminees peuvent etre archivees": "Seules les courses terminées peuvent être archivées",
+    "La date de fin precede la date de debut": "La date de fin précède la date de début",
+}
+
+
+def _motifs(table: Dict[str, str]) -> List[tuple]:
+    return [
+        (re.compile("^" + re.escape(source).replace(r"\{\}", "(.+?)") + "$"), cible)
+        for source, cible in table.items()
+        if "{}" in source
+    ]
+
+
+_MOTIFS = {"en": (ERREURS_EN, _motifs(ERREURS_EN)), "fr": (ERREURS_FR, _motifs(ERREURS_FR))}
+
+
+def traduire_erreur(detail: str, langue: str) -> str:
+    """Message d'erreur dans la langue demandee ; inchange s'il est inconnu."""
+    table, motifs = _MOTIFS[langue]
+    if detail in table:
+        return table[detail]
+    for motif, cible in motifs:
+        m = motif.match(detail)
+        if m:
+            return cible.format(*m.groups())
+    return detail
 
 
 def erreur_en(detail: str) -> str:
-    """Version anglaise d'un message d'erreur ; inchange s'il est inconnu."""
-    if detail in ERREURS_EN:
-        return ERREURS_EN[detail]
-    for motif, en in _ERREURS_MOTIFS:
-        m = motif.match(detail)
-        if m:
-            return en.format(*m.groups())
-    return detail
+    return traduire_erreur(detail, "en")
 
 
 class ErreurApi(HTTPException):
@@ -296,8 +384,9 @@ def langue_requete(request: Request) -> str:
 @app.exception_handler(StarletteHTTPException)
 async def erreur_http(request: Request, exc: StarletteHTTPException):
     detail = exc.detail
-    if isinstance(detail, str) and langue_requete(request) == "en":
-        detail = getattr(exc, "detail_en", None) or erreur_en(detail)
+    if isinstance(detail, str):
+        langue = langue_requete(request)
+        detail = (getattr(exc, "detail_en", None) if langue == "en" else None) or traduire_erreur(detail, langue)
     return JSONResponse({"detail": detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
 
 
@@ -874,7 +963,7 @@ async def emettre_otp(tel: str) -> str:
 
 
 @api_router.post("/auth/inscription")
-async def inscription(body: InscriptionIn):
+async def inscription(body: InscriptionIn, request: Request):
     tel = norm_tel(body.telephone)
     email = (body.email or "").strip().lower()
     if len(tel) < 9:
@@ -895,6 +984,8 @@ async def inscription(body: InscriptionIn):
         "motDePasseHash": hash_pwd(body.motDePasse),
         "role": "client",
         "verifie": False,
+        # Langue de l'interface au moment de l'inscription : le compte demarre dans cette langue.
+        "preferences": {**PREFS_DEFAUT, "langue": langue_requete(request)},
         "createdAt": iso(now_utc()),
     }
     await db.users.replace_one({"telephone": tel}, doc, upsert=True)
@@ -1058,7 +1149,7 @@ async def supprimer_mon_compte(user=Depends(get_current_user)):
 
 # ------------------------------------------------------- Google Auth (Emergent)
 @api_router.post("/auth/session")
-async def auth_session(body: SessionIn):
+async def auth_session(body: SessionIn, request: Request):
     try:
         async with httpx.AsyncClient(timeout=30) as http:
             resp = await http.get(EMERGENT_AUTH_URL, headers={"X-Session-ID": body.session_id})
@@ -1086,6 +1177,7 @@ async def auth_session(body: SessionIn):
             "verifie": True,
             "google": True,
             "photo": data.get("picture"),
+            "preferences": {**PREFS_DEFAUT, "langue": langue_requete(request)},
             "createdAt": iso(now_utc()),
         }
         await db.users.insert_one(dict(user))
@@ -2768,7 +2860,7 @@ async def ligne_yogourt(p: Dict[str, Any], i: ItemIn, compo: Dict[str, Any]) -> 
     if compo["contenants"]:
         contenant = next((c for c in compo["contenants"] if c["nom"] == i.contenant), None)
         if not contenant:
-            raise ErreurApi(400, f"Recipient indisponible pour {p['nom']}", f"Container unavailable for {nom_en}")
+            raise ErreurApi(400, f"Récipient indisponible pour {p['nom']}", f"Container unavailable for {nom_en}")
     offertes = {g["id"]: {**g, "categorie": c} for c in compo["categories"] for g in c["garnitures"]}
     ids = list(dict.fromkeys(g.id or "" for g in i.garnitures))
     if any(gid not in offertes for gid in ids):
@@ -3664,7 +3756,7 @@ async def lignes_du_catalogue(items: List[ItemIn]) -> List[Dict[str, Any]]:
         if not p.get("disponible", True):
             raise ErreurApi(400, f"{p['nom']} est en rupture de stock", f"{nom_en} is out of stock")
         if not 1 <= i.quantite <= QUANTITE_MAX:
-            raise ErreurApi(400, f"Quantite invalide pour {p['nom']}", f"Invalid quantity for {nom_en}")
+            raise ErreurApi(400, f"Quantité invalide pour {p['nom']}", f"Invalid quantity for {nom_en}")
         if p.get("configurable"):
             lignes.append({
                 "produitId": p["id"],

@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ChoixLangueCompact } from "@/src/components/ChoixLangueCompact";
 import { EnteteMarque, MotifCoin, Vague } from "@/src/components/DecorAuth";
 import { Logo } from "@/src/components/Logo";
 import { useLangue } from "@/src/i18n";
@@ -58,9 +59,12 @@ export default function Bienvenue() {
         <View style={styles.enteteSite}>
           <View style={styles.enteteSiteInterieur}>
             <Logo taille={22} />
-            <Pressable testID="btn-deja-compte-entete" onPress={() => router.push("/connexion")} style={styles.lienEntete}>
-              <Text style={styles.lienEnteteTexte}>{t("auth.seConnecter")}</Text>
-            </Pressable>
+            <View style={styles.enteteDroite}>
+              <ChoixLangueCompact />
+              <Pressable testID="btn-deja-compte-entete" onPress={() => router.push("/connexion")} style={styles.lienEntete}>
+                <Text style={styles.lienEnteteTexte}>{t("auth.seConnecter")}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -126,6 +130,7 @@ export default function Bienvenue() {
         <View style={styles.bas}>
           <Text style={styles.slogan}>{t("auth.sloganMobile")}</Text>
           {actions}
+          <ChoixLangueCompact style={styles.langueMobile} />
         </View>
       </View>
     </View>
@@ -151,6 +156,8 @@ const styles = stylesDynamiques(() =>
       justifyContent: "space-between",
       paddingHorizontal: spacing.xl,
     },
+    enteteDroite: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    langueMobile: { alignSelf: "center" },
     lienEntete: {
       minHeight: 44,
       paddingHorizontal: spacing.lg,
