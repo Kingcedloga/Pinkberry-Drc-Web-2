@@ -10,6 +10,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pinkberry.drc",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Localiser votre adresse et suivre la livraison",
         "NSPhotoLibraryUsageDescription": "Ajouter les photos de vos produits au catalogue"
@@ -21,6 +25,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.emergent.commanderose.bbj4fa",
+      "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_COARSE_LOCATION",

@@ -1,4 +1,11 @@
+import { Platform } from "react-native";
 import { useTranslation } from "react-i18next";
+
+/** Adresse publique du site, pour les liens cités dans les textes (ex. suppression de compte). */
+export function adresseSite(): string {
+  if (Platform.OS === "web" && typeof window !== "undefined") return window.location.origin;
+  return (process.env.EXPO_PUBLIC_BACKEND_URL ?? "").replace(/\/$/, "");
+}
 
 /**
  * Pages légales (FR / EN) : le contenu vit dans `src/locales/{fr,en}.json`
@@ -11,5 +18,5 @@ export type DocumentLegal = "confidentialite" | "conditions";
 /** Document légal dans la langue de l'interface. */
 export function useDocLegal(document: DocumentLegal): DocLegal {
   const { t } = useTranslation();
-  return t(`legal.${document}`, { returnObjects: true }) as DocLegal;
+  return t(`legal.${document}`, { returnObjects: true, site: adresseSite() }) as DocLegal;
 }

@@ -32,11 +32,17 @@ export function setAuthToken(t: string | null) {
   authToken = t;
 }
 
-type Opts = { method?: string; body?: any };
+type Opts = {
+  method?: string;
+  body?: any;
+  /** Jeton à utiliser pour cette seule requête (sans toucher à la session de l'appareil). */
+  jeton?: string;
+};
 
 export async function apiFetch<T = any>(path: string, opts: Opts = {}): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": langue() };
-  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const jeton = opts.jeton ?? authToken;
+  if (jeton) headers.Authorization = `Bearer ${jeton}`;
   const res = await envoyer(`${BASE}/api${path}`, {
     method: opts.method ?? "GET",
     headers,

@@ -32,6 +32,15 @@ export function LiensLegaux() {
           <Text style={styles.label}>{t("params.conditions")}</Text>
           <Icone name="chevron-down" size={16} color={colors.muted} />
         </Pressable>
+        <Pressable
+          testID="ligne-suppression-compte"
+          onPress={() => router.push("/legal/suppression-compte")}
+          style={({ pressed }) => [styles.ligne, pressed && styles.lignePresse]}
+        >
+          <Icone name="trash-2" size={20} color={colors.brandPrimary} />
+          <Text style={styles.label}>{t("params.suppressionCompte")}</Text>
+          <Icone name="chevron-down" size={16} color={colors.muted} />
+        </Pressable>
       </View>
     </View>
   );

@@ -294,7 +294,8 @@
     "mdpCourt": "Password: 6 characters minimum",
     "mdpDifferent": "The two passwords do not match",
     "partageMessage": "Order your Pinkberry frozen yogurt in Kinshasa, delivered in 25 to 45 minutes!",
-    "lienCopie": "Link copied"
+    "lienCopie": "Link copied",
+    "suppressionCompte": "Account deletion"
   },
   "auth": {
     "titreConnexion": "Sign in",
@@ -859,7 +860,7 @@
   },
   "legal": {
     "majLe": "Last updated: {{date}}",
-    "date": "June 20, 2026",
+    "date": "October 20, 2026",
     "contact": "contact@pinkberrydrc.cd",
     "confidentialite": {
       "titre": "Privacy Policy",
@@ -877,7 +878,7 @@
           "paragraphes": [
             "• Identity and contact: full name, phone number, email address.",
             "• Delivery address: commune, avenue, number and the landmark you provide.",
-            "• GPS location: only when you choose to locate your address or follow an ongoing delivery. For riders, location is shared during the active delivery.",
+            "• GPS location: for customers, only when you choose to locate your address (it is saved with the delivery address). For riders, location is shared automatically and continuously during each delivery that is “on the way”, and only then.",
             "• Order history: products, sizes, toppings, amounts, dates and statuses.",
             "• Payment method: the option chosen (cash on delivery or Mobile Money) and, for Mobile Money, the paying phone number and transaction reference. We never store PIN codes or bank card numbers.",
             "• Technical data: device and browser type, language, display preferences and notification subscription."
@@ -905,7 +906,8 @@
           "paragraphes": [
             "• Riders: your first name, phone number, address and landmark, only for the order assigned to them and for the duration of the delivery.",
             "• Mobile Money payment aggregator (PawaPay for M-Pesa, Airtel Money and Orange Money): amount, payer phone number and order reference, to initiate and confirm payment.",
-            "• Technical providers: database hosting, verification emails, map tiles and routing (Mapbox, TomTom for address search).",
+            "• Technical providers: hosting of the app, database, files, sign-in and notifications (Emergent); delivery of push notifications (Google Firebase Cloud Messaging on Android, your browser's notification service on the web); verification emails; map tiles and routing (Mapbox, TomTom for address search).",
+            "• Google: if you choose “Continue with Google”, Google shares your name, email address and profile picture with us to create or open your account. We never receive your Google password.",
             "• Competent authorities: only where Congolese law requires it."
           ]
         },
@@ -914,14 +916,14 @@
           "paragraphes": [
             "• Account and contact details: while your account is active.",
             "• Orders and payment records: up to 5 years, for accounting and traceability.",
-            "• Delivery GPS location: deleted when the order is closed.",
+            "• Rider GPS location: only the last known position is kept (each update replaces the previous one); it is erased with the rider's account. The customer's address location is kept with the order.",
             "• After you delete your account, your personal data is erased or anonymised within 30 days, unless the law requires otherwise."
           ]
         },
         {
           "titre": "7. Your rights",
           "paragraphes": [
-            "At any time you can: view and correct your information in Settings → My account; delete your account from the Account screen (“Delete my account”); enable or disable notifications in Settings; request a copy of your data or object to processing by writing to contact@pinkberrydrc.cd.",
+            "At any time you can: view and correct your information in Settings → My account; delete your account from the Account screen (“Delete my account”) or, without installing the app, from the page {{site}}/legal/suppression-compte; enable or disable notifications in Settings; request a copy of your data or object to processing by writing to contact@pinkberrydrc.cd.",
             "We answer any request within 30 days."
           ]
         },
@@ -1024,5 +1026,23 @@
     "reserve": "Action reserved for the Super Admin",
     "lectureSeule": "View only",
     "lectureSeuleDetail": "Creating, editing and deleting are reserved for the Super Admin."
+  },
+  "suppression": {
+    "titre": "Delete your account",
+    "intro": "You can delete your Pinkberry Drc customer account at any time, from the app or from this page, without installing the app.",
+    "effaceTitre": "What is deleted",
+    "efface": "Your profile (name, phone, email, password), saved addresses, preferences and sign-in sessions are erased immediately.",
+    "conserveTitre": "What is kept",
+    "conserve": "Your past orders are kept for up to 5 years for the shop's accounting, but anonymised: they are no longer linked to your name or phone number.",
+    "dansAppTitre": "From the app",
+    "dansApp": "Open Account, then “Delete my account” and confirm.",
+    "iciTitre": "From this page",
+    "ici": "Sign in with your account's phone number and password. Nothing is deleted until you confirm.",
+    "identifiantsRequis": "Enter your phone number and password (6 characters minimum).",
+    "personnel": "This is a staff account (admin or rider): it can only be deleted by the Super Admin.",
+    "confirmer": "Account of {{nom}}: do you confirm its permanent deletion?",
+    "autreTitre": "Google account or forgotten password",
+    "autre": "If you sign in with Google, or no longer have your password, delete your account from the app, or email us from your account's email address: we delete it within 30 days.",
+    "objetMail": "Account deletion request"
   }
 }

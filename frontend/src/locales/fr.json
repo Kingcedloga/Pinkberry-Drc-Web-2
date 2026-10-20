@@ -294,7 +294,8 @@
     "mdpCourt": "Mot de passe : 6 caractères minimum",
     "mdpDifferent": "Les deux mots de passe ne correspondent pas",
     "partageMessage": "Commande ton frozen yogurt Pinkberry à Kinshasa, livré chez toi en 25 à 45 minutes !",
-    "lienCopie": "Lien copié"
+    "lienCopie": "Lien copié",
+    "suppressionCompte": "Suppression du compte"
   },
   "auth": {
     "titreConnexion": "Connexion",
@@ -859,7 +860,7 @@
   },
   "legal": {
     "majLe": "Dernière mise à jour : {{date}}",
-    "date": "20 juin 2026",
+    "date": "20 octobre 2026",
     "contact": "contact@pinkberrydrc.cd",
     "confidentialite": {
       "titre": "Politique de confidentialité",
@@ -877,7 +878,7 @@
           "paragraphes": [
             "• Identité et contact : nom complet, numéro de téléphone, adresse email.",
             "• Adresse de livraison : commune, avenue, numéro et point de repère que vous saisissez.",
-            "• Position GPS : uniquement lorsque vous choisissez de localiser votre adresse ou de suivre une livraison en cours. Pour les livreurs, la position est partagée pendant la course active.",
+            "• Position GPS : pour les clients, uniquement lorsque vous choisissez de localiser votre adresse (elle est enregistrée avec l'adresse de livraison). Pour les livreurs, la position est partagée automatiquement et en continu pendant chaque course « en route », et uniquement pendant celle-ci.",
             "• Historique de commandes : produits, tailles, garnitures, montants, dates et statuts.",
             "• Moyen de paiement : mode choisi (espèces à la livraison ou Mobile Money) et, pour le Mobile Money, le numéro utilisé et la référence de transaction. Nous ne stockons jamais de code PIN ni de numéro de carte bancaire.",
             "• Données techniques : type d'appareil et de navigateur, langue, préférences d'affichage et abonnement aux notifications."
@@ -905,7 +906,8 @@
           "paragraphes": [
             "• Livreurs : votre prénom, votre numéro de téléphone, votre adresse et votre point de repère, uniquement pour la commande qui leur est assignée et pendant la durée de la livraison.",
             "• Agrégateur de paiement Mobile Money (PawaPay pour M-Pesa, Airtel Money et Orange Money) : montant, numéro de téléphone payeur et référence de commande, afin d'initier et de confirmer le paiement.",
-            "• Prestataires techniques : hébergement de la base de données, envoi des emails de vérification, fonds de carte et calcul d'itinéraire (Mapbox, TomTom pour la recherche d'adresse).",
+            "• Prestataires techniques : hébergement de l'application, de la base de données, des fichiers, de la connexion et des notifications (Emergent) ; acheminement des notifications push (Firebase Cloud Messaging de Google sur Android, service de notifications de votre navigateur sur le web) ; envoi des e-mails de vérification ; fonds de carte et calcul d'itinéraire (Mapbox, TomTom pour la recherche d'adresse).",
+            "• Google : si vous choisissez « Continuer avec Google », Google nous transmet votre nom, votre adresse e-mail et votre photo de profil pour créer ou ouvrir votre compte. Nous ne recevons jamais votre mot de passe Google.",
             "• Autorités compétentes : uniquement si la loi congolaise l'exige."
           ]
         },
@@ -914,14 +916,14 @@
           "paragraphes": [
             "• Compte et coordonnées : tant que votre compte est actif.",
             "• Commandes et justificatifs de paiement : jusqu'à 5 ans, pour des raisons comptables et de traçabilité.",
-            "• Position GPS d'une livraison : supprimée à la clôture de la commande.",
+            "• Position GPS du livreur : seule la dernière position connue est conservée (chaque envoi remplace le précédent) ; elle est effacée avec le compte du livreur. La position de l'adresse du client est conservée avec la commande.",
             "• Après suppression de votre compte, vos données personnelles sont effacées ou anonymisées sous 30 jours, sauf obligation légale de conservation."
           ]
         },
         {
           "titre": "7. Vos droits",
           "paragraphes": [
-            "Vous pouvez à tout moment : consulter et corriger vos informations depuis Paramètres → Mon compte ; supprimer votre compte depuis l'écran Compte (« Supprimer mon compte ») ; activer ou désactiver les notifications depuis Paramètres ; demander une copie de vos données ou vous opposer à un traitement en écrivant à contact@pinkberrydrc.cd.",
+            "Vous pouvez à tout moment : consulter et corriger vos informations depuis Paramètres → Mon compte ; supprimer votre compte depuis l'écran Compte (« Supprimer mon compte ») ou, sans installer l'application, depuis la page {{site}}/legal/suppression-compte ; activer ou désactiver les notifications depuis Paramètres ; demander une copie de vos données ou vous opposer à un traitement en écrivant à contact@pinkberrydrc.cd.",
             "Nous répondons à toute demande dans un délai de 30 jours."
           ]
         },
@@ -1024,5 +1026,23 @@
     "reserve": "Action réservée au Super Admin",
     "lectureSeule": "Consultation seule",
     "lectureSeuleDetail": "La création, la modification et la suppression sont réservées au Super Admin."
+  },
+  "suppression": {
+    "titre": "Supprimer votre compte",
+    "intro": "Vous pouvez supprimer votre compte client Pinkberry Drc à tout moment, depuis l'application ou depuis cette page, sans installer l'application.",
+    "effaceTitre": "Ce qui est supprimé",
+    "efface": "Votre profil (nom, téléphone, e-mail, mot de passe), vos adresses enregistrées, vos préférences et vos sessions de connexion sont effacés immédiatement.",
+    "conserveTitre": "Ce qui est conservé",
+    "conserve": "Vos commandes passées sont conservées jusqu'à 5 ans pour la comptabilité de la boutique, mais anonymisées : elles ne sont plus rattachées à votre nom ni à votre numéro.",
+    "dansAppTitre": "Depuis l'application",
+    "dansApp": "Ouvrez Compte, puis « Supprimer mon compte » et confirmez.",
+    "iciTitre": "Depuis cette page",
+    "ici": "Identifiez-vous avec le numéro de téléphone et le mot de passe de votre compte. Rien n'est supprimé avant votre confirmation.",
+    "identifiantsRequis": "Saisissez votre numéro de téléphone et votre mot de passe (6 caractères minimum).",
+    "personnel": "Ce compte appartient au personnel (admin ou livreur) : sa suppression est gérée par le Super Admin.",
+    "confirmer": "Compte de {{nom}} : confirmez-vous sa suppression définitive ?",
+    "autreTitre": "Compte Google ou mot de passe oublié",
+    "autre": "Si vous vous connectez avec Google, ou si vous n'avez plus votre mot de passe, supprimez votre compte depuis l'application, ou écrivez-nous depuis l'adresse e-mail de votre compte : nous le supprimons sous 30 jours.",
+    "objetMail": "Demande de suppression de compte"
   }
 }
