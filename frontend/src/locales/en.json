@@ -327,13 +327,6 @@
     "telephoneInfo": "Used only for your deliveries",
     "paragrapheTelephone": "A phone number is required so the rider can reach you. We will ask only once.",
     "bonjour": "Hello {{nom}}!",
-    "livraisonKinshasa": "Delivery in Kinshasa",
-    "sloganWeb": "Real frozen yogurt, delivered to your door",
-    "presentation": "Pinkberry frozen yogurt, smoothies and toppings. Order in a few clicks, pay on delivery, and track your rider live on the map.",
-    "pointZones": "Delivery areas: Gombe, Limete, Ngaliema, Lingwala",
-    "pointPaiement": "Cash payment on delivery",
-    "pointSuivi": "Real-time delivery tracking",
-    "sloganMobile": "Real frozen yogurt, delivered to you in Kinshasa",
     "argumentCommande": "Order in a few clicks from your browser",
     "argumentPaiement": "Pay in cash on delivery",
     "argumentSuivi": "Track your courier live on the map",
@@ -345,7 +338,7 @@
     "exempleEmail": "you@email.com",
     "afficherMotDePasse": "Show password",
     "masquerMotDePasse": "Hide password",
-    "voirCarte": "Browse the menu without an account"
+    "decouvrirCarte": "Explore the menu"
   },
   "accueil": {
     "heroTitre": "Real frozen yogurt, delivered to your door in Kinshasa",
