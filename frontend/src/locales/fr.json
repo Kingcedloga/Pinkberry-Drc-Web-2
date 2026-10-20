@@ -75,7 +75,13 @@
     "gpsPerdu": "Signal GPS perdu : le client voit ta dernière position.",
     "gpsRequisTitre": "Active le GPS pour partir en livraison",
     "departAide": "Ta position sera partagée automatiquement avec le client jusqu'à la livraison.",
-    "departOk": "C'est parti ! Le client suit ta position en direct"
+    "departOk": "C'est parti ! Le client suit ta position en direct",
+    "fondExplicationTitre": "Partage pendant la livraison",
+    "fondExplication": "Pinkberry collecte la position de votre téléphone pendant vos courses « en route », même lorsque l'application est fermée ou non utilisée, pour que le client suive sa livraison en direct. Le partage s'arrête automatiquement à la livraison ou à l'annulation.",
+    "fondConsigne": "À l'étape suivante, choisissez « Toujours autoriser » (ou « Autoriser tout le temps »).",
+    "fondAutoriser": "Continuer",
+    "fondNotificationTitre": "Livraison en cours",
+    "fondNotificationTexte": "Votre position est partagée avec le client jusqu'à la livraison."
   },
   "rapport": {
     "filtresRapides": "Filtres rapides",
@@ -338,7 +344,8 @@
     "exempleNom": "Ex. Grace Kabila",
     "exempleEmail": "vous@email.com",
     "afficherMotDePasse": "Afficher le mot de passe",
-    "masquerMotDePasse": "Masquer le mot de passe"
+    "masquerMotDePasse": "Masquer le mot de passe",
+    "voirCarte": "Voir la carte sans compte"
   },
   "accueil": {
     "heroTitre": "Le vrai frozen yogurt, livré chez vous à Kinshasa",
@@ -434,7 +441,8 @@
     "retourCatalogue": "Retour au catalogue",
     "sansOption": "Sans option",
     "sousTotal": "Sous-total ({{n}} articles)",
-    "choisirAdresse": "Choisir l'adresse de livraison"
+    "choisirAdresse": "Choisir l'adresse de livraison",
+    "connexionPourCommander": "Se connecter pour commander"
   },
   "suivi": {
     "notifications": "Reçois les infos de ta commande en temps réel, même quand l'application est fermée.",

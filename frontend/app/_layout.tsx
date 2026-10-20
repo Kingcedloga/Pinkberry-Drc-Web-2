@@ -15,6 +15,8 @@ import { ErrorBoundary } from "@/src/components/error-boundary";
 import { GestionPush, ouvrirDepuisNotification } from "@/src/components/GestionPush";
 import { NotificationsInternes } from "@/src/components/NotificationsInternes";
 import "@/src/gras";
+// Déclare la tâche de partage GPS en arrière-plan (natif) avant tout rendu.
+import "@/src/suivi-fond";
 import { LangueProvider } from "@/src/i18n";
 import { PanierProvider } from "@/src/panier";
 import { queryClient } from "@/src/query-client";

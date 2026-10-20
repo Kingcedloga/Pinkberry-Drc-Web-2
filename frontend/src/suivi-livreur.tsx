@@ -17,6 +17,7 @@ import {
   type Fix,
 } from "@/src/geoloc";
 import { useT } from "@/src/i18n";
+import { arreterSuiviFond, demarrerSuiviFond, etatPermissionFond } from "@/src/suivi-fond";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
 
@@ -59,6 +60,11 @@ export function SuiviLivreurProvider({ children }: { children: React.ReactNode }
   const [dernierFixAt, setDernierFixAt] = useState(0);
   const [maintenant, setMaintenant] = useState(0);
   const [explication, setExplication] = useState(false);
+  // Natif : partage en arrière-plan (écran verrouillé) et explication préalable à l'autorisation « toujours ».
+  const [fondActif, setFondActif] = useState(false);
+  const [explicationFond, setExplicationFond] = useState(false);
+  const fondPropose = useRef(false);
+  const t = useT();
   const fix = useRef<Fix | null>(null);
   const envoi = useRef<Envoi | null>(null);
   const ponctuelEnCours = useRef(false);
@@ -123,19 +129,20 @@ export function SuiviLivreurProvider({ children }: { children: React.ReactNode }
     if (!active || permission === "refusee" || permission === "indisponible") return;
     let arreterSuivi: () => void = () => undefined;
     let vivant = true;
-    void suivrePosition((f) => recevoir(f, true), echouer).then((f) => (vivant ? (arreterSuivi = f) : f()));
+    // En arrière-plan natif, c'est la tâche de fond qui envoie : ici on ne fait que suivre l'état du GPS.
+    void suivrePosition((f) => recevoir(f, !fondActif), echouer).then((f) => (vivant ? (arreterSuivi = f) : f()));
     const liberer = garderEcranAllume();
     const minuterie = setInterval(() => {
       const f = fix.current;
       const e = envoi.current;
       setMaintenant(Date.now());
       // Position plus récente que le dernier envoi (filtrée par l'intervalle) : on l'envoie.
-      if (f && (!e || f.at > e.fixAt) && (!e || Date.now() - e.at >= INTERVALLE_MS)) void envoyer(f);
+      if (!fondActif && f && (!e || f.at > e.fixAt) && (!e || Date.now() - e.at >= INTERVALLE_MS)) void envoyer(f);
       // Livreur immobile ou GPS muet : on redemande une position (et on détecte la perte du signal).
       if ((!f || Date.now() - f.at > FIX_PERIME_MS) && !ponctuelEnCours.current) {
         ponctuelEnCours.current = true;
         positionActuelle(10000)
-          .then((p) => recevoir({ ...p, at: Date.now() }, true))
+          .then((p) => recevoir({ ...p, at: Date.now() }, !fondActif))
           .catch(echouer)
           .finally(() => (ponctuelEnCours.current = false));
       }
@@ -148,7 +155,31 @@ export function SuiviLivreurProvider({ children }: { children: React.ReactNode }
       fix.current = null;
       envoi.current = null;
     };
-  }, [active, permission, recevoir, echouer, envoyer]);
+  }, [active, permission, recevoir, echouer, envoyer, fondActif]);
+
+  const lancerFond = useCallback(async () => {
+    const ok = await demarrerSuiviFond({ titre: t("livreur.fondNotificationTitre"), texte: t("livreur.fondNotificationTexte") });
+    setFondActif(ok);
+  }, [t]);
+
+  // Natif : partage écran verrouillé pendant la course, arrêt complet sinon.
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    if (!active || permission !== "accordee") {
+      void arreterSuiviFond().then(() => setFondActif(false));
+      return;
+    }
+    void etatPermissionFond().then((etat) => {
+      if (etat === "accordee") void lancerFond();
+      else if (etat === "a_demander" && !fondPropose.current) {
+        fondPropose.current = true;
+        setExplicationFond(true);
+      }
+    });
+  }, [active, permission, lancerFond]);
+
+  // Déconnexion : plus aucun partage.
+  useEffect(() => () => void arreterSuiviFond(), []);
 
   // Natif : l'autorisation peut être rendue depuis les réglages ; on la relit.
   useEffect(() => {
@@ -184,6 +215,14 @@ export function SuiviLivreurProvider({ children }: { children: React.ReactNode }
         <View style={styles.contenu}>{children}</View>
       </View>
       <ExplicationGps visible={explication} onFermer={fermerExplication} />
+      <ExplicationGps
+        fond
+        visible={explicationFond}
+        onFermer={(autoriser) => {
+          setExplicationFond(false);
+          if (autoriser) void lancerFond();
+        }}
+      />
     </Contexte.Provider>
   );
 }
@@ -247,18 +286,33 @@ function BandeauGps() {
 }
 
 /** Explication avant la fenêtre d'autorisation du système, une seule fois. */
-function ExplicationGps({ visible, onFermer }: { visible: boolean; onFermer: (autoriser: boolean) => void }) {
+function ExplicationGps({
+  visible,
+  onFermer,
+  fond = false,
+}: {
+  visible: boolean;
+  onFermer: (autoriser: boolean) => void;
+  /** Explication de l'autorisation « toujours » (obligatoire avant la demande, Google Play). */
+  fond?: boolean;
+}) {
   const t = useT();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={() => onFermer(false)}>
       <View style={styles.voile}>
-        <View testID="modale-gps" style={styles.modale} accessibilityViewIsModal>
+        <View testID={fond ? "modale-gps-fond" : "modale-gps"} style={styles.modale} accessibilityViewIsModal>
           <View style={styles.pastille}>
             <Icone name="map-pin" size={26} color={colors.onBrandPrimary} />
           </View>
-          <Text style={styles.titre}>{t("livreur.gpsExplicationTitre")}</Text>
-          <Text style={styles.texte}>{t("livreur.gpsExplication")}</Text>
-          <Bouton testID="btn-gps-autoriser" label={t("livreur.gpsAutoriser")} icone="map-pin" onPress={() => onFermer(true)} />
+          <Text style={styles.titre}>{t(fond ? "livreur.fondExplicationTitre" : "livreur.gpsExplicationTitre")}</Text>
+          <Text style={styles.texte}>{t(fond ? "livreur.fondExplication" : "livreur.gpsExplication")}</Text>
+          {fond ? <Text style={styles.texte}>{t("livreur.fondConsigne")}</Text> : null}
+          <Bouton
+            testID={fond ? "btn-gps-fond-autoriser" : "btn-gps-autoriser"}
+            label={t(fond ? "livreur.fondAutoriser" : "livreur.gpsAutoriser")}
+            icone="map-pin"
+            onPress={() => onFermer(true)}
+          />
           <Bouton testID="btn-gps-plus-tard" label={t("auth.plusTard")} variant="contour" onPress={() => onFermer(false)} />
         </View>
       </View>

@@ -34,6 +34,7 @@ export function GardeInvite({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) return <EcranDemarrage testID="ecran-garde" />;
-  if (user) return <Redirect href={accueilDuRole(user.role) as any} />;
+  // L'accueil choisit la destination (page visitée avant la connexion, saisie du téléphone…).
+  if (user) return <Redirect href="/" />;
   return <>{children}</>;
 }

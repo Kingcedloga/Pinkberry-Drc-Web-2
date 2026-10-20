@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "Pinkberry utilise votre position pour localiser votre adresse de livraison et, si vous êtes livreur, permettre au client de suivre sa commande en direct.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Livreurs : Pinkberry partage votre position pendant une livraison en cours, même écran verrouillé, pour que le client suive sa commande. Le partage s'arrête dès la livraison terminée.",
+    "NSPhotoLibraryUsageDescription": "Pinkberry accède à vos photos uniquement pour ajouter des images de produits et de bannières au catalogue (espace administrateur).",
+    "NSLocationAlwaysUsageDescription": "Livreurs : Pinkberry partage votre position pendant une livraison en cours, même écran verrouillé, pour que le client suive sa commande. Le partage s'arrête dès la livraison terminée."
+  }
+}

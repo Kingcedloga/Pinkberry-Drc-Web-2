@@ -41,13 +41,31 @@ function BoutonPanier() {
 
 function BoutonDeconnexion({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
-  const { deconnexion } = useAuth();
+  const { user, deconnexion } = useAuth();
   const { t } = useLangue();
 
   const sortir = async () => {
     await deconnexion();
     router.replace("/bienvenue");
   };
+
+  // Visiteur (carte consultée sans compte) : accès à la connexion.
+  if (!user) {
+    return compact ? (
+      <Pressable testID="btn-se-connecter" accessibilityLabel={t("auth.seConnecter")} onPress={() => router.push("/connexion")} style={styles.iconeBtn}>
+        <Icone name="log-in" size={20} color={colors.brandPrimary} />
+      </Pressable>
+    ) : (
+      <Pressable
+        testID="btn-se-connecter"
+        onPress={() => router.push("/connexion")}
+        style={({ pressed }) => [styles.lienLateral, pressed && { backgroundColor: colors.brandTertiary }]}
+      >
+        <Icone name="log-in" size={20} color={colors.brandPrimary} />
+        <Text style={[styles.lienLateralTexte, { color: colors.brandPrimary }]}>{t("auth.seConnecter")}</Text>
+      </Pressable>
+    );
+  }
 
   if (compact) {
     return (

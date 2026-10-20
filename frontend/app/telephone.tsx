@@ -39,7 +39,7 @@ export default function DemandeTelephone() {
       await enregistrerTelephone(telephone);
       await storage.removeItem(CLE_TEL_REPORTE);
       toast.show(t("auth.numeroEnregistre"), "succes");
-      router.replace("/menu");
+      router.replace("/");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     } finally {
@@ -49,7 +49,7 @@ export default function DemandeTelephone() {
 
   const plusTard = async () => {
     await storage.setItem(CLE_TEL_REPORTE, "1");
-    router.replace("/menu");
+    router.replace("/");
   };
 
   return (

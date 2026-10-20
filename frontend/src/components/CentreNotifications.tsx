@@ -18,6 +18,7 @@ import {
 import { useEcran } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useToast } from "@/src/toast";
+import { useAuth } from "@/src/auth";
 
 type Donnees = { notifications: NotificationApp[]; nonLues: number };
 
@@ -33,7 +34,7 @@ const ICONES: Record<NotificationApp["type"], string> = {
  * Cloche + centre de notifications (tous rôles). `cote` place le panneau près
  * de la cloche sur grand écran (barre latérale à gauche, en-tête à droite).
  */
-export function CentreNotifications({ cote = "droite" }: { cote?: "gauche" | "droite" }) {
+function CentreNotificationsConnecte({ cote = "droite" }: { cote?: "gauche" | "droite" }) {
   const { t, langue } = useLangue();
   const router = useRouter();
   const qc = useQueryClient();
@@ -376,3 +377,9 @@ const styles = stylesDynamiques(() =>
     point: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brandPrimary, marginTop: 6 },
   }),
 );
+
+/** Cloche et panneau : uniquement pour un utilisateur connecté (pas pour un visiteur qui consulte la carte). */
+export function CentreNotifications({ cote = "droite" }: { cote?: "gauche" | "droite" }) {
+  const { user } = useAuth();
+  return user ? <CentreNotificationsConnecte cote={cote} /> : null;
+}

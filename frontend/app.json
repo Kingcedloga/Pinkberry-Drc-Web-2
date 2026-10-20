@@ -8,15 +8,18 @@
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.pinkberry.drc",
       "buildNumber": "1",
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Localiser votre adresse et suivre la livraison",
-        "NSPhotoLibraryUsageDescription": "Ajouter les photos de vos produits au catalogue"
+        "NSLocationWhenInUseUsageDescription": "Pinkberry utilise votre position pour localiser votre adresse de livraison et, si vous êtes livreur, permettre au client de suivre sa commande en direct.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Livreurs : Pinkberry partage votre position pendant une livraison en cours, même écran verrouillé, pour que le client suive sa commande. Le partage s'arrête dès la livraison terminée.",
+        "NSPhotoLibraryUsageDescription": "Pinkberry accède à vos photos uniquement pour ajouter des images de produits et de bannières au catalogue (espace administrateur).",
+        "CFBundleAllowMixedLocalizations": true,
+        "NSLocationAlwaysUsageDescription": "Livreurs : Pinkberry partage votre position pendant une livraison en cours, même écran verrouillé, pour que le client suive sa commande. Le partage s'arrête dès la livraison terminée."
       }
     },
     "android": {
@@ -30,6 +33,9 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
         "POST_NOTIFICATIONS"
       ]
     },
@@ -61,22 +67,34 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Ajouter les photos de vos produits au catalogue"
+          "photosPermission": "Pinkberry accède à vos photos uniquement pour ajouter des images de produits et de bannières au catalogue (espace administrateur).",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Localiser votre adresse et suivre la livraison"
+          "locationWhenInUsePermission": "Pinkberry utilise votre position pour localiser votre adresse de livraison et, si vous êtes livreur, permettre au client de suivre sa commande en direct.",
+          "locationAlwaysAndWhenInUsePermission": "Livreurs : Pinkberry partage votre position pendant une livraison en cours, même écran verrouillé, pour que le client suive sa commande. Le partage s'arrête dès la livraison terminée.",
+          "locationAlwaysPermission": "Livreurs : Pinkberry partage votre position pendant une livraison en cours, même écran verrouillé, pour que le client suive sa commande. Le partage s'arrête dès la livraison terminée.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       "expo-secure-store",
       "expo-web-browser",
       "expo-status-bar",
-      "expo-sharing"
+      "expo-sharing",
+      "./plugins/sans-fond-fetch.js"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "locales": {
+      "fr": "./assets/langues/fr.json",
+      "en": "./assets/langues/en.json"
     }
   }
 }

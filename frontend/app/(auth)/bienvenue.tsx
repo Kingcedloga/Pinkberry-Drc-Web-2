@@ -49,6 +49,14 @@ export default function Bienvenue() {
       >
         <Text style={styles.ctaSecondaireTexte}>{t("auth.compteExistant")}</Text>
       </Pressable>
+      {/* Consultation sans compte : la connexion n'est demandée qu'au passage en caisse. */}
+      <Pressable
+        testID="btn-voir-carte"
+        onPress={() => router.push("/menu")}
+        style={({ pressed }) => [styles.lienCarte, pressed && styles.pressee]}
+      >
+        <Text style={styles.lienCarteTexte}>{t("auth.voirCarte")}</Text>
+      </Pressable>
     </>
   );
 
@@ -156,6 +164,8 @@ const styles = stylesDynamiques(() =>
       justifyContent: "space-between",
       paddingHorizontal: spacing.xl,
     },
+    lienCarte: { minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.lg },
+    lienCarteTexte: { fontFamily: fonts.text, fontSize: 15, fontWeight: poids.fort, color: colors.brandPrimary, textDecorationLine: "underline" },
     enteteDroite: { flexDirection: "row", alignItems: "center", gap: spacing.md },
     langueMobile: { alignSelf: "center" },
     lienEntete: {

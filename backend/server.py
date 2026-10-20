@@ -78,6 +78,15 @@ SEED_DEMO = (os.environ.get("SEED_DEMO_ACCOUNTS") or "false").strip().lower() no
 MDP_ADMIN = os.environ.get("DEMO_ADMIN_PASSWORD") or ""
 MDP_CLIENT = os.environ.get("DEMO_CLIENT_PASSWORD") or ""
 MDP_LIVREUR = os.environ.get("DEMO_LIVREUR_PASSWORD") or ""
+# Comptes de revue des stores (Apple App Review, Google Play) : client, livreur et
+# admin deja verifies, crees seulement si ce mot de passe est fourni. Aucun mode
+# demo (pas de code OTP expose, pas de boutons de demonstration).
+MDP_REVUE = (os.environ.get("STORE_REVIEW_PASSWORD") or "").strip()
+COMPTES_REVUE = [
+    ("client", "Revue Store Client", "0890000101"),
+    ("livreur", "Revue Store Livreur", "0890000102"),
+    ("admin", "Revue Store Admin", "0890000103"),
+]
 
 # --- Emergent Object Storage (photos de produits) ---
 STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
@@ -5105,6 +5114,8 @@ async def seed():
     # comptes existants : actif par defaut
     await db.users.update_many({"actif": {"$exists": False}}, {"$set": {"actif": True}})
 
+    await seed_comptes_revue()
+
     # comptes de demonstration : desactivables et mots de passe pilotes par l'environnement
     if not SEED_DEMO:
         return
@@ -5146,6 +5157,36 @@ async def seed():
             await db.positions_livreurs.insert_one({
                 "livreurId": lv["id"], "lat": -4.3178, "lng": 15.3136, "updatedAt": iso(now_utc()),
             })
+
+
+async def seed_comptes_revue() -> None:
+    """Comptes de revue des stores, idempotent. Le mot de passe suit la variable
+    STORE_REVIEW_PASSWORD (changer la variable le change au redemarrage) ; sans
+    elle, rien n'est cree. Le reste du compte n'est jamais ecrase."""
+    if len(MDP_REVUE) < 8:
+        if MDP_REVUE:
+            logger.warning("STORE_REVIEW_PASSWORD trop court (8 caracteres minimum) : comptes de revue non crees")
+        return
+    for role, nom, tel in COMPTES_REVUE:
+        livreur_id = None
+        if role == "livreur":
+            lv = await db.livreurs.find_one({"telephone": tel}, {"_id": 0, "id": 1})
+            livreur_id = lv["id"] if lv else str(uuid.uuid4())
+            if not lv:
+                await db.livreurs.insert_one({"id": livreur_id, "nom": nom, "telephone": tel, "vehicule": "Moto",
+                                              "plaque": "REVUE", "note": 5.0, "actif": True})
+        existant = await db.users.find_one({"telephone": tel}, {"_id": 0, "id": 1})
+        if existant:
+            await db.users.update_one({"id": existant["id"]}, {"$set": {"motDePasseHash": hash_pwd(MDP_REVUE)}})
+            continue
+        await db.users.insert_one({
+            "id": str(uuid.uuid4()), "nom": nom, "telephone": tel, "email": None,
+            "motDePasseHash": hash_pwd(MDP_REVUE), "role": role, "verifie": True, "actif": True,
+            **({"livreurId": livreur_id} if livreur_id else {}),
+            "preferences": {**PREFS_DEFAUT, "langue": "en"},
+            "createdAt": iso(now_utc()),
+        })
+    logger.info("Comptes de revue des stores prets")
 
 
 app.include_router(api_router)

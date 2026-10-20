@@ -1,4 +1,13 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+
+import { storage } from "@/src/utils/storage";
+
+/**
+ * Panier gardé sur l'appareil : un visiteur ne le perd ni en se connectant
+ * (la connexion Google recharge la page) ni en rechargeant. L'adresse n'y est
+ * pas enregistrée (donnée personnelle) ; le panier est vidé après la commande.
+ */
+const CLE_PANIER = "pb_panier";
 
 export type Garniture = {
   nom: string;
@@ -63,6 +72,30 @@ export function PanierProvider({ children }: { children: React.ReactNode }) {
   const [articles, setArticles] = useState<ArticlePanier[]>([]);
   const [adresse, setAdresse] = useState<Adresse | null>(null);
   const [codePromo, setCodePromo] = useState<string | null>(null);
+  const restaure = useRef(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const brut = await storage.getItem<string>(CLE_PANIER, "");
+        const sauve = brut ? JSON.parse(brut) : null;
+        if (Array.isArray(sauve?.articles)) {
+          // Ajouts faits pendant la lecture : conservés en plus du panier enregistré.
+          setArticles((courants) => [...sauve.articles.filter((a: ArticlePanier) => !courants.some((c) => c.cle === a.cle)), ...courants]);
+        }
+        if (typeof sauve?.codePromo === "string") setCodePromo((c) => c ?? sauve.codePromo);
+      } catch {
+        /* panier illisible : on repart d'un panier vide */
+      } finally {
+        restaure.current = true;
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!restaure.current) return;
+    void storage.setItem(CLE_PANIER, articles.length || codePromo ? JSON.stringify({ articles, codePromo }) : "");
+  }, [articles, codePromo]);
 
   const ajouter = useCallback((a: Omit<ArticlePanier, "cle">) => {
     const cle = cleDe(a);

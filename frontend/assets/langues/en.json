@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "Pinkberry uses your location to find your delivery address and, if you are a rider, to let the customer track their order live.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Riders: Pinkberry shares your location during an ongoing delivery, even when the screen is locked, so the customer can track their order. Sharing stops as soon as the delivery is complete.",
+    "NSPhotoLibraryUsageDescription": "Pinkberry accesses your photos only to add product and banner images to the menu (admin area).",
+    "NSLocationAlwaysUsageDescription": "Riders: Pinkberry shares your location during an ongoing delivery, even when the screen is locked, so the customer can track their order. Sharing stops as soon as the delivery is complete."
+  }
+}

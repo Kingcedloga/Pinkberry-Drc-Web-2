@@ -14,6 +14,7 @@ import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { useMontant } from "@/src/taux";
+import { useAuth } from "@/src/auth";
 
 export default function Panier() {
   useTheme();
@@ -21,6 +22,8 @@ export default function Panier() {
   const router = useRouter();
   const { bureau } = useEcran();
   const t = useT();
+  // Visiteur : le compte est demandé ici, au passage en caisse (puis retour au parcours).
+  const { user } = useAuth();
   const libelle = useLibelle();
   const detail = useDetailLigne();
   const { usd, fc } = useMontant();
@@ -106,8 +109,8 @@ export default function Panier() {
             </View>
             <Bouton
               testID="btn-choisir-adresse"
-              label={t("panier.choisirAdresse")}
-              icone="map-pin"
+              label={user ? t("panier.choisirAdresse") : t("panier.connexionPourCommander")}
+              icone={user ? "map-pin" : "log-in"}
               onPress={() => router.push("/commande/adresse")}
             />
             {bureau ? (

@@ -31,13 +31,8 @@ export default function Connexion() {
     try {
       const u = await connexion(telephone, motDePasse);
       toast.show(t("auth.bonjour", { nom: u.nom }), "succes");
-      router.replace(
-        u.role === "admin" || u.role === "superadmin"
-          ? "/admin"
-          : u.role === "livreur"
-            ? "/livreur"
-            : "/menu",
-      );
+      // Client : l'accueil le ramène à la page visitée avant la connexion (ex. le panier).
+      router.replace(u.role === "admin" || u.role === "superadmin" ? "/admin" : u.role === "livreur" ? "/livreur" : "/");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     } finally {

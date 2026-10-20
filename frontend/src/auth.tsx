@@ -6,8 +6,9 @@ import { Platform } from "react-native";
 import { apiFetch, setAuthToken } from "@/src/api";
 import { storage } from "@/src/utils/storage";
 import i18n from "i18next";
+import { CLE_JETON } from "@/src/prefs";
 
-const TOKEN_KEY = "pb_token";
+const TOKEN_KEY = CLE_JETON;
 // Portail d'authentification Emergent : configurable au deploiement.
 const AUTH_EMERGENT = process.env.EXPO_PUBLIC_AUTH_PORTAL_URL ?? "";
 
