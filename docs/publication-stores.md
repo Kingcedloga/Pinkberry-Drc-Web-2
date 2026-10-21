@@ -33,18 +33,20 @@ exposé, pas de bouton de démonstration.
 >
 > - The menu can be browsed without an account; an account is only required to
 >   place an order.
-> - Customer: sign in with 0890000101 / [password]. Add any item, choose the
+> - Customer: sign in with 0890000101 / [AZERTY]. Add any item, choose the
 >   "Gombe" district at checkout and pay "On delivery" (cash). Physical goods
 >   only: no in-app purchase applies.
-> - Staff: sign in with 0890000103 / [password] to see the order and assign it
+> - Staff: sign in with 0890000103 / [AZERTY] to see the order and assign it
 >   to the rider "Revue Store Livreur".
-> - Rider: sign in with 0890000102 / [password], open the assigned delivery and
+> - Rider: sign in with 0890000102 / [AZERTY], open the assigned delivery and
 >   tap "I'm on my way". Location is then shared automatically with the
->   customer, including in the background, until the order is delivered; it
->   stops automatically afterwards. Location ("Always") is requested only from
->   riders, after an in-app explanation.
+>   customer, including with the screen locked, until the order is delivered;
+>   it stops automatically afterwards. On iOS, location "Always" is requested
+>   only from riders, after an in-app explanation. On Android, the app never
+>   requests background location: sharing runs as a location foreground service
+>   with a persistent notification, started from the app.
 > - Account deletion: Account → Delete my account, or on the web at
->   https://[domain]/legal/suppression-compte.
+>   https://pinkberry-drc.preview.emergentagent.com/compte
 
 **Français (si demandé)**
 
@@ -105,28 +107,34 @@ téléphone), contacts, historique de navigation, diagnostics, données d'usage.
 Non collecté : santé, messages, contacts, agenda, fichiers, audio, vidéo,
 activité dans les apps, navigation web, infos et performances de l'app.
 
-## 5. GPS en arrière-plan (livreurs)
+## 5. Partage de position du livreur, écran verrouillé
 
-**Google Play — déclaration « Accès à la position en arrière-plan »**
+**Google Play — aucune position en arrière-plan.** L'autorisation
+`ACCESS_BACKGROUND_LOCATION` n'est ni demandée ni présente dans l'app
+(bloquée dans `app.json`) : pas de déclaration « position en arrière-plan », ni
+de vidéo associée.
 
-- *Fonctionnalité* : « Suivi de livraison en direct. Pendant une course « en
-  route », la position du livreur est envoyée toutes les 5 secondes (ou tous
-  les 25 m) pour que le client suive sa livraison sur la carte, y compris quand
-  l'écran du livreur est verrouillé. Le partage s'arrête automatiquement à la
+**Google Play — déclaration « Autorisations de service de premier plan »**
+(type `location`, Android 14+) :
+
+- *Type de service* : Position (`FOREGROUND_SERVICE_LOCATION`).
+- *Fonctionnalité* : « Suivi de livraison en direct. Quand le livreur démarre
+  une course (« Je suis en route »), un service de premier plan avec une
+  notification permanente « Livraison en cours » envoie sa position toutes les
+  5 secondes (ou tous les 25 m), pour que le client suive sa livraison sur la
+  carte, y compris écran verrouillé. Le service s'arrête automatiquement à la
   livraison ou à l'annulation. »
-- *Pourquoi en arrière-plan* : « Le livreur conduit avec l'écran verrouillé ; sans
-  accès en arrière-plan, le client perdrait le suivi pendant le trajet. »
-- *Information visible dans l'app* : avant la demande d'autorisation, l'écran
-  « Partage pendant la livraison » explique que la position est collectée même
-  lorsque l'app est fermée ou non utilisée, pourquoi, et quand cela s'arrête.
-  Une notification permanente « Livraison en cours » s'affiche pendant le partage.
-- *Vidéo* (30 s, lien YouTube non répertorié) : connexion livreur → course →
-  « Je suis en route » → écran d'explication → « Toujours autoriser » →
-  verrouillage de l'écran → la position avance côté client → « Marquer comme
-  livrée » → la notification disparaît.
+- *Pourquoi un service de premier plan* : « Le partage est lancé par le livreur,
+  dure le temps du trajet, et ne doit pas être interrompu quand il verrouille
+  son écran pour conduire. »
+- *Vidéo* (si demandée, 30 s, lien YouTube non répertorié) : connexion livreur →
+  course → « Je suis en route » → écran d'explication → notification
+  « Livraison en cours » → verrouillage de l'écran → la position avance côté
+  client → « Marquer comme livrée » → la notification disparaît.
 
-**Apple** : le texte de l'autorisation « Toujours » (FR/EN) est dans
-`frontend/assets/langues/` ; la note de revue ci-dessus explique le cas d'usage.
+**Apple** : autorisation « Toujours » demandée aux livreurs uniquement, après
+l'écran d'explication ; textes FR/EN dans `frontend/assets/langues/`. La note
+de revue ci-dessus explique le cas d'usage.
 
 ## 6. Réglages déjà en place dans le code
 
@@ -136,6 +144,8 @@ activité dans les apps, navigation web, infos et performances de l'app.
 - **Textes d'autorisation iOS** traduits FR/EN (position, position « toujours »,
   photos) ; appareil photo et micro non demandés (non utilisés).
 - **Modes d'arrière-plan iOS** : uniquement `location`.
+- **Android** : pas d'autorisation de position en arrière-plan (bloquée) ; partage
+  écran verrouillé par service de premier plan de type `location`, avec notification.
 - **iPad** : désactivé (`supportsTablet: false`) — l'app s'ouvre sur iPad en mode
   iPhone ; aucune capture iPad à fournir. À réactiver après validation du rendu
   iPad si souhaité.

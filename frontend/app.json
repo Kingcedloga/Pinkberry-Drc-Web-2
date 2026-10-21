@@ -33,10 +33,12 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
         "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "web": {
@@ -79,7 +81,7 @@
           "locationAlwaysAndWhenInUsePermission": "Livreurs : Pinkberry partage votre position pendant une livraison en cours, même écran verrouillé, pour que le client suive sa commande. Le partage s'arrête dès la livraison terminée.",
           "locationAlwaysPermission": "Livreurs : Pinkberry partage votre position pendant une livraison en cours, même écran verrouillé, pour que le client suive sa commande. Le partage s'arrête dès la livraison terminée.",
           "isIosBackgroundLocationEnabled": true,
-          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": true
         }
       ],

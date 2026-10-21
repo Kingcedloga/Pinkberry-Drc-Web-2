@@ -78,6 +78,7 @@
     "departOk": "You're on your way! The customer is tracking you live",
     "fondExplicationTitre": "Sharing during the delivery",
     "fondExplication": "Pinkberry collects your phone's location during your deliveries that are “on the way”, even when the app is closed or not in use, so the customer can follow the delivery live. Sharing stops automatically when the order is delivered or cancelled.",
+    "fondExplicationAndroid": "During your deliveries that are “on the way”, Pinkberry shares your phone's location, even with the screen locked or the app in the background, so the customer can follow the delivery live. A notification stays visible while sharing is on; it stops automatically when the order is delivered or cancelled.",
     "fondConsigne": "In the next step, choose “Always allow” (or “Allow all the time”).",
     "fondAutoriser": "Continue",
     "fondNotificationTitre": "Delivery in progress",

@@ -305,8 +305,11 @@ function ExplicationGps({
             <Icone name="map-pin" size={26} color={colors.onBrandPrimary} />
           </View>
           <Text style={styles.titre}>{t(fond ? "livreur.fondExplicationTitre" : "livreur.gpsExplicationTitre")}</Text>
-          <Text style={styles.texte}>{t(fond ? "livreur.fondExplication" : "livreur.gpsExplication")}</Text>
-          {fond ? <Text style={styles.texte}>{t("livreur.fondConsigne")}</Text> : null}
+          <Text style={styles.texte}>
+            {t(fond ? (Platform.OS === "android" ? "livreur.fondExplicationAndroid" : "livreur.fondExplication") : "livreur.gpsExplication")}
+          </Text>
+          {/* iOS seulement : Android ne demande pas l'autorisation « Toujours » (service de premier plan). */}
+          {fond && Platform.OS === "ios" ? <Text style={styles.texte}>{t("livreur.fondConsigne")}</Text> : null}
           <Bouton
             testID={fond ? "btn-gps-fond-autoriser" : "btn-gps-autoriser"}
             label={t(fond ? "livreur.fondAutoriser" : "livreur.gpsAutoriser")}

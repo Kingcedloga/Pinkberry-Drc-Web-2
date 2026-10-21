@@ -78,6 +78,7 @@
     "departOk": "C'est parti ! Le client suit ta position en direct",
     "fondExplicationTitre": "Partage pendant la livraison",
     "fondExplication": "Pinkberry collecte la position de votre téléphone pendant vos courses « en route », même lorsque l'application est fermée ou non utilisée, pour que le client suive sa livraison en direct. Le partage s'arrête automatiquement à la livraison ou à l'annulation.",
+    "fondExplicationAndroid": "Pendant vos courses « en route », Pinkberry partage la position de votre téléphone, même écran verrouillé ou application en arrière-plan, pour que le client suive sa livraison en direct. Une notification reste affichée tant que le partage est actif ; il s'arrête automatiquement à la livraison ou à l'annulation.",
     "fondConsigne": "À l'étape suivante, choisissez « Toujours autoriser » (ou « Autoriser tout le temps »).",
     "fondAutoriser": "Continuer",
     "fondNotificationTitre": "Livraison en cours",

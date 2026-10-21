@@ -7,13 +7,20 @@ import { storage } from "@/src/utils/storage";
 
 /**
  * Applis natives (iOS / Android) : partage de la position du livreur même
- * écran verrouillé ou app en arrière-plan, pendant une course « en route »
- * uniquement. Android affiche une notification permanente tant que le partage
- * est actif (service de premier plan). Le web (PWA) ne permet pas ce mode :
- * l'écran y reste allumé pendant la course (voir src/geoloc.ts).
+ * écran verrouillé, pendant une course « en route » uniquement.
+ * - iOS : autorisation « Toujours », mode d'arrière-plan `location`.
+ * - Android : JAMAIS d'autorisation d'arrière-plan (ACCESS_BACKGROUND_LOCATION
+ *   est bloquée dans app.json). Le partage tourne dans un service de premier
+ *   plan (notification permanente), démarré app ouverte avec la seule
+ *   autorisation « pendant l'utilisation ».
+ * Le web (PWA) ne permet pas ce mode : l'écran y reste allumé pendant la course
+ * (voir src/geoloc.ts).
  */
 export const TACHE_POSITION = "pinkberry-position-livreur";
 const natif = Platform.OS !== "web";
+const android = Platform.OS === "android";
+/** Android : explication du partage écran verrouillé déjà acceptée sur cet appareil. */
+const CLE_PARTAGE_ACCEPTE = "pb_partage_fond_accepte";
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 // La tâche doit être déclarée au chargement du module, avant tout démarrage.
@@ -37,9 +44,14 @@ if (natif) {
   });
 }
 
-/** Autorisation « toujours » : accordée, à demander, ou refusée définitivement. */
+/**
+ * Partage écran verrouillé : accordé, à proposer (explication à afficher), ou refusé.
+ * iOS : autorisation « Toujours ». Android : explication acceptée une fois (aucune
+ * autorisation supplémentaire, le service de premier plan suffit).
+ */
 export async function etatPermissionFond(): Promise<"accordee" | "a_demander" | "refusee" | "indisponible"> {
   if (!natif) return "indisponible";
+  if (android) return (await storage.getItem<string>(CLE_PARTAGE_ACCEPTE, "")) ? "accordee" : "a_demander";
   try {
     const p = await Location.getBackgroundPermissionsAsync();
     if (p.granted) return "accordee";
@@ -55,8 +67,11 @@ export async function demarrerSuiviFond(notification: { titre: string; texte: st
   try {
     const avant = await Location.getForegroundPermissionsAsync();
     if (!avant.granted && !(await Location.requestForegroundPermissionsAsync()).granted) return false;
-    const fond = await Location.getBackgroundPermissionsAsync();
-    if (!fond.granted && !(await Location.requestBackgroundPermissionsAsync()).granted) return false;
+    // iOS seulement : Android n'a pas (et ne demande jamais) l'autorisation d'arrière-plan.
+    if (!android) {
+      const fond = await Location.getBackgroundPermissionsAsync();
+      if (!fond.granted && !(await Location.requestBackgroundPermissionsAsync()).granted) return false;
+    }
     if (await Location.hasStartedLocationUpdatesAsync(TACHE_POSITION)) return true;
     await Location.startLocationUpdatesAsync(TACHE_POSITION, {
       accuracy: Location.Accuracy.High,
@@ -72,6 +87,7 @@ export async function demarrerSuiviFond(notification: { titre: string; texte: st
         notificationColor: "#E6156F",
       },
     });
+    if (android) await storage.setItem(CLE_PARTAGE_ACCEPTE, "1");
     return true;
   } catch {
     return false;
