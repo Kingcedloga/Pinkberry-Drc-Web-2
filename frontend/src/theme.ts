@@ -2,7 +2,7 @@
 // Les clés correspondent au bloc "color" de /app/design_guidelines.json.
 
 import { useMemo } from "react";
-import { Appearance, StyleSheet, useColorScheme } from "react-native";
+import { Appearance, StyleSheet, useColorScheme, type ImageStyle, type TextStyle, type ViewStyle } from "react-native";
 
 export type ColorScheme = "light" | "dark";
 
@@ -154,9 +154,10 @@ export function stylesDynamiques<T extends Record<string, any>>(fabrique: () => 
   });
 }
 
-export function makeStyles<T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedStyles<any>>(
-  factory: (colors: ThemeColors) => T & StyleSheet.NamedStyles<any>,
-): () => T {
+/** Remplace StyleSheet.NamedStyles, retiré des types de React Native 0.88. */
+type StylesNommes = { readonly [cle: string]: ViewStyle | TextStyle | ImageStyle };
+
+export function makeStyles<T extends StylesNommes>(factory: (colors: ThemeColors) => T): () => T {
   return function useStyles(): T {
     const { colors: c } = useTheme();
     return useMemo(() => StyleSheet.create(factory(c)), [c]);

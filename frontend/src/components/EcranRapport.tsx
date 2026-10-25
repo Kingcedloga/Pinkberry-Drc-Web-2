@@ -88,7 +88,8 @@ export function EcranRapport({
         const fichier = new File(Paths.cache, nom);
         if (fichier.exists) fichier.delete();
         fichier.create();
-        fichier.write(octets);
+        // SDK 58 : write() est asynchrone, on attend la fin avant de partager le fichier.
+        await fichier.write(octets);
         if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fichier.uri);
       }
       toast.show(t("rapport.pret"), "succes");

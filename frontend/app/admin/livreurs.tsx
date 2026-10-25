@@ -126,7 +126,7 @@ export default function Livreurs() {
           columnWrapperStyle={cols > 1 ? styles.rangeeGrille : undefined}
           refreshing={q.isRefetching}
           onRefresh={() => q.refetch()}
-          ListHeaderComponent={estSuper ? <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} totalCount={selection.totalCount} /> : null}
+          ListHeaderComponent={estSuper ? <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} totalCount={selection.totalCount} /> : undefined}
           renderItem={({ item }: any) =>
             item.vide ? (
               <View style={styles.carteGrille} />

@@ -1,7 +1,7 @@
 import { Icone } from "@/src/components/Icone";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { apiFetch } from "@/src/api";
@@ -36,7 +36,7 @@ export default function VerificationOtp() {
   const [code, setCode] = useState("");
   const [envoiEchoue, setEnvoiEchoue] = useState(params.emailEnvoye === "0");
   const [loading, setLoading] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const valider = async () => {
     if (code.length !== LONGUEUR_CODE) {

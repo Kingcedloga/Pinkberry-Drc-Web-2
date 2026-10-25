@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from "react-native";
 
 import { useBannieres, type Banniere } from "@/src/bannieres";
 import { BanniereVisuel } from "@/src/components/BanniereVisuel";
@@ -33,7 +33,7 @@ export function CarrouselBannieres({
   const bannieres = q.data ?? [];
   const [largeur, setLargeur] = useState(0);
   const [index, setIndex] = useState(0);
-  const defilement = useRef<ScrollView>(null);
+  const defilement = useRef<ScrollViewInstance>(null);
   const pauseJusqua = useRef(0);
 
   useEffect(() => {

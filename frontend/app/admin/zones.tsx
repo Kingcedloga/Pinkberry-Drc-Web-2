@@ -138,7 +138,7 @@ export default function Zones() {
           ListHeaderComponent={
             peutGerer ? (
               <SelectionHeader checked={selection.allSelected} onToggle={selection.toggleAll} totalCount={selection.totalCount} />
-            ) : null
+            ) : undefined
           }
           renderItem={({ item }: any) =>
             item.vide ? (
