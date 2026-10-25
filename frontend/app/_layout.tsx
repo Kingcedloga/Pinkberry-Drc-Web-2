@@ -26,9 +26,21 @@ import { ToastProvider } from "@/src/toast";
 import { initialiserWeb } from "@/src/web-pwa";
 import i18n from "i18next";
 
-// Disable logbox errors etc so that users can see the app
-// and agent works as expected.
-LogBox.ignoreAllLogs(true);
+// Web : pas de panneau LogBox (l'app reste lisible et testable dans le navigateur).
+// Mobile : LogBox reste ACTIF — `ignoreAllLogs` y masquait aussi l'écran rouge des
+// erreurs fatales, qui laissaient alors une page blanche sans aucune explication.
+if (Platform.OS === "web") LogBox.ignoreAllLogs(true);
+
+// Mobile : toute exception non interceptée est aussi écrite dans la console, donc
+// visible dans le terminal Expo / Metro (« iOS ERROR » / « Android ERROR »).
+if (Platform.OS !== "web") {
+  const ErrorUtils = (globalThis as any).ErrorUtils;
+  const precedent = ErrorUtils?.getGlobalHandler?.();
+  ErrorUtils?.setGlobalHandler?.((erreur: any, fatale?: boolean) => {
+    console.error(`[ERREUR ${fatale ? "FATALE" : "JS"}] ${erreur?.message ?? erreur}\n${erreur?.stack ?? ""}`);
+    precedent?.(erreur, fatale);
+  });
+}
 
 // Affichage des notifications reçues app ouverte (portée module, natif seulement).
 if (Platform.OS !== "web") {

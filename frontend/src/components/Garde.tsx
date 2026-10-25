@@ -1,5 +1,5 @@
-import { Redirect } from "expo-router";
-import React from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect } from "react";
 
 import { useAuth } from "@/src/auth";
 import { accueilDuRole } from "@/src/nav-web";
@@ -9,6 +9,18 @@ export type Role = "client" | "livreur" | "admin" | "superadmin";
 
 export const TOUS_ROLES: Role[] = ["client", "livreur", "admin", "superadmin"];
 
+/**
+ * Redirection lancée après le rendu (router.replace), jamais avec <Redirect> :
+ * ces gardes enveloppent des layouts qui restent montés pendant une navigation
+ * interne, et <Redirect> (useFocusEffect, expo-router 58) y annulait la
+ * navigation en cours, laissant l'utilisateur bloqué sur la page précédente.
+ */
+function useRedirection(cible: string | null) {
+  const router = useRouter();
+  useEffect(() => {
+    if (cible) router.replace(cible as any);
+  }, [cible, router]);
+}
 
 /**
  * Renvoie un écran de blocage (chargement ou redirection) si l'utilisateur n'a pas
@@ -16,10 +28,15 @@ export const TOUS_ROLES: Role[] = ["client", "livreur", "admin", "superadmin"];
  */
 export function useBlocage(roles: Role[]): React.ReactElement | null {
   const { user, loading } = useAuth();
-
-  if (loading) return <EcranDemarrage testID="ecran-garde" />;
-  if (!user) return <Redirect href="/bienvenue" />;
-  if (!roles.includes(user.role as Role)) return <Redirect href={accueilDuRole(user.role) as any} />;
+  const cible = loading
+    ? null
+    : !user
+      ? "/bienvenue"
+      : !roles.includes(user.role as Role)
+        ? accueilDuRole(user.role)
+        : null;
+  useRedirection(cible);
+  if (loading || cible) return <EcranDemarrage testID="ecran-garde" />;
   return null;
 }
 
@@ -32,9 +49,9 @@ export function Garde({ roles, children }: { roles: Role[]; children: React.Reac
 /** Inverse de `Garde` : réservé aux visiteurs non connectés (écrans d'authentification). */
 export function GardeInvite({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-
-  if (loading) return <EcranDemarrage testID="ecran-garde" />;
   // L'accueil choisit la destination (page visitée avant la connexion, saisie du téléphone…).
-  if (user) return <Redirect href="/" />;
+  const cible = !loading && user ? "/" : null;
+  useRedirection(cible);
+  if (loading || cible) return <EcranDemarrage testID="ecran-garde" />;
   return <>{children}</>;
 }
