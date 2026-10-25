@@ -22,4 +22,13 @@ config.cacheStores = [
 // Reduce the number of workers to decrease resource usage
 config.maxWorkers = 2;
 
+// Ce fichier s'exécute dans le processus de l'Expo CLI. Le middleware
+// /_expo/debugger interroge `${EXPO_PACKAGER_PROXY_URL}/json/list` sans try ;
+// derrière le proxy de la preview, cette URL renvoie la page HTML de la web app,
+// le .json() échoue et Node 24 tue Metro (exit 7) sur ce rejet non intercepté.
+// Avec un gestionnaire, Node ne plante plus : l'erreur est seulement journalisée.
+process.on('unhandledRejection', (raison) => {
+  console.error('[metro] promesse rejetée non interceptée (Metro continue) :', raison);
+});
+
 module.exports = config;

@@ -118,3 +118,21 @@ test("super admin : sous-pages du back office", async () => {
     await toucher(ligne, chemin, ecran);
   }
 });
+
+// Gardes : une adresse interdite mène toujours à un écran rendu (jamais une page vide).
+test.each([
+  [null, "/compte", "/connexion", "ecran-connexion"],
+  [null, "/commande/adresse", "/connexion", "ecran-connexion"],
+  [null, "/admin", "/bienvenue", "ecran-bienvenue"],
+  [null, "/livreur", "/bienvenue", "ecran-bienvenue"],
+  ["client", "/admin", "/menu", "ecran-menu"],
+  ["client", "/livreur", "/menu", "ecran-menu"],
+  ["admin", "/commandes", "/admin", "ecran-admin-dashboard"],
+  ["livreur", "/menu", "/livreur", "ecran-livreur-courses"],
+] as const)("garde : %s sur %s → %s", async (role, demande, attendu, ecran) => {
+  (globalThis as any).__memoire.clear();
+  if (role) (globalThis as any).__memoire.set(CLE_JETON, `jeton-${role}`);
+  installerFausseApi(role);
+  await renderRouter("./app", { initialUrl: demande });
+  await attendreAccueil(attendu, ecran);
+});

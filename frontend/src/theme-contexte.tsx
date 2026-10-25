@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo } from "react";
-import { Platform, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
 
 import { useLangue, type ThemeChoisi } from "@/src/i18n";
+import { colorerBarresSysteme } from "@/src/plateforme/apparence";
 import { appliquerScheme, setColorScheme, themes, type ColorScheme, type ThemeColors } from "@/src/theme";
 
 type ThemeValue = {
@@ -35,13 +36,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [choix, scheme]);
 
   useEffect(() => {
-    // Web / PWA : barres système (status bar, barre d'adresse) de la couleur de
-    // l'en-tête, y compris quand le thème est forcé contre celui de l'appareil.
-    if (Platform.OS !== "web" || typeof document === "undefined") return;
-    const surface = themes[scheme].surface;
-    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", surface));
-    document.documentElement.style.colorScheme = scheme;
-    document.documentElement.style.backgroundColor = themes[scheme].surfaceSecondary;
+    // Barres système de la couleur de l'en-tête, même thème forcé (web / PWA).
+    colorerBarresSysteme(scheme, { entete: themes[scheme].surface, fond: themes[scheme].surfaceSecondary });
   }, [scheme]);
 
   const value = useMemo<ThemeValue>(

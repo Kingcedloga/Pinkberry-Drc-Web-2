@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Platform, Pressable, Share, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,6 +11,7 @@ import { Champ } from "@/src/components/Champ";
 import { ChoixTheme } from "@/src/components/ChoixTheme";
 import { Icone, type NomIcone } from "@/src/components/Icone";
 import { useLangue, type CleTexte, type Langue } from "@/src/i18n";
+import { partagerLien } from "@/src/plateforme/partage";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -155,16 +156,7 @@ export default function ParametresClient() {
   const partager = async () => {
     const message = `${t("params.partageMessage")}\n${LIEN_APP}`;
     try {
-      if (Platform.OS === "web") {
-        const partageWeb = (globalThis.navigator as any)?.share;
-        if (partageWeb) await partageWeb.call(globalThis.navigator, { text: message, url: LIEN_APP });
-        else {
-          await (globalThis.navigator as any)?.clipboard?.writeText?.(message);
-          toast.show(t("params.lienCopie"), "succes");
-        }
-        return;
-      }
-      await Share.share({ message, url: LIEN_APP });
+      if ((await partagerLien(message, LIEN_APP)) === "copie") toast.show(t("params.lienCopie"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }

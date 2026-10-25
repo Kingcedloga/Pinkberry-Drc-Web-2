@@ -1,6 +1,6 @@
 import { useRouter, usePathname } from "expo-router";
 import React from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth";
@@ -9,6 +9,7 @@ import { CentreNotifications } from "@/src/components/CentreNotifications";
 import { Logo } from "@/src/components/Logo";
 import { LienNav, lienActif } from "@/src/nav-web";
 import { usePanier } from "@/src/panier";
+import { enteteCollant } from "@/src/plateforme/styles";
 import { useEcran } from "@/src/reactif";
 import { useLangue } from "@/src/i18n";
 import { useMontant } from "@/src/taux";
@@ -307,7 +308,7 @@ const styles = stylesDynamiques(() =>
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      ...(Platform.OS === "web" ? { position: "sticky" as any, top: 0, zIndex: 20 } : {}),
+      ...enteteCollant,
     },
     enteteInterieur: {
       width: "100%",

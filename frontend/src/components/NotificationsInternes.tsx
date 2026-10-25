@@ -1,10 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useGlobalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
-import { Platform } from "react-native";
 
 import { useAuth } from "@/src/auth";
 import { marquerLues, useNotifications, type NotificationApp } from "@/src/notifications";
+import { surNotificationRecue } from "@/src/plateforme/notifications";
 import { useToast } from "@/src/toast";
 
 const typeToast = (n: NotificationApp) =>
@@ -12,9 +12,9 @@ const typeToast = (n: NotificationApp) =>
 
 /**
  * Canal interne, quand l'app est ouverte : chaque nouvelle notification du
- * serveur s'affiche en toast (empilé, non bloquant, disparaît seul). Le service
- * worker n'affiche pas de notification système si l'app est visible : il
- * prévient cette page, qui se rafraîchit aussitôt.
+ * serveur s'affiche en toast (empilé, non bloquant, disparaît seul). Une
+ * notification reçue app ouverte (push mobile, ou message du service worker sur
+ * le web) déclenche un rafraîchissement immédiat.
  */
 export function NotificationsInternes() {
   const { user } = useAuth();
@@ -64,14 +64,8 @@ export function NotificationsInternes() {
     router.setParams({ notif: undefined } as any);
   }, [notif, user, qc, router]);
 
-  useEffect(() => {
-    if (Platform.OS !== "web" || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-    const ecouter = (e: MessageEvent) => {
-      if (e.data?.type === "notification") qc.invalidateQueries({ queryKey: ["notifications"] });
-    };
-    navigator.serviceWorker.addEventListener("message", ecouter);
-    return () => navigator.serviceWorker.removeEventListener("message", ecouter);
-  }, [qc]);
+  // Une notification arrive app ouverte : la liste se rafraîchit aussitôt.
+  useEffect(() => surNotificationRecue(() => qc.invalidateQueries({ queryKey: ["notifications"] })), [qc]);
 
   return null;
 }

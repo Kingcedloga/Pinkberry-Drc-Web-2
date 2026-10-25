@@ -4,7 +4,7 @@ import { useDetailLigne, useLibelle } from "@/src/catalogue-i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { Linking, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
@@ -13,6 +13,7 @@ import { Carte } from "@/src/components/Carte";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { TitrePage } from "@/src/components/TitrePage";
 import { champsAdresse, useLangue } from "@/src/i18n";
+import { ouvrirReglages, reglagesDisponibles } from "@/src/plateforme/reglages";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -214,13 +215,13 @@ export default function DetailCourse() {
                     <Text style={styles.blocageTitre}>{t("livreur.gpsRequisTitre")}</Text>
                     <Text style={styles.blocageTexte}>{messageGps ?? t("livreur.gpsDelai")}</Text>
                   </View>
-                  {Platform.OS !== "web" && suivi.permission === "refusee" ? (
+                  {reglagesDisponibles && suivi.permission === "refusee" ? (
                     <Bouton
                       testID="btn-reglages-gps"
                       label={t("livreur.ouvrirReglages")}
                       variant="contour"
                       petit
-                      onPress={() => Linking.openSettings()}
+                      onPress={ouvrirReglages}
                     />
                   ) : null}
                 </View>

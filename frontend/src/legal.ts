@@ -1,11 +1,8 @@
-import { Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 
-/** Adresse publique du site, pour les liens cités dans les textes (ex. suppression de compte). */
-export function adresseSite(): string {
-  if (Platform.OS === "web" && typeof window !== "undefined") return window.location.origin;
-  return (process.env.EXPO_PUBLIC_BACKEND_URL ?? "").replace(/\/$/, "");
-}
+import { adresseSite } from "@/src/plateforme/site";
+
+export { adresseSite };
 
 /**
  * Pages légales (FR / EN) : le contenu vit dans `src/locales/{fr,en}.json`

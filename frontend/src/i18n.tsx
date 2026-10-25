@@ -1,10 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import i18n from "i18next";
-import { Platform } from "react-native";
 import { initReactI18next, useTranslation } from "react-i18next";
 
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
+import { lireImmediatement } from "@/src/plateforme/lecture-immediate";
 import { CLE_LANGUE, CLE_LANGUE_HORS_CONNEXION, CLE_THEME } from "@/src/prefs";
 import { storage } from "@/src/utils/storage";
 import fr from "@/src/locales/fr.json";
@@ -20,14 +20,8 @@ const estLangue = (v: unknown): v is Langue => v === "fr" || v === "en";
  * l'appareil (anglais si elle commence par « en »), sinon français.
  */
 function langueInitiale(): Langue {
-  if (Platform.OS === "web" && typeof localStorage !== "undefined") {
-    try {
-      const enregistree = JSON.parse(localStorage.getItem(CLE_LANGUE) ?? "null");
-      if (estLangue(enregistree)) return enregistree;
-    } catch {
-      /* stockage illisible : langue de l'appareil */
-    }
-  }
+  const enregistree = lireImmediatement(CLE_LANGUE);
+  if (estLangue(enregistree)) return enregistree;
   try {
     const appareil =
       (typeof navigator !== "undefined" && navigator.language) || Intl.DateTimeFormat().resolvedOptions().locale;

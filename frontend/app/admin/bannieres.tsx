@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import React, { useMemo, useState } from "react";
-import { FlatList, Modal, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { FlatList, Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -19,6 +19,7 @@ import { TitrePage } from "@/src/components/TitrePage";
 import { versIso, versLocal } from "@/src/dates";
 import { BandeauLectureSeule, useDroits } from "@/src/droits";
 import { useLangue, useT, type CleTexte } from "@/src/i18n";
+import { joindreFichier } from "@/src/plateforme/fichiers";
 import type { Promotion } from "@/src/promotions";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE } from "@/src/reactif";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
@@ -152,12 +153,7 @@ export default function BannieresAdmin() {
     setEnvoiImage(true);
     try {
       const form = new FormData();
-      if (Platform.OS === "web") {
-        const blob = await (await fetch(aRecadrer.uri)).blob();
-        form.append("file", blob, aRecadrer.nom);
-      } else {
-        form.append("file", { uri: aRecadrer.uri, name: aRecadrer.nom, type: aRecadrer.type } as any);
-      }
+      await joindreFichier(form, "file", aRecadrer);
       form.append("x", String(cadre.x));
       form.append("y", String(cadre.y));
       form.append("w", String(cadre.w));

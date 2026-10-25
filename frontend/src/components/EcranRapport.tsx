@@ -1,7 +1,5 @@
-import { File, Paths } from "expo-file-system";
-import * as Sharing from "expo-sharing";
 import React, { useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { obtenirToken } from "@/src/api";
@@ -10,6 +8,7 @@ import { Bouton } from "@/src/components/Bouton";
 import { Champ } from "@/src/components/Champ";
 import { Icone } from "@/src/components/Icone";
 import { useLangue } from "@/src/i18n";
+import { remettreFichier } from "@/src/plateforme/fichiers";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useToast } from "@/src/toast";
@@ -76,22 +75,7 @@ export function EcranRapport({
       }
       const nom = `${prefixeFichier}-${debut}-${fin}.${format}`;
 
-      if (Platform.OS === "web") {
-        const blob = await res.blob();
-        const lien = document.createElement("a");
-        lien.href = URL.createObjectURL(blob);
-        lien.download = nom;
-        lien.click();
-        URL.revokeObjectURL(lien.href);
-      } else {
-        const octets = new Uint8Array(await res.arrayBuffer());
-        const fichier = new File(Paths.cache, nom);
-        if (fichier.exists) fichier.delete();
-        fichier.create();
-        // SDK 58 : write() est asynchrone, on attend la fin avant de partager le fichier.
-        await fichier.write(octets);
-        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fichier.uri);
-      }
+      await remettreFichier(res, nom);
       toast.show(t("rapport.pret"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");

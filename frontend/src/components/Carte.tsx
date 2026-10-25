@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { Platform, StyleSheet, View } from "react-native";
-import WebView from "react-native-webview";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { StyleSheet, View } from "react-native";
 
+import { VuePage, type VuePageRef } from "@/src/plateforme/VuePage";
 import { colors, radius, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 
@@ -44,75 +44,37 @@ export function Carte({
   testID?: string;
 }) {
   const { scheme } = useTheme();
-  const vue = useRef<any>(null);
-  const cadre = useRef<any>(null);
+  const page = useRef<VuePageRef>(null);
   const trace = itineraire ?? [];
   // L'URL est figée : positions et tracé sont poussés à la page ensuite.
   const uri = useMemo(() => urlCarte(client, livreur ?? null, mode, scheme === "dark"), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const message = JSON.stringify({
-      livreur: livreur ? [livreur.lat, livreur.lng] : null,
-      trace: trace.length > 1 ? trace : null,
-    });
-    if (Platform.OS === "web") {
-      cadre.current?.contentWindow?.postMessage(message, "*");
-    } else {
-      vue.current?.injectJavaScript?.(`window.postMessage(${JSON.stringify(message)},'*'); true;`);
-    }
+    page.current?.envoyer(
+      JSON.stringify({
+        livreur: livreur ? [livreur.lat, livreur.lng] : null,
+        trace: trace.length > 1 ? trace : null,
+      }),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [livreur?.lat, livreur?.lng, trace.length]);
 
-  useEffect(() => {
-    if (Platform.OS !== "web" || !onPosition) return;
-    const ecouteur = (e: any) => {
+  // Mode `choix` : la page remonte la position du repère déplacé.
+  const recevoir = useCallback(
+    (data: string) => {
       try {
-        const d = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
-        if (d?.type === "position") onPosition({ lat: d.lat, lng: d.lng });
+        const d = JSON.parse(data);
+        if (d?.type === "position") onPosition?.({ lat: d.lat, lng: d.lng });
       } catch {
-        /* message tiers ignoré */
+        /* message non exploitable */
       }
-    };
-    window.addEventListener("message", ecouteur);
-    return () => window.removeEventListener("message", ecouteur);
-  }, [onPosition]);
-
-  if (Platform.OS === "web") {
-    return (
-      <View testID={testID} style={[styles.wrap, { height: hauteur }]}>
-        {React.createElement("iframe" as any, {
-          ref: cadre,
-          title: "carte",
-          src: uri,
-          allow: "geolocation",
-          style: { width: "100%", height: hauteur, border: 0 },
-        })}
-      </View>
-    );
-  }
+    },
+    [onPosition],
+  );
 
   return (
     <View testID={testID} style={[styles.wrap, { height: hauteur }]}>
-      <WebView
-        ref={vue}
-        source={{ uri }}
-        originWhitelist={["*"]}
-        javaScriptEnabled
-        domStorageEnabled
-        mixedContentMode="always"
-        geolocationEnabled
-        onMessage={(e) => {
-          if (!onPosition) return;
-          try {
-            const d = JSON.parse(e.nativeEvent.data);
-            if (d?.type === "position") onPosition({ lat: d.lat, lng: d.lng });
-          } catch {
-            /* message non exploitable */
-          }
-        }}
-        style={{ flex: 1, backgroundColor: colors.surfaceSecondary }}
-        scrollEnabled={false}
-      />
+      <VuePage ref={page} uri={uri} hauteur={hauteur} fond={colors.surfaceSecondary} onMessage={onPosition ? recevoir : undefined} />
     </View>
   );
 }

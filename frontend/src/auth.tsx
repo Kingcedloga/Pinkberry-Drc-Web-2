@@ -1,25 +1,16 @@
-import * as Linking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Platform } from "react-native";
 
 import { apiFetch, setAuthToken } from "@/src/api";
+import {
+  nettoyerRetourGoogle,
+  ouvrirConnexionGoogle,
+  retourGoogleInitial,
+  surRetourGoogle,
+} from "@/src/plateforme/connexion-google";
 import { storage } from "@/src/utils/storage";
-import i18n from "i18next";
 import { CLE_JETON } from "@/src/prefs";
 
 const TOKEN_KEY = CLE_JETON;
-// Portail d'authentification Emergent : configurable au deploiement.
-const AUTH_EMERGENT = process.env.EXPO_PUBLIC_AUTH_PORTAL_URL ?? "";
-
-WebBrowser.maybeCompleteAuthSession();
-
-function extraireSessionId(url?: string | null): string | null {
-  if (!url) return null;
-  const m = url.match(/[?#&]session_id=([^&#]+)/);
-  return m ? decodeURIComponent(m[1]) : null;
-}
-
 export type Utilisateur = {
   id: string;
   nom: string;
@@ -49,7 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Utilisateur | null>(null);
   const [loading, setLoading] = useState(true);
   const dejaTraites = useRef<Set<string>>(new Set());
-  const urlCapturee = useRef<string | null>(null);
 
   const applique = useCallback(async (token: string, u: Utilisateur) => {
     setAuthToken(token);
@@ -74,22 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       // 1. Un retour de Google est prioritaire sur la session stockée.
-      let sessionId: string | null = null;
-      if (Platform.OS === "web") {
-        sessionId = extraireSessionId(window.location.href);
-      } else {
-        sessionId = extraireSessionId(await Linking.getInitialURL());
-      }
+      const sessionId = await retourGoogleInitial();
 
       if (sessionId) {
         try {
           await echangerSession(sessionId);
-          if (Platform.OS === "web") {
-            const propre = window.location.href
-              .replace(/([?#&])session_id=[^&#]*/g, "$1")
-              .replace(/[?#&]$/, "");
-            window.history.replaceState(window.history.state, "", propre);
-          }
+          nettoyerRetourGoogle();
           setLoading(false);
           return;
         } catch {
@@ -111,31 +91,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [echangerSession]);
 
-  // Deep links « à chaud » (Android renvoie souvent dismiss sans URL)
-  useEffect(() => {
-    if (Platform.OS === "web") return;
-    const sub = Linking.addEventListener("url", ({ url }) => {
-      urlCapturee.current = url;
-      const id = extraireSessionId(url);
-      if (id) echangerSession(id).catch(() => undefined);
-    });
-    return () => sub.remove();
-  }, [echangerSession]);
+  // Retours de Google « à chaud » (lien profond, mobile).
+  useEffect(() => surRetourGoogle((id) => void echangerSession(id).catch(() => undefined)), [echangerSession]);
 
+  // Web : la page part vers Google (null) ; mobile : session obtenue, ou erreur si annulée.
   const connexionGoogle = useCallback(async () => {
-    if (Platform.OS === "web") {
-      const redirect = window.location.origin + "/";
-      window.location.href = `${AUTH_EMERGENT}${encodeURIComponent(redirect)}`;
-      return;
-    }
-    const redirect = Linking.createURL("");
-    urlCapturee.current = null;
-    const res = await WebBrowser.openAuthSessionAsync(`${AUTH_EMERGENT}${encodeURIComponent(redirect)}`, redirect);
-    const url =
-      (res as any)?.url ?? urlCapturee.current ?? (await Linking.getInitialURL());
-    const sessionId = extraireSessionId(url);
-    if (!sessionId) throw new Error(i18n.t("auth.googleAnnulee"));
-    await echangerSession(sessionId);
+    const sessionId = await ouvrirConnexionGoogle();
+    if (sessionId) await echangerSession(sessionId);
   }, [echangerSession]);
 
   const enregistrerTelephone = useCallback(async (telephone: string) => {

@@ -188,7 +188,7 @@ Tous les tokens vivent dans `/app/frontend/src/theme.ts`.
   « Notifications » (`src/components/CarteNotifications.tsx`) qui explique le bénéfice AVANT la
   demande d'autorisation, gère les états accordé / refusé / bloqué (bouton « Ouvrir les réglages »
   via `Linking.openSettings()`), montée dans l'écran Compte client, le dashboard admin et l'écran
-  Courses du livreur. `src/push.ts` expose `etatPush`, `enregistrerToken` et `demanderPush` ;
+  Courses du livreur. `src/plateforme/notifications.ts` (+ `.web.ts`) expose `lireStatutNotifs`, `activerNotifs` et `synchroniserNotifs` ;
   `GestionPush` ne rafraîchit plus que le token, silencieusement, à chaque retour au premier plan.
 - Tests : 90/90 backend + non-régression web des 3 écrans concernés (itération 8). Rappel : la
   réception réelle en arrière-plan n'est vérifiable qu'après Publish + build natif, avec la clé
@@ -645,9 +645,9 @@ s'affichent que l'app ouverte.
   `/livreur/course/{id}`) ouverte par le service worker au clic.
 
 ### Frontend
-- `src/push-web.ts` (abonnement / désabonnement / synchronisation), handlers `push` et
+- `src/plateforme/notifications.web.ts` (abonnement / désabonnement / synchronisation), handlers `push` et
   `notificationclick` dans `public/sw.js`, enregistrement du service worker à l'exécution
-  (`src/web-pwa.ts`, appelé depuis `app/_layout.tsx`).
+  (`src/plateforme/demarrage.web.ts`, appelé depuis `app/_layout.tsx`).
 - Invite maison `CarteNotifications` (« Reçois les infos de ta commande en temps réel ») affichée
   sur `/compte`, `/suivi/{id}`, `/admin` et `/livreur` : la popup du navigateur n'est demandée
   qu'après acceptation de l'invite. Message explicite si le navigateur bloque les notifications.
@@ -704,3 +704,16 @@ Contrôles : `destructive_db_startup_confirmed: false`, compilation TypeScript O
 (1 avertissement bénin i18next), backend/API/PWA (manifest, sw.js) et pages légales en 200.
 Reste : déploiement public à déclencher par le propriétaire (bouton Publish), puis remplacer
 `EXPO_PUBLIC_SITE_URL` par le domaine définitif et revalider le push web en HTTPS public.
+
+## Web et mobile unifiés — une seule logique (2026-10-25)
+Règle : aucun `Platform.OS` dans les écrans ni les composants. Ce qui diffère vit dans
+`frontend/src/plateforme/<capacite>.ts` (iOS / Android) et `<capacite>.web.ts` (navigateur),
+à l'API identique ; Metro choisit la variante. Les écrans lisent des capacités
+(`reglagesDisponibles`, `desactivationDansApp`, `partageFondDisponible`…) au lieu de tester la
+plateforme. Adaptateurs : `notifications`, `reglages`, `fichiers`, `position` (GPS + partage
+écran verrouillé), `demarrage`, `connexion-google`, `partage`, `site`, `apparence`,
+`lecture-immediate`, `styles`, `VuePage` (WebView / iframe). Voir `src/plateforme/README.md`.
+Tests : une seule suite `frontend/__tests__` jouée sur iOS et Android (`npx jest`, projets
+jest-expo), dont un test qui refuse tout `Platform.OS` hors de `src/plateforme/`. Le web n'entre
+pas dans Jest (la Testing Library native refuse le DOM de react-native-web) : il se vérifie dans
+un vrai navigateur (Chromium, API simulée).

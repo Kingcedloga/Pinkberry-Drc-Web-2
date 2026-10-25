@@ -1,13 +1,12 @@
 import * as Linking from "expo-linking";
 import { useCallback, useEffect } from "react";
-import { AppState, Platform } from "react-native";
+import { AppState } from "react-native";
 
 import { useAuth } from "@/src/auth";
-import { enregistrerToken, etatPush } from "@/src/push";
-import { synchroniserPushWeb } from "@/src/push-web";
+import { synchroniserNotifs } from "@/src/plateforme/notifications";
 
 /**
- * Rafraîchit silencieusement le token push quand l'autorisation est déjà
+ * Rafraîchit silencieusement le jeton / l'abonnement push quand l'autorisation est déjà
  * accordée (les tokens natifs tournent). Aucune popup système ici : la demande
  * d'autorisation se fait depuis la carte « Notifications », après explication.
  */
@@ -15,14 +14,7 @@ export function GestionPush() {
   const { user } = useAuth();
 
   const rafraichir = useCallback(async () => {
-    if (!user) return;
-    if (Platform.OS === "web") {
-      // Web : reenregistre l'abonnement push existant (aucune popup).
-      await synchroniserPushWeb();
-      return;
-    }
-    const etat = await etatPush();
-    if (etat.statut === "granted") await enregistrerToken(user.id);
+    if (user) await synchroniserNotifs(user.id);
   }, [user]);
 
   useEffect(() => {

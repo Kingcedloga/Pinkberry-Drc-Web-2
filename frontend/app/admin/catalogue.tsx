@@ -8,9 +8,7 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useMemo, useState } from "react";
 import {
   FlatList,
-  Linking,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Switch,
@@ -29,6 +27,8 @@ import { useLibelle } from "@/src/catalogue-i18n";
 import { BandeauLectureSeule, useDroits } from "@/src/droits";
 import { useT } from "@/src/i18n";
 import { prix } from "@/src/money";
+import { joindreFichier } from "@/src/plateforme/fichiers";
+import { ouvrirReglages } from "@/src/plateforme/reglages";
 import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_FEUILLE, LARGEUR_LARGE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -189,12 +189,12 @@ export default function Catalogue() {
         statut = demande.status;
         if (demande.status !== "granted" && !demande.canAskAgain) {
           toast.show(t("catalogue.accesPhotosBloque"), "erreur");
-          if (Platform.OS !== "web") Linking.openSettings();
+          ouvrirReglages();
           return;
         }
       } else {
         toast.show(t("catalogue.accesPhotosBloque"), "erreur");
-        if (Platform.OS !== "web") Linking.openSettings();
+        ouvrirReglages();
         return;
       }
     }
@@ -226,12 +226,7 @@ export default function Catalogue() {
     try {
       const nomFichier = asset.fileName ?? `photo.${type.split("/")[1] ?? "jpg"}`;
       const form = new FormData();
-      if (Platform.OS === "web") {
-        const blob = await (await fetch(asset.uri)).blob();
-        form.append("file", blob, nomFichier);
-      } else {
-        form.append("file", { uri: asset.uri, name: nomFichier, type } as any);
-      }
+      await joindreFichier(form, "file", { uri: asset.uri, nom: nomFichier, type });
       const r = await apiUpload<{ url: string }>("/admin/photos", form);
       setImage(r.url);
       setApercuLocal(null);

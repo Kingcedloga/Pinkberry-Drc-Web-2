@@ -1,8 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Platform, StyleSheet, Text, View } from "react-native";
+import { Animated, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icone } from "@/src/components/Icone";
+import { toastCentre } from "@/src/plateforme/styles";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 
 type Type = "succes" | "erreur" | "info";
@@ -99,7 +100,7 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     right: spacing.lg,
     alignItems: "center",
     gap: spacing.sm,
-    ...(Platform.OS === "web" ? { maxWidth: 420, marginHorizontal: "auto" } : null),
+    ...toastCentre,
   },
   toast: {
     width: "100%",

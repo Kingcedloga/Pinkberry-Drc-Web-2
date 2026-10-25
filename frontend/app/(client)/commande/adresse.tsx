@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -14,6 +14,7 @@ import { Carte } from "@/src/components/Carte";
 import { Champ } from "@/src/components/Champ";
 import { useT } from "@/src/i18n";
 import { usePanier } from "@/src/panier";
+import { ouvrirReglages, reglagesDisponibles } from "@/src/plateforme/reglages";
 import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_CONTENU, LARGEUR_FEUILLE, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -225,13 +226,15 @@ export default function FormulaireAdresse() {
             <Text style={styles.alerteRougeTexte}>
               {t("adresse.gpsBloque")}
             </Text>
-            <Bouton
-              testID="btn-ouvrir-reglages"
-              label={t("adresse.ouvrirReglages")}
-              variant="contour"
-              petit
-              onPress={() => Linking.openSettings()}
-            />
+            {reglagesDisponibles ? (
+              <Bouton
+                testID="btn-ouvrir-reglages"
+                label={t("adresse.ouvrirReglages")}
+                variant="contour"
+                petit
+                onPress={ouvrirReglages}
+              />
+            ) : null}
           </View>
         ) : null}
 

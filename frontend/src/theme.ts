@@ -106,8 +106,9 @@ export function appliquerScheme(scheme: ColorScheme) {
   schemeActif = scheme;
 }
 
+/** `null` = suivre l'appareil. Android plante sur `null` : on envoie "unspecified". */
 export function setColorScheme(scheme: ColorScheme | null) {
-  Appearance.setColorScheme?.(scheme as any);
+  Appearance.setColorScheme?.(scheme ?? "unspecified");
 }
 
 export function useTheme(): { scheme: ColorScheme; colors: ThemeColors } {

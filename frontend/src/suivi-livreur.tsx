@@ -1,23 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Linking, Modal, Platform, StyleSheet, Text, View } from "react-native";
+import { Modal, StyleSheet, Text, View } from "react-native";
 
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
+import { useT } from "@/src/i18n";
 import {
-  distanceMetres,
+  arreterSuiviFond,
+  demarrerSuiviFond,
+  etatPermissionFond,
   garderEcranAllume,
   lirePermission,
+  partageFondDisponible,
   positionActuelle,
   suivrePosition,
   surChangementPermission,
+  textesFond,
   type ErreurGps,
   type EtatPermission,
   type Fix,
-} from "@/src/geoloc";
-import { useT } from "@/src/i18n";
-import { arreterSuiviFond, demarrerSuiviFond, etatPermissionFond } from "@/src/suivi-fond";
+} from "@/src/plateforme/position";
+import { ouvrirReglages, reglagesDisponibles } from "@/src/plateforme/reglages";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
 
@@ -32,6 +36,15 @@ const DEPLACEMENT_M = 25; // …ou dès 25 m parcourus
 const FIX_PERIME_MS = 15000; // sans nouvelle position depuis 15 s : on en redemande une
 const SIGNAL_PERDU_MS = 30000; // au-delà, le GPS est considéré comme perdu
 const CLE_EXPLICATION = "pb_gps_explique";
+
+/** Distance en mètres entre deux points (formule de haversine). */
+function distanceMetres(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const r = (d: number) => (d * Math.PI) / 180;
+  const h =
+    Math.sin(r(b.lat - a.lat) / 2) ** 2 +
+    Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(h));
+}
 
 type Envoi = { lat: number; lng: number; at: number; fixAt: number };
 
@@ -162,9 +175,9 @@ export function SuiviLivreurProvider({ children }: { children: React.ReactNode }
     setFondActif(ok);
   }, [t]);
 
-  // Natif : partage écran verrouillé pendant la course, arrêt complet sinon.
+  // Partage écran verrouillé pendant la course (si la plateforme le permet), arrêt complet sinon.
   useEffect(() => {
-    if (Platform.OS === "web") return;
+    if (!partageFondDisponible) return;
     if (!active || permission !== "accordee") {
       void arreterSuiviFond().then(() => setFondActif(false));
       return;
@@ -181,9 +194,9 @@ export function SuiviLivreurProvider({ children }: { children: React.ReactNode }
   // Déconnexion : plus aucun partage.
   useEffect(() => () => void arreterSuiviFond(), []);
 
-  // Natif : l'autorisation peut être rendue depuis les réglages ; on la relit.
+  // L'autorisation peut être rendue depuis les réglages de l'appareil ; on la relit.
   useEffect(() => {
-    if (Platform.OS === "web" || permission !== "refusee") return;
+    if (!reglagesDisponibles || permission !== "refusee") return;
     const id = setInterval(() => void lirePermission().then(setPermission), 5000);
     return () => clearInterval(id);
   }, [permission]);
@@ -232,7 +245,7 @@ export function useMessageGps() {
   const t = useT();
   const { permission, erreur } = useSuiviLivreur();
   if (permission === "refusee" || erreur === "refusee") {
-    return t(Platform.OS === "web" ? "livreur.gpsRefuseWeb" : "livreur.gpsRefuseNatif");
+    return t(reglagesDisponibles ? "livreur.gpsRefuseNatif" : "livreur.gpsRefuseWeb");
   }
   if (permission === "indisponible" || erreur === "indisponible") return t("livreur.gpsIndisponible");
   if (erreur === "delai") return t("livreur.gpsDelai");
@@ -277,8 +290,8 @@ function BandeauGps() {
           testID="btn-gps-reessayer"
           petit
           variant="contour"
-          label={Platform.OS === "web" || !refusee ? t("livreur.gpsReessayer") : t("livreur.ouvrirReglages")}
-          onPress={() => (Platform.OS !== "web" && refusee ? Linking.openSettings() : void preparerDepart())}
+          label={reglagesDisponibles && refusee ? t("livreur.ouvrirReglages") : t("livreur.gpsReessayer")}
+          onPress={() => (reglagesDisponibles && refusee ? ouvrirReglages() : void preparerDepart())}
         />
       ) : null}
     </View>
@@ -306,10 +319,10 @@ function ExplicationGps({
           </View>
           <Text style={styles.titre}>{t(fond ? "livreur.fondExplicationTitre" : "livreur.gpsExplicationTitre")}</Text>
           <Text style={styles.texte}>
-            {t(fond ? (Platform.OS === "android" ? "livreur.fondExplicationAndroid" : "livreur.fondExplication") : "livreur.gpsExplication")}
+            {t(fond ? textesFond.explication : "livreur.gpsExplication")}
           </Text>
           {/* iOS seulement : Android ne demande pas l'autorisation « Toujours » (service de premier plan). */}
-          {fond && Platform.OS === "ios" ? <Text style={styles.texte}>{t("livreur.fondConsigne")}</Text> : null}
+          {fond && textesFond.consigne ? <Text style={styles.texte}>{t(textesFond.consigne)}</Text> : null}
           <Bouton
             testID={fond ? "btn-gps-fond-autoriser" : "btn-gps-autoriser"}
             label={t(fond ? "livreur.fondAutoriser" : "livreur.gpsAutoriser")}
