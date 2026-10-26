@@ -136,3 +136,13 @@ test.each([
   await renderRouter("./app", { initialUrl: demande });
   await attendreAccueil(attendu, ecran);
 });
+
+test("paramètres : l'empreinte du build est affichée", async () => {
+  await demarrer("client");
+  await attendreAccueil("/menu", "ecran-menu");
+  await toucher("onglet-compte", "/compte", "ecran-compte");
+  await toucher("btn-parametres-client", "/parametres", "ecran-parametres-client");
+  const texte = String((await screen.findByTestId("infos-build")).props.children);
+  expect(texte).toMatch(/^v\d+\.\d+\.\d+ \(\d+\) · /);
+  expect(texte).toContain(process.env.EXPO_PUBLIC_BACKEND_URL?.replace(/^https?:\/\//, "") ?? "API non définie");
+});

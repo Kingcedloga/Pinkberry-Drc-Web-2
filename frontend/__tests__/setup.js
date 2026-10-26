@@ -41,3 +41,12 @@ jest.mock("expo-notifications", () => {
     PermissionStatus: { GRANTED: "granted", DENIED: "denied", UNDETERMINED: "undetermined" },
   };
 });
+
+// Configuration réelle de l'app (app.json passé par app.config.js), comme dans un build.
+jest.mock("expo-constants", () => {
+  const reel = jest.requireActual("expo-constants");
+  const base = reel.default ?? reel;
+  const expoConfig = require("../app.config.js")({ config: require("../app.json").expo });
+  const Constants = Object.assign(Object.create(Object.getPrototypeOf(base)), base, { expoConfig });
+  return { __esModule: true, ...reel, default: Constants };
+});

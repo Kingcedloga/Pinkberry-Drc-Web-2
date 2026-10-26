@@ -16,6 +16,7 @@ import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
+import { InfosBuild } from "@/src/components/InfosBuild";
 import { useToast } from "@/src/toast";
 import { useRetour } from "@/src/retour";
 
@@ -354,6 +355,7 @@ export default function ParametresClient() {
                 router.replace("/bienvenue");
               }}
             />
+            <InfosBuild />
           </>
         )}
       </KeyboardAwareScrollView>

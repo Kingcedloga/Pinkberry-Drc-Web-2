@@ -12,6 +12,7 @@ import { ChoixTheme } from "@/src/components/ChoixTheme";
 import { Icone, type NomIcone } from "@/src/components/Icone";
 import { LiensLegaux } from "@/src/components/LiensLegaux";
 import { ReglagesNotifications } from "@/src/components/ReglagesNotifications";
+import { InfosBuild } from "@/src/components/InfosBuild";
 import { useLangue, type Langue } from "@/src/i18n";
 import { LARGEUR_CONTENU } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
@@ -308,6 +309,7 @@ export default function Parametres() {
                 router.replace("/bienvenue");
               }}
             />
+            <InfosBuild />
           </>
         )}
       </KeyboardAwareScrollView>

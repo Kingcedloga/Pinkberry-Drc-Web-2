@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "appVersionSource": "local"
+  },
+  "build": {
+    "base": {
+      "developmentClient": false,
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://pinkberry-drc.preview.emergentagent.com",
+        "EXPO_PUBLIC_AUTH_PORTAL_URL": "https://auth.emergentagent.com/?redirect=",
+        "EXPO_PUBLIC_SITE_URL": "https://pinkberry-drc.preview.emergentagent.com"
+      },
+      "android": {
+        "gradleCommand": ":app:bundleRelease"
+      }
+    },
+    "apk": {
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "production": {
+      "extends": "base",
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
