@@ -59,6 +59,8 @@ type PanierValue = {
   setCodePromo: (code: string | null) => void;
   nbArticles: number;
   sousTotal: number;
+  /** Panier enregistré relu : avant, `articles` vide ne veut pas dire panier vide. */
+  pret: boolean;
 };
 
 const PanierContext = createContext<PanierValue | null>(null);
@@ -73,6 +75,7 @@ export function PanierProvider({ children }: { children: React.ReactNode }) {
   const [adresse, setAdresse] = useState<Adresse | null>(null);
   const [codePromo, setCodePromo] = useState<string | null>(null);
   const restaure = useRef(false);
+  const [pret, setPret] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -88,6 +91,7 @@ export function PanierProvider({ children }: { children: React.ReactNode }) {
         /* panier illisible : on repart d'un panier vide */
       } finally {
         restaure.current = true;
+        setPret(true);
       }
     })();
   }, []);
@@ -143,8 +147,9 @@ export function PanierProvider({ children }: { children: React.ReactNode }) {
       setCodePromo,
       nbArticles,
       sousTotal,
+      pret,
     }),
-    [articles, adresse, ajouter, changerQuantite, retirer, vider, codePromo, nbArticles, sousTotal],
+    [articles, adresse, ajouter, changerQuantite, retirer, vider, codePromo, nbArticles, sousTotal, pret],
   );
 
   return <PanierContext.Provider value={value}>{children}</PanierContext.Provider>;

@@ -6,9 +6,9 @@
     "base": {
       "developmentClient": false,
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://pinkberry-drc.preview.emergentagent.com",
+        "EXPO_PUBLIC_BACKEND_URL": "https://pinkberry-kin.preview.emergentagent.com",
         "EXPO_PUBLIC_AUTH_PORTAL_URL": "https://auth.emergentagent.com/?redirect=",
-        "EXPO_PUBLIC_SITE_URL": "https://pinkberry-drc.preview.emergentagent.com"
+        "EXPO_PUBLIC_SITE_URL": "https://pinkberry-kin.preview.emergentagent.com"
       },
       "android": {
         "gradleCommand": ":app:bundleRelease"

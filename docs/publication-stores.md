@@ -46,7 +46,7 @@ exposé, pas de bouton de démonstration.
 >   requests background location: sharing runs as a location foreground service
 >   with a persistent notification, started from the app.
 > - Account deletion: Account → Delete my account, or on the web at
->   https://pinkberry-drc.preview.emergentagent.com/compte
+>   https://pinkberry-kin.preview.emergentagent.com/compte
 
 **Français (si demandé)**
 

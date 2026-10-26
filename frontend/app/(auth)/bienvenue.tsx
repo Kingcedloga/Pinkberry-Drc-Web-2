@@ -5,7 +5,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View, useWindowDimension
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icone } from "@/src/components/Icone";
-import { MotifCoin } from "@/src/components/DecorAuth";
+import { EnteteMarque, MotifCoin } from "@/src/components/DecorAuth";
 import { useLangue } from "@/src/i18n";
 import { colors, fonts, poids, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -36,7 +36,7 @@ export default function Bienvenue() {
   const monte = flotte.interpolate({ inputRange: [0, 1], outputRange: [8, -12] });
 
   // Le plus grand possible sans dépasser : 60 % de la hauteur, la largeur moins les marges.
-  const hauteur = Math.min(height * 0.6, (width - spacing.xl * 2) / RATIO, 560);
+  const hauteur = Math.min(height * 0.45, (width - spacing.xl * 2) / RATIO, 480);
   const largeur = hauteur * RATIO;
 
   return (
@@ -45,6 +45,7 @@ export default function Bienvenue() {
       style={[styles.ecran, { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xxl }]}
     >
       <MotifCoin couleur={scheme === "dark" ? colors.brandSecondary : colors.brandPrimary} />
+      <EnteteMarque taille={30} />
       <Animated.View style={{ transform: [{ translateY: monte }] }}>
         <Image
           testID="image-livreur"
@@ -64,6 +65,15 @@ export default function Bienvenue() {
         <Text style={styles.boutonTexte}>{t("auth.decouvrirCarte")}</Text>
         <Icone name="arrow-right" size={20} color={colors.onBrandPrimary} />
       </Pressable>
+      <View style={styles.liens}>
+        <Pressable testID="btn-bienvenue-connexion" accessibilityRole="link" onPress={() => router.push("/connexion")} style={styles.lien}>
+          <Text style={styles.lienTexte}>{t("auth.seConnecter")}</Text>
+        </Pressable>
+        <View style={styles.sep} />
+        <Pressable testID="btn-bienvenue-inscription" accessibilityRole="link" onPress={() => router.push("/inscription")} style={styles.lien}>
+          <Text style={styles.lienTexte}>{t("auth.creerCompte")}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -93,5 +103,9 @@ const styles = stylesDynamiques(() =>
     },
     boutonTexte: { fontFamily: fonts.display, fontSize: 18, fontWeight: poids.fort, color: colors.onBrandPrimary },
     pressee: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+    liens: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: -spacing.md },
+    lien: { minHeight: 44, justifyContent: "center", paddingHorizontal: spacing.sm },
+    lienTexte: { fontFamily: fonts.display, fontSize: 16, fontWeight: poids.fort, color: colors.brandPrimary },
+    sep: { width: 1, height: 18, backgroundColor: colors.brandPrimary, opacity: 0.4 },
   }),
 );

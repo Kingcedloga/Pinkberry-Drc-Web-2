@@ -1,7 +1,7 @@
 import { Icone } from "@/src/components/Icone";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -34,7 +34,7 @@ export default function Confirmation() {
   const libelle = useLibelle();
   const { usd, fc, prix } = useMontant();
   const { fraisLivraison: FRAIS } = useConfigApp();
-  const { articles, adresse, sousTotal, vider, codePromo, setCodePromo } = usePanier();
+  const { articles, adresse, sousTotal, vider, codePromo, setCodePromo, pret } = usePanier();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<ModePaiement>("cash");
@@ -53,6 +53,15 @@ export default function Confirmation() {
   const [codeSaisi, setCodeSaisi] = useState(codePromo ?? "");
   const [codeApplique, setCodeApplique] = useState<string | null>(codePromo);
   const messageCode = useMessageCode();
+
+  // Tunnel incomplet (panier vide, ou adresse perdue au rechargement) : retour à l'étape manquante.
+  // `envoyee` évite ce retour juste après la commande, quand le panier vient d'être vidé.
+  const envoyee = useRef(false);
+  useEffect(() => {
+    if (!pret || envoyee.current || paiement) return;
+    if (!articles.length) router.replace("/panier");
+    else if (!adresse) router.replace("/commande/adresse");
+  }, [pret, articles.length, adresse, paiement, router]);
 
   const itemsCommande = articles.map((a) => ({
     produitId: a.produitId,
@@ -114,6 +123,7 @@ export default function Confirmation() {
           codePromo: codeAccepte ? codeApplique : null,
         },
       });
+      envoyee.current = true;
       vider();
       qc.invalidateQueries({ queryKey: ["mes-commandes"] });
       toast.show(t("confirmation.envoyee", { numero: cmd.numero }), "succes");

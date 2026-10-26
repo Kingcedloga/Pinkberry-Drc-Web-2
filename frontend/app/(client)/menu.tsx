@@ -75,7 +75,8 @@ export default function Menu() {
 
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
-    return produits.filter(
+    // Produits commandables d'abord : les ruptures ne doivent pas repousser la carte en bas de page.
+    return [...produits].sort((a, b) => Number(!a.disponible) - Number(!b.disponible)).filter(
       (p) =>
         (categorie === TOUS || p.categorie === categorie) &&
         (sousCategorie === TOUS || p.sousCategorie === sousCategorie) &&
@@ -172,7 +173,7 @@ export default function Menu() {
       numColumns={colonnes}
       columnWrapperStyle={colonnes > 1 ? styles.rangee : undefined}
       keyExtractor={(p: any) => p.id}
-      contentContainerStyle={[styles.liste, { paddingBottom: nbArticles > 0 && !bureau ? 110 : spacing.xxxl }]}
+      contentContainerStyle={[styles.liste, { paddingBottom: nbArticles > 0 && !bureau ? 96 : spacing.xxxl }]}
       refreshing={produitsQ.isRefetching}
       onRefresh={() => produitsQ.refetch()}
       ListHeaderComponent={enTete}
@@ -431,25 +432,25 @@ const styles = stylesDynamiques(() =>
       left: spacing.lg,
       right: spacing.lg,
       bottom: spacing.lg,
-      height: 60,
+      height: 48,
       borderRadius: radius.pill,
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: spacing.lg,
-      gap: spacing.md,
+      paddingHorizontal: spacing.md,
+      gap: spacing.sm,
       ...softShadow,
     },
     badge: {
-      minWidth: 30,
-      height: 30,
+      minWidth: 24,
+      height: 24,
       borderRadius: radius.pill,
       backgroundColor: colors.onBrandPrimary,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 6,
+      paddingHorizontal: 5,
     },
-    badgeTexte: { fontFamily: fonts.display, fontSize: 15, color: colors.brandPrimary },
-    barreTexte: { flex: 1, fontFamily: fonts.text, fontSize: 15, fontWeight: "800", color: colors.onBrandPrimary },
-    barreTotal: { fontFamily: fonts.display, fontSize: 17, color: colors.onBrandPrimary },
+    badgeTexte: { fontFamily: fonts.display, fontSize: 13, color: colors.brandPrimary },
+    barreTexte: { flex: 1, fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.onBrandPrimary },
+    barreTotal: { fontFamily: fonts.display, fontSize: 15, color: colors.onBrandPrimary },
   }),
 );

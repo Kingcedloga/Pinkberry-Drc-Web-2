@@ -717,3 +717,46 @@ Tests : une seule suite `frontend/__tests__` jouée sur iOS et Android (`npx jes
 jest-expo), dont un test qui refuse tout `Platform.OS` hors de `src/plateforme/`. Le web n'entre
 pas dans Jest (la Testing Library native refuse le DOM de react-native-web) : il se vérifie dans
 un vrai navigateur (Chromium, API simulée).
+
+
+## Phase 1 web — boucle de commande fiable dans le navigateur (2026-10-26, itération 33)
+Specs : `/app/memory/product/phase1/requirement.md`, `journeys.md` (JRN-1..14).
+- **Environnement remis en route** : le backend ne démarrait pas (paquets Python absents : pywebpush,
+  openpyxl, reportlab, cairosvg…) ; `requirements.txt` régénéré par `pip freeze` et corrigé (la ligne
+  `litellm @ …whl#sha256=` entrait en conflit avec emergentintegrations → fragment retiré ; `pip install -r` résout).
+  Le superviseur attend l'app Expo dans `/app/mobile` (port 3001, hôte `*.expo.preview…`) : lien
+  symbolique `/app/mobile → /app/frontend` (code non déplacé). Le programme `frontend` sert désormais la
+  web app sur le port 3000 (domaine principal de la preview) : script `start` =
+  `METRO_CACHE_ROOT=/app/frontend/.metro-cache-web expo start --port 3000` (cache Metro séparé).
+- **OpenAPI** : `FastAPI(openapi_url="/api/openapi.json", docs_url="/api/docs")`.
+- **Comptes de démo** en preview : `SEED_DEMO_ACCOUNTS=true` + `DEMO_*_PASSWORD` dans `backend/.env`
+  (à repasser à `false` en production). Super admin (mecedloga@gmail.com / +243992113682) créé
+  directement dans la base preview avec un mot de passe de test (rien dans le seed ni le .env).
+- **Correctifs** : bienvenue avec marque + liens Se connecter / Créer un compte ; produits disponibles
+  affichés avant les ruptures ; tunnel `/commande/adresse` et `/commande/paiement` renvoyé vers `/panier`
+  si le panier est vide (et vers l'adresse si elle manque) — `usePanier().pret` ; encaissement cash par le
+  livreur → commande `paye: true`, `paiement.statut: "paye"` (un paiement mobile déjà confirmé n'est
+  jamais modifié) ; titre livreur « Course PB-xxxx » (était toujours « Course récupérée ») et ETA masquée
+  une fois livrée ; statut paiement cash admin « à encaisser » (libellé dupliqué).
+- **Tests** : tests backend obsolètes mis à jour (produit « Pot Test », OTP 6 chiffres, coordonnées
+  hors zone, ordre des devises) via `outils_auth.article_commandable()`. Suite cœur (pinkberry_api,
+  composition, droits, iteration21, iteration25, suivi_livreur, etat_produits, taux_change) :
+  146 passed / 2 skipped. Les anciens tests d'itérations hors périmètre (9, 11, 14, 16, 23, 24, 31…)
+  restent en échec sur des hypothèses de catalogue périmées (Phase 2). Itération 33 (testing agent) :
+  JRN-1..14 PASS en 1440 et 390, 0 erreur JS.
+- **Écarts au cahier des charges** : prix affichés « FC ≈ $ » (FC monnaie de référence, décision
+  antérieure) ; les visiteurs peuvent parcourir `/menu` et `/panier` (connexion demandée au paiement) ;
+  garnitures : exactement 3 sèches + 3 fruits (règle métier) ; gestion du menu réservée au super admin
+  (admin en lecture seule) ; 14 produits sur 15 en rupture à prix 0 dans le seed existant ; pas de photos
+  produits en base (visuel par défaut).
+
+## Retours utilisateur Phase 1 (2026-10-26)
+- **Langue** : français par défaut, toujours. La langue du navigateur n'est plus suivie
+  (`langueInitiale()` dans `src/i18n.tsx` : choix enregistré sinon `fr`). Le choix FR/EN des paramètres
+  reste disponible et persistant (appareil + préférences du compte).
+- **Bouton panier du header, plus compact** (`src/components/Coquille.tsx`) : hauteur 44 → 36. Desktop :
+  icône + total en FC uniquement (sans « ≈ $ ») + badge, largeur 206 → 134 px. Mobile : icône + badge
+  seulement (60 px ; le total reste dans la barre flottante). Avant, le bouton de déconnexion sortait de
+  l'écran à 390 px ; il est de nouveau visible. Barre panier flottante (menu mobile) : hauteur 60 → 48.
+  testIDs : `btn-entete-panier`, `entete-panier-total`, `entete-panier-badge`. Captures avant/après :
+  `/app/memory/captures/`.

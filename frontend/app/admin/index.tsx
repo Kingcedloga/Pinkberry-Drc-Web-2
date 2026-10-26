@@ -43,7 +43,7 @@ const LIBELLES_PAIEMENT: Record<string, CleTexte> = {
   orange: "admin.paiementMobile",
 };
 const LIBELLES_STATUT_PAIEMENT: Record<string, CleTexte> = {
-  a_la_livraison: "admin.paiementCash",
+  a_la_livraison: "admin.paiementAEncaisser",
   attente: "admin.paiementAttente",
   paye: "admin.paiementPaye",
   echoue: "admin.paiementEchoue",
@@ -52,7 +52,7 @@ const LIBELLES_STATUT_PAIEMENT: Record<string, CleTexte> = {
 /** Mode et statut de paiement d'une commande, pour l'admin. */
 function resumePaiement(cmd: any, t: (cle: CleTexte) => string) {
   const p = cmd?.paiement;
-  if (!p || typeof p !== "object") return { mode: t("admin.paiementCash"), statut: t("admin.paiementCash"), paye: false };
+  if (!p || typeof p !== "object") return { mode: t("admin.paiementCash"), statut: t("admin.paiementAEncaisser"), paye: false };
   const cle = p.mode === "mobile" ? p.operateur : "cash";
   return {
     mode: t(LIBELLES_PAIEMENT[cle] ?? "admin.paiementMobile"),

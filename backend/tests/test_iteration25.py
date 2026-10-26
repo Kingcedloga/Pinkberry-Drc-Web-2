@@ -28,6 +28,8 @@ import pytest
 import requests
 from pymongo import MongoClient
 
+from outils_auth import article_commandable
+
 BASE_URL = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
 
 # Prefix specifique par worker xdist pour eviter les collisions de teardown
@@ -83,7 +85,7 @@ def _creer_commande(sess, token, mode_paiement="cash", label=None):
         # Normalise pour toujours prefixer par LABEL_PREFIX
         label = label.replace("TEST_ITER25", LABEL_PREFIX)
     body = {
-        "items": [{"produitId": "p", "nom": "Pot Test", "prixUnitaire": 3.5, "quantite": 1, "options": {}}],
+        "items": [article_commandable()],
         "adresse": {
             "label": label,
             "commune": "Gombe",
@@ -91,8 +93,8 @@ def _creer_commande(sess, token, mode_paiement="cash", label=None):
             "numero": "1",
             "repere": "repere iter25",
             "telephone": "0990000001",
-            "lat": -4.325,
-            "lng": 15.322,
+            "lat": -4.30,
+            "lng": 15.30,
         },
         "modePaiement": mode_paiement,
     }
@@ -114,7 +116,7 @@ class TestOperateurs:
         d = r.json()
         cles = [o["cle"] for o in d["operateurs"]]
         assert set(cles) == {"mpesa", "airtel", "orange"}
-        assert d["devises"] == ["USD", "CDF"]
+        assert d["devises"] == ["CDF", "USD"]  # le franc congolais est la monnaie de reference
         assert d["actif"] is True
 
     def test_operateurs_pas_de_token(self):

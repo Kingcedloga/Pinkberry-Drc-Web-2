@@ -6,6 +6,7 @@ node_modules/
 # Expo
 .expo/
 .metro-cache/
+.metro-cache-web/
 dist/
 web-build/
 expo-env.d.ts

@@ -1,0 +1,22 @@
+{
+ "passed": 12, "failed": 0, "bugs": [], "retest_needed": false,
+ "action_items": [
+  {"type": "note", "detail": "Browser default locale en-US renders the UI in English; checks force navigator.language=fr-FR to assert French labels."},
+  {"type": "note", "detail": "JRN-7 order payment status updates through polling GET /api/paiements/{depositId} (PawaPay sync); the UI handles it. For JRN-8 client tracking, the check loaded the tracking page fresh after the change, so live updates on the client side without a reload were not tested."},
+  {"type": "note", "detail": "JRN-11: the superadmin out-of-stock toggle was tested through the UI and then restored. The price and topping edits were not done through the UI so the seed stays unchanged."}
+ ],
+ "checks": [
+  {"criterion":"JRN-1/JRN-14 login","name":"test_tscheck_auth.py","lane":"backend","status":"passed","evidence":"GET /api/openapi.json 200; POST /api/auth/connexion 200 for the 4 roles; wrong password 4xx"},
+  {"criterion":"JRN-4/5/6/12/9/10 order flow","name":"test_tscheck_order_flow.py","lane":"backend","status":"passed","evidence":"POST /api/commandes Gombe qty2 -> sousTotal 38000, frais 2000, total 40000, PB-xxxx recue; Barumbu -> 4xx 'Nous ne livrons pas encore à Barumbu'; annuler while recue -> annulee; annuler while en_route -> 4xx; livree+encaisser -> paye true"},
+  {"criterion":"JRN-7 Mobile Money","name":"test_tscheck_mobile_money.py","lane":"backend","status":"passed","evidence":"0813456789 -> statut paye, paye true; 0813456039 -> echoue, paye false"},
+  {"criterion":"JRN-11/JRN-13 catalogue guards","name":"test_tscheck_catalogue_guards.py","lane":"backend","status":"passed","evidence":"admin PATCH /admin/produits/{id}/etat 403; client GET /admin/commandes 401/403; superadmin toggle 200, restored disponible=true"},
+  {"criterion":"JRN-1/JRN-14 web app loads and login works","name":"login-roles-land-home","lane":"browser","status":"passed","evidence":"Welcome page renders at 1440 and 390; wrong password shows an error; client->ecran-menu, admin/superadmin->ecran-admin-dashboard, livreur->ecran-livreur-courses"},
+  {"criterion":"JRN-2/JRN-3 menu and composition","name":"menu-compose-yogourt","lane":"browser","status":"passed","evidence":"Card 'Yogourt glacé Dès 19 000 FC'; Moyen 21 000 -> with 3+3 toppings 29 000 -> qty2 58 000; header cart shows 58 000 FC with count 2; cart sous-total 58 000"},
+  {"criterion":"JRN-4/JRN-5 address and zone check","name":"checkout-zone-check","lane":"browser","status":"passed","evidence":"Empty cart -> 'Votre panier est vide', no order button; Barumbu -> zone-non-couverte, blocked; Gombe -> confirmation 19 000 + 2 000 = 21 000 FC"},
+  {"criterion":"JRN-6/JRN-12 cash order and cancel","name":"cash-order-then-cancel","lane":"browser","status":"passed","evidence":"POST /api/commandes -> PB-xxxx recue, tracking opens; cancel -> annulée, cancel button gone (no cancel en route covered by backend test)"},
+  {"criterion":"JRN-7 Mobile Money PawaPay sandbox","name":"mobile-money-pawapay","lane":"browser","status":"passed","evidence":"0813456789 -> bloc-attente-paiement then 'Paiement confirmé'; 0813456039 -> Réessayer + Payer à la livraison buttons"},
+  {"criterion":"JRN-8/JRN-9 admin live dashboard","name":"admin-live-assign","lane":"browser","status":"passed","evidence":"Order made through the API showed up on the open admin dashboard within 10 s; assigned to Jonas Mbala, status en préparation; client tracking shows préparation + Jonas"},
+  {"criterion":"JRN-10 livreur flow","name":"livreur-delivers-course","lane":"browser","status":"passed","evidence":"Geolocation granted; récupérée -> en route -> livré -> encaisser; client API livree/paye=true within 10 s; admin list livree"},
+  {"criterion":"JRN-11/JRN-13 menu management and role guards","name":"catalogue-superadmin-and-guards","lane":"browser","status":"passed","evidence":"Superadmin out-of-stock toggle reflected in /api/produits, then restored; admin catalogue shows bandeau-lecture-seule; client /admin and /livreur redirect to ecran-menu"}
+ ]
+}

@@ -8,6 +8,8 @@ import requests
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+from outils_auth import article_commandable
+
 BASE = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
 API = f"{BASE}/api"
 CLIENT_TEL = "0990000001"
@@ -46,10 +48,8 @@ def livreur():
 @pytest.fixture()
 def course(client, admin, livreur, db):
     lv, _ = livreur
-    produit = next(p for p in requests.get(f"{API}/produits", timeout=15).json()
-                   if p.get("disponible") and not p.get("configurable"))
     r = requests.post(f"{API}/commandes", headers=client, timeout=30, json={
-        "items": [{"produitId": produit["id"], "nom": produit["nom"], "quantite": 1}],
+        "items": [article_commandable()],
         "adresse": {"label": "TEST", "commune": "Gombe", "avenue": "TEST", "numero": "1", "repere": "TEST",
                     "telephone": CLIENT_TEL, "lat": -4.30, "lng": 15.30},
     })

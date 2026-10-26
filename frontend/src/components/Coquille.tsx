@@ -16,23 +16,30 @@ import { useMontant } from "@/src/taux";
 import { colors, fonts, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
 
-/** Bouton panier du header (client uniquement). */
-function BoutonPanier() {
+/** Bouton panier du header (client uniquement). Compact : icône + badge (le total est dans la barre flottante). */
+function BoutonPanier({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const { nbArticles, sousTotal } = usePanier();
-  const { prix } = useMontant();
+  const { fc } = useMontant();
   const { t } = useLangue();
 
   return (
     <Pressable
       testID="btn-entete-panier"
+      accessibilityRole="button"
+      accessibilityLabel={nbArticles > 0 ? `${t("nav.panier")} · ${nbArticles} · ${fc(sousTotal)}` : t("nav.panier")}
       onPress={() => router.push("/panier")}
-      style={({ pressed }) => [styles.panierBtn, pressed && { opacity: 0.85 }]}
+      hitSlop={6}
+      style={({ pressed }) => [styles.panierBtn, compact && styles.panierBtnCompact, pressed && { opacity: 0.85 }]}
     >
-      <Icone name="shopping-cart" size={18} color={colors.onBrandPrimary} />
-      <Text style={styles.panierTexte}>{nbArticles > 0 ? prix(sousTotal) : t("nav.panier")}</Text>
+      <Icone name="shopping-cart" size={16} color={colors.onBrandPrimary} />
+      {compact ? null : (
+        <Text testID="entete-panier-total" style={styles.panierTexte} numberOfLines={1}>
+          {nbArticles > 0 ? fc(sousTotal) : t("nav.panier")}
+        </Text>
+      )}
       {nbArticles > 0 ? (
-        <View style={styles.panierBadge}>
+        <View testID="entete-panier-badge" style={styles.panierBadge}>
           <Text style={styles.panierBadgeTexte}>{nbArticles}</Text>
         </View>
       ) : null}
@@ -153,7 +160,7 @@ function EnteteCompacte({ avecPanier, accueil }: { avecPanier: boolean; accueil:
       </Pressable>
       <View style={styles.enteteActions}>
         <CentreNotifications />
-        {avecPanier ? <BoutonPanier /> : null}
+        {avecPanier ? <BoutonPanier compact /> : null}
         <BoutonDeconnexion compact />
       </View>
     </View>
@@ -347,23 +354,24 @@ const styles = stylesDynamiques(() =>
     panierBtn: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.sm,
-      minHeight: 44,
-      paddingHorizontal: spacing.lg,
+      gap: spacing.xs + 2,
+      height: 36,
+      paddingHorizontal: spacing.md,
       borderRadius: radius.pill,
       backgroundColor: colors.brandPrimary,
     },
-    panierTexte: { fontFamily: fonts.text, fontSize: 14, fontWeight: "800", color: colors.onBrandPrimary },
+    panierBtnCompact: { paddingHorizontal: spacing.sm + 2 },
+    panierTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.onBrandPrimary },
     panierBadge: {
-      minWidth: 22,
-      height: 22,
+      minWidth: 18,
+      height: 18,
       borderRadius: radius.pill,
       backgroundColor: colors.onBrandPrimary,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 5,
+      paddingHorizontal: 4,
     },
-    panierBadgeTexte: { fontFamily: fonts.display, fontSize: 12, color: colors.brandPrimary },
+    panierBadgeTexte: { fontFamily: fonts.display, fontSize: 11, color: colors.brandPrimary },
 
     onglets: {
       flexDirection: "row",

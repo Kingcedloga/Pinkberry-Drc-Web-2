@@ -15,20 +15,14 @@ export type Langue = "fr" | "en";
 const estLangue = (v: unknown): v is Langue => v === "fr" || v === "en";
 
 /**
- * Langue du tout premier rendu, lue de façon synchrone (pas de flash FR puis
- * EN au chargement) : choix enregistré sur cet appareil, sinon langue de
- * l'appareil (anglais si elle commence par « en »), sinon français.
+ * Langue du tout premier rendu, lue de façon synchrone (pas de flash au
+ * chargement) : choix enregistré sur cet appareil, sinon français. La langue
+ * du navigateur / de l'appareil n'est jamais suivie : l'anglais ne s'affiche
+ * qu'après un choix explicite dans les paramètres.
  */
 function langueInitiale(): Langue {
   const enregistree = lireImmediatement(CLE_LANGUE);
-  if (estLangue(enregistree)) return enregistree;
-  try {
-    const appareil =
-      (typeof navigator !== "undefined" && navigator.language) || Intl.DateTimeFormat().resolvedOptions().locale;
-    return appareil?.toLowerCase().startsWith("en") ? "en" : "fr";
-  } catch {
-    return "fr";
-  }
+  return estLangue(enregistree) ? enregistree : "fr";
 }
 
 i18n.use(initReactI18next).init({
@@ -109,7 +103,7 @@ const LangueContext = createContext<LangueValue | null>(null);
  * 1. Compte connecté : ses préférences font foi, sur tous les appareils…
  * 2. …sauf si la personne vient de choisir une langue avant de se connecter :
  *    ce choix explicite l'emporte et est enregistré sur son compte.
- * 3. Hors connexion : choix enregistré sur l'appareil, sinon langue de l'appareil.
+ * 3. Hors connexion : choix enregistré sur l'appareil, sinon français.
  */
 export function LangueProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();

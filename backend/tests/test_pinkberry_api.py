@@ -7,9 +7,9 @@ from datetime import datetime, timedelta, timezone
 import jwt
 import pytest
 import requests
-from outils_auth import jeton_superadmin  # configuration : reservee au super admin
+from outils_auth import article_commandable, jeton_superadmin  # configuration : reservee au super admin
 
-BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-drc.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-kin.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
 CLIENT_TEL = "0990000001"
@@ -83,7 +83,7 @@ def test_inscription_returns_code_demo():
                       json={"nom": "TEST User", "email": f"otp_{tel}@pinkberry.test", "telephone": tel, "motDePasse": "test123"}, timeout=15)
     assert r.status_code == 200
     j = r.json()
-    assert j["ok"] and len(j["codeDemo"]) == 4
+    assert j["ok"] and len(j["codeDemo"]) == 6
     # verifier-otp
     r2 = requests.post(f"{API}/auth/verifier-otp", json={"telephone": tel, "code": j["codeDemo"]}, timeout=15)
     assert r2.status_code == 200
@@ -111,7 +111,8 @@ def test_connexion_bad():
 def test_renvoyer_otp():
     r = requests.post(f"{API}/auth/renvoyer-otp",
                       json={"telephone": CLIENT_TEL, "motDePasse": "x"}, timeout=10)
-    assert r.status_code == 200 and "codeDemo" in r.json()
+    # Compte deja verifie : le code OTP ne sert qu'a activer un compte neuf.
+    assert r.status_code == 400
 
 
 # ---------------------------------------------------------------- commandes flow
@@ -123,12 +124,10 @@ def client_ctx():
 
 
 def _cmd_payload(prods, commune="Gombe"):
-    p = prods[0]
     return {
         "adresse": {"label": "TEST", "commune": commune, "avenue": "Av Test", "numero": "12",
                     "repere": "près marché", "telephone": CLIENT_TEL},
-        "items": [{"produitId": p["id"], "nom": p["nom"], "taille": "Petit",
-                   "garnitures": [], "quantite": 2, "prixUnitaire": p["prix"], "emoji": p.get("emoji")}],
+        "items": [article_commandable(quantite=2)],
     }
 
 

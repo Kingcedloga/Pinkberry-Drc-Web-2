@@ -120,7 +120,7 @@ export default function DetailCourse() {
           { paddingBottom: insets.bottom + spacing.xxl },
         ]}
       >
-        <TitrePage titre={`${t("livreur.courseRecuperee")} ${cmd.numero}`} sousTitre={cmd.adresse?.commune} retour="/livreur" />
+        <TitrePage titre={`${t("livreur.course")} ${cmd.numero}`} sousTitre={cmd.adresse?.commune} retour="/livreur" />
 
         <View style={bureau ? styles.colonnes : styles.pile}>
           <View style={bureau ? styles.colGauche : styles.pile}>
@@ -131,7 +131,7 @@ export default function DetailCourse() {
           hauteur={bureau ? 400 : 240}
         />
 
-        {itineraire.data?.etaSecondes ? (
+        {itineraire.data?.etaSecondes && !["livree", "annulee"].includes(cmd.statut) ? (
           <View testID="bloc-eta-livreur" style={styles.etaBloc}>
             <Icone name="clock" size={16} color={colors.brandPrimary} />
             <Text style={styles.etaTexte}>

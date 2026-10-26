@@ -6,7 +6,7 @@ import pytest
 import requests
 
 BASE_URL = os.environ.get(
-    "EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-drc.preview.emergentagent.com"
+    "EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-kin.preview.emergentagent.com"
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 

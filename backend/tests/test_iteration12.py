@@ -20,7 +20,7 @@ from outils_auth import jeton_superadmin  # configuration : reservee au super ad
 
 BASE_URL = os.environ.get(
     "EXPO_PUBLIC_BACKEND_URL",
-    os.environ.get("EXPO_BACKEND_URL", "https://pinkberry-drc.preview.emergentagent.com"),
+    os.environ.get("EXPO_BACKEND_URL", "https://pinkberry-kin.preview.emergentagent.com"),
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 

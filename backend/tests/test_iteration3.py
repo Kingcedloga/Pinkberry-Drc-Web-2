@@ -7,7 +7,7 @@ import requests
 from PIL import Image
 from outils_auth import jeton_superadmin  # configuration : reservee au super admin
 
-BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-drc.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://pinkberry-kin.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
 CLIENT_TEL = "0990000001"

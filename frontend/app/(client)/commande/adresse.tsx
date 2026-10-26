@@ -41,7 +41,12 @@ export default function FormulaireAdresse() {
   const toast = useToast();
   const t = useT();
   const { user } = useAuth();
-  const { setAdresse } = usePanier();
+  const { setAdresse, articles, pret } = usePanier();
+
+  // Panier vide : rien à livrer, retour au panier.
+  useEffect(() => {
+    if (pret && !articles.length) router.replace("/panier");
+  }, [pret, articles.length, router]);
 
   const zonesQ = useQuery({ queryKey: ["zones"], queryFn: () => apiFetch<Zone[]>("/zones") });
   const zones = zonesQ.data ?? [];

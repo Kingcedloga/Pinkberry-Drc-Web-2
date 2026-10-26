@@ -109,7 +109,7 @@ TYPES_IMAGE = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(title="Pinkberry Drc API", openapi_url="/api/openapi.json", docs_url="/api/docs", redoc_url=None)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -4679,10 +4679,18 @@ async def livreur_encaisser(cmd_id: str, user=Depends(require_livreur)):
     cmd = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
     if not cmd or cmd.get("livreurId") != user.get("livreurId"):
         raise HTTPException(status_code=404, detail="Course introuvable")
+    maj: Dict[str, Any] = {"cashEncaisse": True, "statut": "livree", "termineeAt": iso(now_utc())}
+    # Le cash recu par le livreur solde la commande. Un paiement mobile deja confirme
+    # (callback PawaPay verifie) n'est jamais touche.
+    if not cmd.get("paye"):
+        maj.update({
+            "paye": True,
+            "paiement": {**(cmd.get("paiement") or {}), "mode": "cash", "statut": "paye", "updatedAt": iso(now_utc())},
+        })
     await db.commandes.update_one(
         {"id": cmd_id},
         {
-            "$set": {"cashEncaisse": True, "statut": "livree", "termineeAt": iso(now_utc())},
+            "$set": maj,
             "$push": {"historique": {"statut": "livree", "at": iso(now_utc())}},
         },
     )

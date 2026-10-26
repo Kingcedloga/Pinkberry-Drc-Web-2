@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 33 — Full phase-1 regression on preview https://dd9580c9-2af9-4c03-ae7f-fb182c5015b0.preview.emergentagent.com (API https://pinkberry-kin.preview.emergentagent.com). BACKEND pytest suite (test_pinkberry_api, test_composition, test_droits, test_iteration21, test_iteration25, test_suivi_livreur, test_etat_produits, test_taux_change) -n 0: 146 passed / 2 skipped / 0 failed in 73s. OpenAPI 200, /api/config 200, web root 200. Journeys verified end-to-end: JRN-1 /bienvenue brand+CTAs (navigator locale is EN headless -> 'Explore the menu / Sign in / Create an account', per context note not a bug), JRN-2 client 0990000001/client123 -> /menu with 'Yogourt glacé' sorted first + 'FC ≈ $' pricing, JRN-3 add-to-cart badge updates ('19 000 FC ≈ $8.26 · 1'), JRN-4 Gombe address -> /commande/paiement with 2 000 FC fee and total 21 000 FC, JRN-5 Barumbu -> API 400 'Nous ne livrons pas encore à Barumbu' + Continuer disabled, JRN-6 cash order PB-xxxx created statut=recue paiement.mode=cash statut=a_la_livraison, JRN-7 PawaPay sandbox init (mpesa + 0813456789 -> depot statut=paye reflected on commande.paiement.statut=paye; 0813456039 -> depot statut=echoue, raisonEchec correct) — commande.paiement is only synced after a client poll on /api/paiements/{depot_id}, works as designed, JRN-8 admin dashboard shows new order within polling cycle, cash paiement label is 'À la livraison · à encaisser' (NO duplicate 'À la livraison — À la livraison' found), JRN-9 assign Jonas + statut en_preparation OK (PATCH /api/admin/commandes/{id}/statut), JRN-10 FULL livreur flow: position -> recuperee -> en_route -> livree -> encaisser cash -> FINAL commande statut=livree AND paiement.statut=paye (FIX CONFIRMED); livreur course page title = 'Course PB-5059' (FIX CONFIRMED, no longer 'Course récupérée'); ETA pill 'Arrivée estimée dans 15 min · 3,1 km' visible before delivery, JRN-11 admin PUT /api/admin/produits/{id} -> 403 'Action réservée au Super Admin' as expected (read-only by design), JRN-12 cancel in recue -> 200, cancel after livree -> 400 'Cette commande ne peut plus être annulée', JRN-13 client -> /admin and /livreur both redirect to /menu, visitor -> /admin redirects to /bienvenue. NEW GUARDS CONFIRMED: logged-in client with empty cart hitting /commande/adresse -> redirected to /panier; same for /commande/paiement. JRN-14 wrong password shows error on /connexion. Mobile 390 layout smoke on /menu, /panier, /commande/adresse, /commande/paiement, /compte -> no horizontal scroll on any. 0 JS pageerror across all sessions; only 1 benign 401 console log on initial /bienvenue (unauthenticated /auth/moi probe). All fixes mentioned in the review request are verified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/iter33.xml",
+    "/tmp/iter33_bienvenue.png",
+    "/tmp/iter33_adresse.jpg",
+    "/tmp/iter33_paiement.jpg",
+    "/tmp/iter33_admin.jpg",
+    "/tmp/iter33_livreur.jpg",
+    "/tmp/iter33_course.jpg",
+    "/tmp/test_api.py"
+  ],
+  "action_items": [
+    "No blocking action required. All Phase-1 journeys (JRN-1..JRN-14) + both newly reported fixes (empty-cart guard on /commande/adresse & /commande/paiement, admin cash-paiement label 'À la livraison · à encaisser', livreur course title 'Course PB-xxxx', cash-encaissement sets commande.statut=livree + paiement.statut=paye, ETA pill behaviour) behave as specified.",
+    "Minor observation (not a bug): /api/paiements/mobile-money requires 'telephone' (not 'numero'); and /api/commandes/{id} only reflects the depot status after the client polls /api/paiements/{depot_id}. The frontend already polls the depot route so the user sees 'Paiement confirmé' as required; no change needed. Documenting here only so the next testing agent doesn't chase a phantom bug."
+  ],
+  "critical_code_review_comments": [
+    "Backend status transitions: PATCH /api/admin/commandes/{id}/statut only accepts a subset of literals ('recue','en_preparation','recuperee',...). The 'prete'/livree flow is correctly delegated to /api/livreur/courses/{id}/statut. No duplication. Good separation of concerns.",
+    "Role guards: PUT /api/admin/produits/{id} returns 403 with the exact user-facing message 'Action réservée au Super Admin'. Consistent with JRN-11.",
+    "Payment sync: commande.paiement is updated as a side effect of GET /api/paiements/{depot_id} (lazy pull). Acceptable since the webhook /api/paiements/pawapay/callback is also wired. Would be slightly more robust to also sync on GET /api/commandes/{id} if paiement.statut=='attente' and depositId present, so a browser-tab reload also converges without hitting the depot route — low priority."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "146/148 (98.6%) — 2 skipped by design", "frontend": "100% on in-scope journeys"},
+  "seed_data_creation": "Several test commandes created during run (PB-2776, PB-7815, PB-8970, PB-5032, PB-9033, PB-2019, PB-6803, PB-5059, PB-6983, PB-2585). The backend test fixture cleanup already drops its own test data; the orders created from /tmp/test_api.py persist in the preview DB (small volume, no impact). No catalogue mutation performed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Login endpoint is POST /api/auth/connexion with body {telephone, motDePasse}. CommandeIn requires items[*] = {produitId, nom, taille (STRING name from /api/composition.tailles[].nom), contenant (STRING name), garnitures:[], quantite, prixUnitaire?}; adresse requires label+commune+avenue+numero+repere+telephone. modePaiement is 'cash' | 'mobile' (NOT 'mobilemoney'). MM init: POST /api/paiements/mobile-money {commandeId, operateur:'mpesa'|'airtel'|'orange' (lowercase cle), telephone}. Status sync on commande requires GET /api/paiements/{depot_id}. Livreur status is PATCH /api/livreur/courses/{id}/statut (recuperee/en_route/livree). Cash confirm: POST /api/livreur/courses/{id}/encaisser. Admin status: PATCH /api/admin/commandes/{id}/statut. Headless Chromium denies notifications -> 'Notifications bloquées' card is expected on /admin and /livreur home — do NOT report as bug. UI locale follows navigator language; FR seen after login because account preference is FR. Reusable helpers in /app/backend/tests/outils_auth.py (article_commandable()).",
+  "rca_of_issue": "N/A — verification run, no bug detected."
+}
