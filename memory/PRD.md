@@ -760,3 +760,18 @@ Specs : `/app/memory/product/phase1/requirement.md`, `journeys.md` (JRN-1..14).
   l'écran à 390 px ; il est de nouveau visible. Barre panier flottante (menu mobile) : hauteur 60 → 48.
   testIDs : `btn-entete-panier`, `entete-panier-total`, `entete-panier-badge`. Captures avant/après :
   `/app/memory/captures/`.
+
+## Correctif déploiement (2026-10-26)
+- Aucun log de déploiement disponible (0 entrée). Health check statique sans blocage. Causes probables,
+  toutes liées aux réglages de preview de la Phase 1 et retirées du dépôt :
+  1. Lien symbolique `/app/mobile → frontend` versionné dans git (mode 120000). Le pipeline peut détecter
+     une 2ᵉ app Expo ou échouer à copier le lien. Il est retiré de l'index (`git rm --cached`) et `/mobile`
+     est ajouté au `.gitignore`. Le lien local reste, uniquement pour la preview (programme `mobile`, port 3001).
+  2. Script `start` de `frontend/package.json` (chemin absolu + port 3000) revenu à l'original `expo start`.
+     Conséquence : la preview web se teste sur l'hôte Expo `https://pinkberry-kin.expo.preview.emergentagent.com`.
+     Le domaine principal (port 3000) redevient 502 en preview, comme avant la Phase 1.
+- Vérifié : `pip install -r requirements.txt` (venv neuf, dry-run) OK, sans le conflit litellm/emergentintegrations
+  présent avant la Phase 1. `npx expo config` et `npx expo export -p web` OK. Aucun effacement de base au démarrage.
+- À régler dans le panneau de déploiement : `SEED_DEMO_ACCOUNTS=false` et suppression des `DEMO_*_PASSWORD` ;
+  `SITE_URL`, `PAWAPAY_CALLBACK_URL` et `EXPO_PUBLIC_SITE_URL` au domaine de production ; `PAWAPAY_BASE_URL`/`PAWAPAY_TOKEN`
+  de production le moment venu.

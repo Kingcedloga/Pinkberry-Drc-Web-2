@@ -82,3 +82,6 @@ memory/test_credentials.md
 android-sdk/
 # Sauvegarde locale de la base (donnees personnelles, ne pas commiter)
 db_backup/
+
+# Lien local /app/mobile -> frontend (preview uniquement, jamais versionne)
+/mobile
