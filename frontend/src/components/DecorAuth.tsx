@@ -124,8 +124,13 @@ export function CarteAuth({ children, testID }: { children: React.ReactNode; tes
         style={[
           styles.carte,
           borne
-            ? { width: largeur, height: borne, flexGrow: 0, flexShrink: 0, flexBasis: "auto" }
-            : { width: largeur, marginTop: insets.top + spacing.sm, marginBottom: insets.bottom + spacing.sm },
+            ? { width: largeur, height: borne }
+            : {
+                width: largeur,
+                flex: 1,
+                marginTop: insets.top + spacing.sm,
+                marginBottom: insets.bottom + spacing.sm,
+              },
         ]}
       >
         {children}
@@ -188,7 +193,6 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   ecran: { flex: 1, alignItems: "center", backgroundColor: colors.surfaceSecondary, paddingHorizontal: spacing.md },
   ecranCentre: { justifyContent: "center" },
   carte: {
-    flex: 1,
     backgroundColor: colors.surface,
     borderRadius: 34,
     overflow: "hidden",

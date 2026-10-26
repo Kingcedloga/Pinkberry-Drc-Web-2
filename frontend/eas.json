@@ -8,7 +8,7 @@
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://pinkberry-kin.preview.emergentagent.com",
         "EXPO_PUBLIC_AUTH_PORTAL_URL": "https://auth.emergentagent.com/?redirect=",
-        "EXPO_PUBLIC_SITE_URL": "https://pinkberry-kin.preview.emergentagent.com"
+        "EXPO_PUBLIC_SITE_URL": "https://pinkberrydrc.app"
       },
       "android": {
         "gradleCommand": ":app:bundleRelease"
