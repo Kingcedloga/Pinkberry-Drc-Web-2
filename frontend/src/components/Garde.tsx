@@ -1,5 +1,6 @@
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 
 import { useAuth } from "@/src/auth";
 import { accueilDuRole } from "@/src/nav-web";
@@ -49,9 +50,11 @@ export function Garde({ roles, children }: { roles: Role[]; children: React.Reac
 /** Inverse de `Garde` : réservé aux visiteurs non connectés (écrans d'authentification). */
 export function GardeInvite({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
+  const afficherBienvenuePendantChargement = Platform.OS === "web" && pathname === "/bienvenue";
   // L'accueil choisit la destination (page visitée avant la connexion, saisie du téléphone…).
   const cible = !loading && user ? "/" : null;
   useRedirection(cible);
-  if (loading || cible) return <EcranDemarrage testID="ecran-garde" />;
+  if ((loading && !afficherBienvenuePendantChargement) || cible) return <EcranDemarrage testID="ecran-garde" />;
   return <>{children}</>;
 }

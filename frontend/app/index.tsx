@@ -1,5 +1,6 @@
 import { Redirect } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { Platform } from "react-native";
 
 import { EcranDemarrage } from "@/src/components/EcranDemarrage";
 import { useAuth } from "@/src/auth";
@@ -27,6 +28,7 @@ export default function Index() {
     if (attendSuite) void prendreSuite().then(setSuite);
   }, [attendSuite]);
 
+  if (Platform.OS === "web" && loading) return <Redirect href="/bienvenue" />;
   if (loading || reporte === null || (attendSuite && suite === undefined)) return <EcranDemarrage testID="ecran-chargement" />;
 
   if (!user) return <Redirect href="/bienvenue" />;

@@ -3,7 +3,7 @@ import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -70,7 +70,7 @@ export default function RootLayout() {
     [router],
   );
 
-  if (!policesPretes && !erreurPolices) {
+  if (Platform.OS !== "web" && !policesPretes && !erreurPolices) {
     return <EcranDemarrage testID="ecran-demarrage-polices" />;
   }
 
