@@ -97,6 +97,11 @@
     "locales": {
       "fr": "./assets/langues/fr.json",
       "en": "./assets/langues/en.json"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e2511151-8ca4-4705-87e9-5e5f77f6e6f8"
+      }
     }
   }
 }
