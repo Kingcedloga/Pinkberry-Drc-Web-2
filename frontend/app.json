@@ -27,7 +27,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.emergent.commanderose.bbj4fa",
+      "package": "pinkberry.drc",
       "versionCode": 4,
       "googleServicesFile": "./google-services.json",
       "permissions": [
