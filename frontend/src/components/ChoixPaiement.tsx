@@ -55,6 +55,7 @@ export function ChoixPaiement({
           <Icone name="receipt" size={18} color={mode === "cash" ? colors.onBrandPrimary : colors.onSurface} />
           <Text style={[styles.modeTexte, mode === "cash" && styles.modeTexteActif]}>{t("paiement.aLaLivraison")}</Text>
         </Pressable>
+        {/* Mobile Money masqué en attendant les clés PawaPay de production : décommenter ce bouton pour le réactiver.
         <Pressable
           testID="mode-paiement-mobile"
           onPress={() => setMode("mobile")}
@@ -63,6 +64,7 @@ export function ChoixPaiement({
           <Icone name="smartphone" size={18} color={mode === "mobile" ? colors.onBrandPrimary : colors.onSurface} />
           <Text style={[styles.modeTexte, mode === "mobile" && styles.modeTexteActif]}>{t("paiement.mobileMoney")}</Text>
         </Pressable>
+        */}
       </View>
 
       {mode === "mobile" ? (
