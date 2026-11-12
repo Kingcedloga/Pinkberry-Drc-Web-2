@@ -1586,9 +1586,18 @@ async def carte_zone(lat: float, lng: float, user=Depends(get_current_user)):
 # Une seule interface Flexpaie pour les deux modes : paymentService (type 1 mobile money,
 # type 2 carte) puis check/{orderNumber}. Le callback n'est pas signe : son contenu n'est
 # jamais applique tel quel, il declenche seulement une verification aupres de Flexpaie.
-# FLEXPAIE_BASE_URL : « http://ip:port » communique par Flexpaie.
-FLEXPAIE_BASE_URL = re.sub(r"/api/rest/v1/?$", "", (os.environ.get("FLEXPAIE_BASE_URL") or "").strip().rstrip("/"))
-FLEXPAIE_TOKEN = (os.environ.get("FLEXPAIE_TOKEN") or "").strip()
+
+
+def _hote_flexpaie(valeur: Optional[str]) -> str:
+    """« https://hote » : accepte aussi l'adresse copiee avec /api/rest/v1."""
+    return re.sub(r"/api/rest/v1/?$", "", (valeur or "").strip().rstrip("/"))
+
+
+# Hotes communiques par Flexpaie : paiements (mobile et carte) et verification.
+FLEXPAIE_BASE_URL = _hote_flexpaie(os.environ.get("FLEXPAIE_BASE_URL"))
+FLEXPAIE_CHECK_URL = _hote_flexpaie(os.environ.get("FLEXPAIE_CHECK_URL")) or FLEXPAIE_BASE_URL
+# Le jeton peut etre colle tel que fourni, avec son prefixe « Bearer ».
+FLEXPAIE_TOKEN = re.sub(r"^Bearer\s+", "", (os.environ.get("FLEXPAIE_TOKEN") or "").strip(), flags=re.I)
 FLEXPAIE_MERCHANT = (os.environ.get("FLEXPAIE_MERCHANT") or "").strip()
 FLEXPAIE_CALLBACK_URL = (
     os.environ.get("FLEXPAIE_CALLBACK_URL") or (f"{SITE_URL}/api/paiements/flexpaie/callback" if SITE_URL else "")
@@ -1604,7 +1613,7 @@ DELAI_EXPIRATION = {"mobile": 10 * 60, "carte": 20 * 60}  # secondes sans etat f
 STATUTS_FLEXPAIE = {"0": "paye", "1": "echoue", "2": "attente", "3": "echoue", "4": "echoue", "5": "echoue"}
 ETATS_FINAUX = {"paye", "echoue"}
 DEVISES_PAIEMENT = ("CDF", "USD")
-_flexpaie = httpx.AsyncClient(base_url=FLEXPAIE_BASE_URL, timeout=30)
+_flexpaie = httpx.AsyncClient(timeout=30)
 
 
 def statut_public(paiement: Dict[str, Any]) -> str:
@@ -1635,19 +1644,19 @@ def normaliser_msisdn(tel: str) -> str:
     return chiffres
 
 
-async def _flexpaie_appel(methode: str, chemin: str, **kw) -> Dict[str, Any]:
+async def _flexpaie_appel(methode: str, url: str, **kw) -> Dict[str, Any]:
     """Reponse JSON de Flexpaie ; son champ `code` ("0" = succes) est lu par l'appelant."""
     if not FLEXPAIE_ACTIF:
         raise HTTPException(status_code=503, detail="Paiement en ligne non configure")
     entetes = {"Authorization": f"Bearer {FLEXPAIE_TOKEN}", "Content-Type": "application/json"}
     try:
-        r = await _flexpaie.request(methode, chemin, headers=entetes, **kw)
+        r = await _flexpaie.request(methode, url, headers=entetes, **kw)
         donnees = r.json()
     except (httpx.HTTPError, ValueError) as e:
-        logger.warning("Flexpaie %s injoignable : %s", chemin, e)
+        logger.warning("Flexpaie %s injoignable : %s", url, e)
         raise HTTPException(status_code=502, detail="Service de paiement indisponible")
     if r.status_code in (401, 403) or r.status_code >= 500 or not isinstance(donnees, dict):
-        logger.warning("Flexpaie %s -> %s %s", chemin, r.status_code, r.text[:200])
+        logger.warning("Flexpaie %s -> %s %s", url, r.status_code, r.text[:200])
         raise HTTPException(status_code=502, detail="Service de paiement indisponible")
     return donnees
 
@@ -1706,7 +1715,7 @@ async def verifier_paiement(paiement: Dict[str, Any], callback: Optional[Dict[st
         return paiement
     numero = str(numero)
     try:
-        reponse = await _flexpaie_appel("GET", f"/api/rest/v1/check/{quote(numero, safe='')}")
+        reponse = await _flexpaie_appel("GET", f"{FLEXPAIE_CHECK_URL}/api/rest/v1/check/{quote(numero, safe='')}")
     except HTTPException:
         return paiement  # nouvel essai au prochain appel
     tx = reponse.get("transaction")
@@ -1787,7 +1796,7 @@ async def demarrer_paiement(
         **extra(reference),
     }
     # Sans reponse (delai depasse), la tentative reste en attente : le callback peut encore la confirmer.
-    reponse = await _flexpaie_appel("POST", "/api/rest/v1/paymentService", json=charge)
+    reponse = await _flexpaie_appel("POST", f"{FLEXPAIE_BASE_URL}/api/rest/v1/paymentService", json=charge)
     accepte = str(reponse.get("code")) == "0" and bool(reponse.get("orderNumber"))
     if mode == "carte" and urlparse(str(reponse.get("url") or "")).scheme not in ("http", "https"):
         accepte = False
