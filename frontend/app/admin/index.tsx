@@ -38,9 +38,8 @@ const SUIVANTS: Record<string, string[]> = {
 
 const LIBELLES_PAIEMENT: Record<string, CleTexte> = {
   cash: "admin.paiementCash",
-  mpesa: "admin.paiementMobile",
-  airtel: "admin.paiementMobile",
-  orange: "admin.paiementMobile",
+  mobile: "admin.paiementMobile",
+  carte: "admin.paiementCarte",
 };
 const LIBELLES_STATUT_PAIEMENT: Record<string, CleTexte> = {
   a_la_livraison: "admin.paiementAEncaisser",
@@ -53,9 +52,8 @@ const LIBELLES_STATUT_PAIEMENT: Record<string, CleTexte> = {
 function resumePaiement(cmd: any, t: (cle: CleTexte) => string) {
   const p = cmd?.paiement;
   if (!p || typeof p !== "object") return { mode: t("admin.paiementCash"), statut: t("admin.paiementAEncaisser"), paye: false };
-  const cle = p.mode === "mobile" ? p.operateur : "cash";
   return {
-    mode: t(LIBELLES_PAIEMENT[cle] ?? "admin.paiementMobile"),
+    mode: t(LIBELLES_PAIEMENT[p.mode] ?? "admin.paiementCash"),
     statut: t(LIBELLES_STATUT_PAIEMENT[p.statut] ?? "admin.paiementAttente"),
     paye: p.statut === "paye",
   };

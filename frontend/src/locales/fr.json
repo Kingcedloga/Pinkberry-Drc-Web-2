@@ -146,6 +146,7 @@
     "paiementCash": "À la livraison",
     "paiementAEncaisser": "à encaisser",
     "paiementMobile": "Mobile Money",
+    "paiementCarte": "Carte bancaire",
     "paiementAttente": "en attente",
     "paiementPaye": "payé",
     "paiementEchoue": "échoué",
@@ -249,7 +250,7 @@
     "mesCommandes": "Mes commandes",
     "deconnexion": "Se déconnecter",
     "supprimerCompte": "Supprimer mon compte",
-    "paiement": "Paiement en espèces à la livraison",
+    "paiement": "Espèces à la livraison, Mobile Money ou carte bancaire",
     "livraison": "Livraison en 25 à 45 minutes",
     "zones": "Zones de livraison couvertes",
     "suppressionOk": "Votre compte a été supprimé",
@@ -844,12 +845,21 @@
     "echoue": "Paiement échoué",
     "delaiTexte": "Nous n'avons pas reçu votre approbation. Réessayez ou payez à la livraison.",
     "refuse": "L'opérateur a refusé la transaction.",
+    "refuseCarte": "La banque n'a pas validé la transaction.",
+    "delaiTexteCarte": "Nous n'avons pas reçu la confirmation de la banque. Réessayez ou payez à la livraison.",
+    "finaliserCarte": "Finalisez le paiement de {{montant}} {{devise}} sur la page sécurisée.",
+    "rouvrirCarte": "Rouvrir la page de paiement",
+    "pageCarte": "Paiement sécurisé",
+    "fermer": "Fermer",
     "reessayer": "Réessayer",
     "payerLivraison": "Payer à la livraison",
     "mode": "Mode de paiement",
     "aLaLivraison": "À la livraison",
     "mobileMoney": "Mobile Money",
-    "operateur": "Opérateur",
+    "carte": "Carte bancaire",
+    "carteInfo": "Visa ou Mastercard : vous saisirez votre carte sur la page sécurisée de Flexpaie, jamais dans l'app.",
+    "operateursAcceptes": "Opérateurs acceptés",
+    "numeroInvalide": "Numéro mobile money invalide (ex. 0812345678)",
     "numero": "Numéro à débiter",
     "devise": "Devise à débiter",
     "especes": "Vous réglerez en espèces au livreur à la remise de la commande."
@@ -864,7 +874,7 @@
   },
   "legal": {
     "majLe": "Dernière mise à jour : {{date}}",
-    "date": "20 octobre 2026",
+    "date": "12 novembre 2026",
     "contact": "contact@pinkberrydrc.cd",
     "confidentialite": {
       "titre": "Politique de confidentialité",
@@ -884,7 +894,7 @@
             "• Adresse de livraison : commune, avenue, numéro et point de repère que vous saisissez.",
             "• Position GPS : pour les clients, uniquement lorsque vous choisissez de localiser votre adresse (elle est enregistrée avec l'adresse de livraison). Pour les livreurs, la position est partagée automatiquement et en continu pendant chaque course « en route », et uniquement pendant celle-ci.",
             "• Historique de commandes : produits, tailles, garnitures, montants, dates et statuts.",
-            "• Moyen de paiement : mode choisi (espèces à la livraison ou Mobile Money) et, pour le Mobile Money, le numéro utilisé et la référence de transaction. Nous ne stockons jamais de code PIN ni de numéro de carte bancaire.",
+            "• Moyen de paiement : mode choisi (espèces à la livraison, Mobile Money ou carte bancaire), la référence de transaction et, pour le Mobile Money, le numéro utilisé. Nous ne stockons jamais de code PIN ni de numéro de carte bancaire.",
             "• Données techniques : type d'appareil et de navigateur, langue, préférences d'affichage et abonnement aux notifications."
           ]
         },
@@ -894,7 +904,7 @@
             "• Créer et sécuriser votre compte, et vérifier votre numéro ou votre email par code à usage unique.",
             "• Préparer, facturer et livrer vos commandes à la bonne adresse.",
             "• Vous tenir informé de l'avancement de votre commande (notifications, suivi cartographique).",
-            "• Traiter les paiements Mobile Money et confirmer leur aboutissement.",
+            "• Traiter les paiements en ligne (Mobile Money et carte bancaire) et confirmer leur aboutissement.",
             "• Assurer le service client, la lutte contre la fraude et l'amélioration du service (statistiques agrégées)."
           ]
         },
@@ -909,7 +919,7 @@
           "titre": "5. Avec qui nous partageons vos données",
           "paragraphes": [
             "• Livreurs : votre prénom, votre numéro de téléphone, votre adresse et votre point de repère, uniquement pour la commande qui leur est assignée et pendant la durée de la livraison.",
-            "• Agrégateur de paiement Mobile Money (PawaPay pour M-Pesa, Airtel Money et Orange Money) : montant, numéro de téléphone payeur et référence de commande, afin d'initier et de confirmer le paiement.",
+            "• Agrégateur de paiement Flexpaie (Mobile Money M-Pesa, Airtel Money et Orange Money ; cartes Visa et Mastercard) : montant, numéro de téléphone payeur pour le Mobile Money et référence de commande, afin d'initier et de confirmer le paiement. Les données de carte sont saisies directement sur la page sécurisée de Flexpaie : nous n'y avons jamais accès.",
             "• Prestataires techniques : hébergement de l'application, de la base de données, des fichiers, de la connexion et des notifications (Emergent) ; acheminement des notifications push (Firebase Cloud Messaging de Google sur Android, service de notifications de votre navigateur sur le web) ; envoi des e-mails de vérification ; fonds de carte et calcul d'itinéraire (Mapbox, TomTom pour la recherche d'adresse).",
             "• Google : si vous choisissez « Continuer avec Google », Google nous transmet votre nom, votre adresse e-mail et votre photo de profil pour créer ou ouvrir votre compte. Nous ne recevons jamais votre mot de passe Google.",
             "• Autorités compétentes : uniquement si la loi congolaise l'exige."
@@ -980,8 +990,8 @@
         {
           "titre": "4. Paiement",
           "paragraphes": [
-            "Deux modes de paiement sont proposés : en espèces à la livraison, ou par Mobile Money (M-Pesa, Airtel Money, Orange Money) via notre agrégateur de paiement.",
-            "Pour le Mobile Money, la commande est confirmée lorsque l'opérateur valide la transaction ; si le paiement échoue ou expire, la commande reste en attente et vous pouvez réessayer ou choisir le paiement à la livraison.",
+            "Trois modes de paiement sont proposés : en espèces à la livraison, par Mobile Money (M-Pesa, Airtel Money, Orange Money) ou par carte bancaire (Visa, Mastercard), ces deux derniers via notre agrégateur de paiement Flexpaie.",
+            "Pour le Mobile Money et la carte bancaire, le paiement est confirmé lorsque l'opérateur ou la banque valide la transaction ; si le paiement échoue ou expire, la commande reste en attente et vous pouvez réessayer ou choisir le paiement à la livraison.",
             "Pour le paiement en espèces, le montant exact doit être remis au livreur à la réception."
           ]
         },

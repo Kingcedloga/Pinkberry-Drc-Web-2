@@ -9,11 +9,19 @@ import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { AttentePaiement } from "@/src/components/AttentePaiement";
 import { Bouton } from "@/src/components/Bouton";
-import { ChoixPaiement, type Devise, type ModePaiement, type Operateur } from "@/src/components/ChoixPaiement";
+import {
+  ChoixPaiement,
+  numeroMobileValide,
+  type Devise,
+  type ModePaiement,
+  type ModesEnLigne,
+} from "@/src/components/ChoixPaiement";
+import { PageCarte } from "@/src/components/PageCarte";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { RecapTotaux } from "@/src/components/RecapTotaux";
 import { useLibelle } from "@/src/catalogue-i18n";
 import { champsAdresse, cleNomAdresse, useT } from "@/src/i18n";
+import { preparerPaiementCarte, type SessionCarte } from "@/src/plateforme/paiement-carte";
 import { usePanier } from "@/src/panier";
 import { useMessageCode, type Totaux } from "@/src/promotions";
 import { TitrePage } from "@/src/components/TitrePage";
@@ -37,16 +45,29 @@ export default function Confirmation() {
   const { articles, adresse, sousTotal, vider, codePromo, setCodePromo, pret } = usePanier();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<ModePaiement>("cash");
-  const [operateur, setOperateur] = useState<Operateur>("mpesa");
+  const [choix, setMode] = useState<ModePaiement>("cash");
   const [telephone, setTelephone] = useState(user?.telephone ?? "");
   const [devise, setDevise] = useState<Devise>("CDF");
+  // Paiement en ligne en cours ; `id` nul : Flexpaie a refusé la demande (la commande existe).
   const [paiement, setPaiement] = useState<{
-    depositId: string;
+    id: string | null;
     commandeId: string;
+    mode: "mobile" | "carte";
     montant: string;
     devise: string;
+    url?: string;
+    retour?: string;
   } | null>(null);
+  const [pageCarte, setPageCarte] = useState(false);
+
+  // Modes en ligne proposés seulement si le serveur est configuré pour Flexpaie.
+  const modesQ = useQuery({
+    queryKey: ["paiements-modes"],
+    queryFn: () => apiFetch<ModesEnLigne>("/paiements/modes"),
+    staleTime: 5 * 60_000,
+  });
+  const modes: ModesEnLigne = { mobile: !!modesQ.data?.mobile, carte: !!modesQ.data?.carte };
+  const mode: ModePaiement = choix === "cash" || modes[choix] ? choix : "cash";
 
   // Code saisi par le client, puis code soumis au serveur (bouton « Appliquer »).
   // Un code choisi dans la bannière est repris et appliqué dès l'arrivée.
@@ -98,12 +119,29 @@ export default function Confirmation() {
     setCodePromo(null);
   };
 
-  const lancerPaiement = async (commandeId: string) => {
-    const r = await apiFetch<{ depositId: string; montant: string; devise: string }>("/paiements/mobile-money", {
-      method: "POST",
-      body: { commandeId, operateur, telephone, devise },
-    });
-    setPaiement({ depositId: r.depositId, commandeId, montant: r.montant, devise: r.devise });
+  /** Demande le paiement à Flexpaie. `session` (carte) : préparée pendant le geste du client. */
+  const lancerPaiement = async (commandeId: string, enLigne: "mobile" | "carte", session?: SessionCarte) => {
+    try {
+      if (enLigne === "carte") {
+        const r = await apiFetch<{ paiementId: string; montant: string; devise: string; url: string; retour: string }>(
+          "/paiements/carte",
+          { method: "POST", body: { commandeId, devise } },
+        );
+        setPaiement({ id: r.paiementId, commandeId, mode: "carte", montant: r.montant, devise: r.devise, url: r.url, retour: r.retour });
+        if ((session ?? preparerPaiementCarte()).ouvrir(r.url)) setPageCarte(true);
+      } else {
+        const r = await apiFetch<{ paiementId: string; montant: string; devise: string }>("/paiements/mobile-money", {
+          method: "POST",
+          body: { commandeId, telephone, devise },
+        });
+        setPaiement({ id: r.paiementId, commandeId, mode: "mobile", montant: r.montant, devise: r.devise });
+      }
+    } catch (e: any) {
+      session?.annuler();
+      toast.show(e.message, "erreur");
+      // La commande est enregistrée : le client peut réessayer ou payer à la livraison.
+      setPaiement({ id: null, commandeId, mode: enLigne, montant: "", devise });
+    }
   };
 
   const passerCommande = async () => {
@@ -111,6 +149,12 @@ export default function Confirmation() {
       toast.show(t("confirmation.adresseManquante"), "erreur");
       return;
     }
+    if (mode === "mobile" && !numeroMobileValide(telephone)) {
+      toast.show(t("paiement.numeroInvalide"), "erreur");
+      return;
+    }
+    // Web : l'onglet de paiement s'ouvre dans le geste du client, sinon le navigateur le bloque.
+    const session = mode === "carte" ? preparerPaiementCarte() : undefined;
     setLoading(true);
     try {
       const cmd = await apiFetch<any>("/commandes", {
@@ -127,12 +171,13 @@ export default function Confirmation() {
       vider();
       qc.invalidateQueries({ queryKey: ["mes-commandes"] });
       toast.show(t("confirmation.envoyee", { numero: cmd.numero }), "succes");
-      if (mode === "mobile") {
-        await lancerPaiement(cmd.id);
+      if (mode !== "cash") {
+        await lancerPaiement(cmd.id, mode, session);
         return;
       }
       router.replace(`/suivi/${cmd.id}`);
     } catch (e: any) {
+      session?.annuler();
       toast.show(e.message, "erreur");
     } finally {
       setLoading(false);
@@ -189,8 +234,7 @@ export default function Confirmation() {
         <ChoixPaiement
           mode={mode}
           setMode={setMode}
-          operateur={operateur}
-          setOperateur={setOperateur}
+          modes={modes}
           telephone={telephone}
           setTelephone={setTelephone}
           devise={devise}
@@ -256,9 +300,12 @@ export default function Confirmation() {
         </View>
       </ScrollView>
 
-      {paiement ? (
+      {paiement && pageCarte && paiement.url && paiement.retour ? (
+        <PageCarte url={paiement.url} retour={paiement.retour} onFermee={() => setPageCarte(false)} />
+      ) : paiement ? (
         <AttentePaiement
-          depositId={paiement.depositId}
+          paiementId={paiement.id}
+          mode={paiement.mode}
           montant={paiement.montant}
           devise={paiement.devise}
           onPaye={() => {
@@ -268,15 +315,19 @@ export default function Confirmation() {
             toast.show(t("confirmation.paiementConfirme"), "succes");
             router.replace(`/suivi/${id}`);
           }}
-          onReessayer={async () => {
-            const id = paiement.commandeId;
+          onReessayer={() => {
+            const { commandeId, mode: enLigne } = paiement;
+            const session = enLigne === "carte" ? preparerPaiementCarte() : undefined;
             setPaiement(null);
-            try {
-              await lancerPaiement(id);
-            } catch (e: any) {
-              toast.show(e.message, "erreur");
-            }
+            void lancerPaiement(commandeId, enLigne, session);
           }}
+          onReouvrir={
+            paiement.url
+              ? () => {
+                  if (preparerPaiementCarte().ouvrir(paiement.url!)) setPageCarte(true);
+                }
+              : undefined
+          }
           onCash={async () => {
             const id = paiement.commandeId;
             try {

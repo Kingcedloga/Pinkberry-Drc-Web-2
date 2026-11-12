@@ -146,6 +146,7 @@
     "paiementCash": "Pay on delivery",
     "paiementAEncaisser": "to collect",
     "paiementMobile": "Mobile Money",
+    "paiementCarte": "Bank card",
     "paiementAttente": "pending",
     "paiementPaye": "paid",
     "paiementEchoue": "failed",
@@ -249,7 +250,7 @@
     "mesCommandes": "My orders",
     "deconnexion": "Sign out",
     "supprimerCompte": "Delete my account",
-    "paiement": "Cash payment on delivery",
+    "paiement": "Cash on delivery, Mobile Money or bank card",
     "livraison": "Delivery in 25 to 45 minutes",
     "zones": "Delivery areas covered",
     "suppressionOk": "Your account has been deleted",
@@ -844,12 +845,21 @@
     "echoue": "Payment failed",
     "delaiTexte": "We didn't receive your approval. Try again or pay on delivery.",
     "refuse": "The operator declined the transaction.",
+    "refuseCarte": "The bank didn't approve the transaction.",
+    "delaiTexteCarte": "We didn't receive the bank's confirmation. Try again or pay on delivery.",
+    "finaliserCarte": "Complete the {{montant}} {{devise}} payment on the secure page.",
+    "rouvrirCarte": "Reopen the payment page",
+    "pageCarte": "Secure payment",
+    "fermer": "Close",
     "reessayer": "Try again",
     "payerLivraison": "Pay on delivery",
     "mode": "Payment method",
     "aLaLivraison": "On delivery",
     "mobileMoney": "Mobile Money",
-    "operateur": "Operator",
+    "carte": "Bank card",
+    "carteInfo": "Visa or Mastercard: you'll enter your card on Flexpaie's secure page, never in the app.",
+    "operateursAcceptes": "Accepted operators",
+    "numeroInvalide": "Invalid mobile money number (e.g. 0812345678)",
     "numero": "Number to charge",
     "devise": "Currency to charge",
     "especes": "You'll pay the courier in cash when your order is delivered."
@@ -864,7 +874,7 @@
   },
   "legal": {
     "majLe": "Last updated: {{date}}",
-    "date": "October 20, 2026",
+    "date": "November 12, 2026",
     "contact": "contact@pinkberrydrc.cd",
     "confidentialite": {
       "titre": "Privacy Policy",
@@ -884,7 +894,7 @@
             "• Delivery address: commune, avenue, number and the landmark you provide.",
             "• GPS location: for customers, only when you choose to locate your address (it is saved with the delivery address). For riders, location is shared automatically and continuously during each delivery that is “on the way”, and only then.",
             "• Order history: products, sizes, toppings, amounts, dates and statuses.",
-            "• Payment method: the option chosen (cash on delivery or Mobile Money) and, for Mobile Money, the paying phone number and transaction reference. We never store PIN codes or bank card numbers.",
+            "• Payment method: the option chosen (cash on delivery, Mobile Money or bank card), the transaction reference and, for Mobile Money, the paying phone number. We never store PIN codes or bank card numbers.",
             "• Technical data: device and browser type, language, display preferences and notification subscription."
           ]
         },
@@ -894,7 +904,7 @@
             "• Create and secure your account and verify your phone or email with a one-time code.",
             "• Prepare, invoice and deliver your orders to the right address.",
             "• Keep you informed about your order (notifications, live map tracking).",
-            "• Process Mobile Money payments and confirm their outcome.",
+            "• Process online payments (Mobile Money and bank card) and confirm their outcome.",
             "• Provide customer support, prevent fraud and improve the service (aggregated statistics)."
           ]
         },
@@ -909,7 +919,7 @@
           "titre": "5. Who we share it with",
           "paragraphes": [
             "• Riders: your first name, phone number, address and landmark, only for the order assigned to them and for the duration of the delivery.",
-            "• Mobile Money payment aggregator (PawaPay for M-Pesa, Airtel Money and Orange Money): amount, payer phone number and order reference, to initiate and confirm payment.",
+            "• Flexpaie payment aggregator (Mobile Money: M-Pesa, Airtel Money and Orange Money; Visa and Mastercard cards): amount, payer phone number for Mobile Money and order reference, to initiate and confirm payment. Card details are entered directly on Flexpaie's secure page: we never have access to them.",
             "• Technical providers: hosting of the app, database, files, sign-in and notifications (Emergent); delivery of push notifications (Google Firebase Cloud Messaging on Android, your browser's notification service on the web); verification emails; map tiles and routing (Mapbox, TomTom for address search).",
             "• Google: if you choose “Continue with Google”, Google shares your name, email address and profile picture with us to create or open your account. We never receive your Google password.",
             "• Competent authorities: only where Congolese law requires it."
@@ -980,8 +990,8 @@
         {
           "titre": "4. Payment",
           "paragraphes": [
-            "Two payment options are available: cash on delivery, or Mobile Money (M-Pesa, Airtel Money, Orange Money) through our payment aggregator.",
-            "For Mobile Money, the order is confirmed once the operator validates the transaction; if payment fails or expires the order stays pending and you can retry or switch to cash on delivery.",
+            "Three payment options are available: cash on delivery, Mobile Money (M-Pesa, Airtel Money, Orange Money) or bank card (Visa, Mastercard), the last two through our payment aggregator Flexpaie.",
+            "For Mobile Money and bank cards, payment is confirmed once the operator or bank validates the transaction; if payment fails or expires the order stays pending and you can retry or switch to cash on delivery.",
             "For cash payments, the exact amount must be handed to the rider on delivery."
           ]
         },

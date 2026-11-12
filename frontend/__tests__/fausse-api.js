@@ -44,7 +44,7 @@ function reponse(chemin, role) {
   if (p === "/admin/commandes" || p === "/admin/commandes/archives") return [commande];
   if (p === "/admin/stats") return { total: 1, enCours: 1, livrees: 0, annulees: 0, revenus: 0 };
   if (p === "/admin/ventes") return { date: "2026-10-25", chiffre: 0, nbCommandes: 0, panierMoyen: 0, topProduits: [] };
-  if (p === "/paiements/operateurs") return { operateurs: [], devises: ["CDF", "USD"], actif: false };
+  if (p === "/paiements/modes") return { mobile: false, carte: false, devises: ["CDF", "USD"] };
   if (p === "/push/web/etat") return { abonnements: 0 };
   if (p === "/carte/itineraire") return { points: [], distanceMetres: 0, etaSecondes: 0, heureArrivee: null };
   return [];

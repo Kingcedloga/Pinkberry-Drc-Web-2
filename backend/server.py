@@ -1,7 +1,5 @@
 import asyncio
-import base64
 import copy
-import hashlib
 import hmac
 import ipaddress
 import json
@@ -16,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from urllib.parse import quote, urlparse
 
 import bcrypt
@@ -27,8 +25,6 @@ from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Requ
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image, ImageOps
 from pydantic import BaseModel, Field
 from pymongo import ReturnDocument
@@ -173,18 +169,12 @@ ERREURS_EN: Dict[str, str] = {
     "Itineraire introuvable": "Route not found",
     # Paiement
     "Numero mobile money invalide (ex. 0812345678)": "Invalid mobile money number (e.g. 0812345678)",
-    "Paiement mobile money non configure": "Mobile money payment is not configured",
+    "Paiement en ligne non configure": "Online payment is not configured",
     "Service de paiement indisponible": "Payment service unavailable",
-    "Callback non signe": "Unsigned callback",
-    "Digest invalide": "Invalid digest",
-    "Signature-Input invalide": "Invalid Signature-Input",
-    "Parametres de signature refuses": "Signature parameters rejected",
-    "Cle de signature inconnue": "Unknown signing key",
-    "Signature invalide": "Invalid signature",
-    "Operateur inconnu": "Unknown operator",
     "Devise non supportee": "Unsupported currency",
     "Commande deja payee": "Order already paid",
     "Paiement refuse par l'operateur": "Payment declined by the operator",
+    "Paiement par carte indisponible": "Card payment unavailable",
     "Paiement introuvable": "Payment not found",
     "Callback illisible": "Unreadable callback",
     "Callback invalide": "Invalid callback",
@@ -305,11 +295,7 @@ ERREURS_FR: Dict[str, str] = {
     "Coordonnees invalides": "Coordonnées invalides",
     "Itineraire introuvable": "Itinéraire introuvable",
     "Numero mobile money invalide (ex. 0812345678)": "Numéro mobile money invalide (ex. 0812345678)",
-    "Paiement mobile money non configure": "Paiement mobile money non configuré",
-    "Callback non signe": "Callback non signé",
-    "Parametres de signature refuses": "Paramètres de signature refusés",
-    "Cle de signature inconnue": "Clé de signature inconnue",
-    "Operateur inconnu": "Opérateur inconnu",
+    "Paiement en ligne non configure": "Paiement en ligne non configuré",
     "Devise non supportee": "Devise non prise en charge",
     "Commande deja payee": "Commande déjà payée",
     "Paiement refuse par l'operateur": "Paiement refusé par l'opérateur",
@@ -727,7 +713,7 @@ class ItemIn(BaseModel):
 class CommandeIn(BaseModel):
     adresse: AdresseIn
     items: List[ItemIn]
-    modePaiement: Literal["cash", "mobile"] = "cash"
+    modePaiement: Literal["cash", "mobile", "carte"] = "cash"
     codePromo: Optional[str] = None
 
 
@@ -1596,28 +1582,42 @@ async def carte_zone(lat: float, lng: float, user=Depends(get_current_user)):
     }
 
 
-# --------------------------------------------------- paiements mobile money (PawaPay)
-PAWAPAY_BASE_URL = (os.environ.get("PAWAPAY_BASE_URL") or "https://api.sandbox.pawapay.io").rstrip("/")
-PAWAPAY_TOKEN = (os.environ.get("PAWAPAY_TOKEN") or "").strip()
-PAWAPAY_CALLBACK_URL = (os.environ.get("PAWAPAY_CALLBACK_URL") or "").strip()
-PAWAPAY_SIGNED_CALLBACKS = (os.environ.get("PAWAPAY_SIGNED_CALLBACKS") or "true").lower() == "true"
-PAWAPAY_DELAI_EXPIRATION = 10 * 60  # secondes sans etat final -> "expire" cote app
+# --------------------------------------------------- paiements mobile money et carte (Flexpaie)
+# Une seule interface Flexpaie pour les deux modes : paymentService (type 1 mobile money,
+# type 2 carte) puis check/{orderNumber}. Le callback n'est pas signe : son contenu n'est
+# jamais applique tel quel, il declenche seulement une verification aupres de Flexpaie.
+# FLEXPAIE_BASE_URL : « http://ip:port » communique par Flexpaie.
+FLEXPAIE_BASE_URL = re.sub(r"/api/rest/v1/?$", "", (os.environ.get("FLEXPAIE_BASE_URL") or "").strip().rstrip("/"))
+FLEXPAIE_TOKEN = (os.environ.get("FLEXPAIE_TOKEN") or "").strip()
+FLEXPAIE_MERCHANT = (os.environ.get("FLEXPAIE_MERCHANT") or "").strip()
+FLEXPAIE_CALLBACK_URL = (
+    os.environ.get("FLEXPAIE_CALLBACK_URL") or (f"{SITE_URL}/api/paiements/flexpaie/callback" if SITE_URL else "")
+).strip()
+# Adresse publique de ce backend (celle du callback) : Flexpaie y renvoie le client apres la carte.
+_api_publique = urlparse(FLEXPAIE_CALLBACK_URL)
+FLEXPAIE_RETOUR_URL = f"{_api_publique.scheme}://{_api_publique.netloc}/api/paiements/carte" if _api_publique.netloc else ""
+FLEXPAIE_ACTIF = bool(FLEXPAIE_BASE_URL and FLEXPAIE_TOKEN and FLEXPAIE_MERCHANT and FLEXPAIE_CALLBACK_URL)
+DELAI_EXPIRATION = {"mobile": 10 * 60, "carte": 20 * 60}  # secondes sans etat final -> "expire" cote app
 
-OPERATEURS = {
-    "mpesa": {"provider": "VODACOM_MPESA_COD", "nom": "M-Pesa (Vodacom)", "decimales": {"CDF": 0, "USD": 2}},
-    "airtel": {"provider": "AIRTEL_COD", "nom": "Airtel Money", "decimales": {"CDF": 2, "USD": 2}},
-    "orange": {"provider": "ORANGE_COD", "nom": "Orange Money", "decimales": {"CDF": 2, "USD": 2}},
-}
-ETATS_FINAUX = {"COMPLETED", "FAILED"}
-_pawapay = httpx.AsyncClient(base_url=PAWAPAY_BASE_URL, timeout=25)
-_cles_pawapay: Dict[str, str] = {}
+# Statut d'une transaction (check) : 0 reussie, 1 echouee, 2 en attente,
+# 3 / 4 remboursement au client, 5 annulee par le marchand.
+STATUTS_FLEXPAIE = {"0": "paye", "1": "echoue", "2": "attente", "3": "echoue", "4": "echoue", "5": "echoue"}
+ETATS_FINAUX = {"paye", "echoue"}
+DEVISES_PAIEMENT = ("CDF", "USD")
+_flexpaie = httpx.AsyncClient(base_url=FLEXPAIE_BASE_URL, timeout=30)
 
 
-def statut_public(etat: Optional[str]) -> str:
-    if etat == "COMPLETED":
-        return "paye"
-    if etat in {"FAILED", "REJECTED"}:
+def statut_public(paiement: Dict[str, Any]) -> str:
+    """paye / echoue / attente / expire, tel qu'affiche au client."""
+    if paiement["statut"] in ETATS_FINAUX:
+        return paiement["statut"]
+    # Carte annulee ou refusee sur la page Flexpaie : affichee en echec sans etre figee
+    # en base, pour qu'un succes confirme ensuite par Flexpaie s'applique encore.
+    if paiement.get("issueRetour") in {"cancel", "decline"}:
         return "echoue"
+    debut = datetime.fromisoformat(paiement["createdAt"])
+    if (now_utc() - debut).total_seconds() > DELAI_EXPIRATION.get(paiement.get("mode"), DELAI_EXPIRATION["mobile"]):
+        return "expire"
     return "attente"
 
 
@@ -1635,248 +1635,262 @@ def normaliser_msisdn(tel: str) -> str:
     return chiffres
 
 
-async def _pawapay_appel(methode: str, chemin: str, **kw) -> Dict[str, Any]:
-    if not PAWAPAY_TOKEN:
-        raise HTTPException(status_code=503, detail="Paiement mobile money non configure")
-    entetes = {"Authorization": f"Bearer {PAWAPAY_TOKEN}", "Content-Type": "application/json"}
+async def _flexpaie_appel(methode: str, chemin: str, **kw) -> Dict[str, Any]:
+    """Reponse JSON de Flexpaie ; son champ `code` ("0" = succes) est lu par l'appelant."""
+    if not FLEXPAIE_ACTIF:
+        raise HTTPException(status_code=503, detail="Paiement en ligne non configure")
+    entetes = {"Authorization": f"Bearer {FLEXPAIE_TOKEN}", "Content-Type": "application/json"}
     try:
-        r = await _pawapay.request(methode, chemin, headers=entetes, **kw)
-    except httpx.HTTPError as e:
-        logger.warning("PawaPay %s injoignable : %s", chemin, e)
+        r = await _flexpaie.request(methode, chemin, headers=entetes, **kw)
+        donnees = r.json()
+    except (httpx.HTTPError, ValueError) as e:
+        logger.warning("Flexpaie %s injoignable : %s", chemin, e)
         raise HTTPException(status_code=502, detail="Service de paiement indisponible")
-    if r.status_code >= 400:
-        logger.warning("PawaPay %s -> %s %s", chemin, r.status_code, r.text[:200])
+    if r.status_code in (401, 403) or r.status_code >= 500 or not isinstance(donnees, dict):
+        logger.warning("Flexpaie %s -> %s %s", chemin, r.status_code, r.text[:200])
         raise HTTPException(status_code=502, detail="Service de paiement indisponible")
-    return r.json()
-
-
-async def charger_cles_pawapay() -> None:
-    """Cles publiques utilisees pour verifier la signature des callbacks."""
-    if not PAWAPAY_TOKEN:
-        return
-    try:
-        cles = await _pawapay_appel("GET", "/v2/public-key/http")
-    except HTTPException:
-        return
-    for c in cles if isinstance(cles, list) else []:
-        if c.get("id") and c.get("key"):
-            _cles_pawapay[c["id"]] = c["key"]
-
-
-def _valeur_b64(entete: str) -> bytes:
-    return base64.b64decode(entete.split(":", 2)[1])
-
-
-def verifier_callback(requete: Request, brut: bytes) -> None:
-    """Digest + signature RFC 9187 (ECDSA P-256) fournis par PawaPay."""
-    if not PAWAPAY_SIGNED_CALLBACKS:
-        return
-    digest = requete.headers.get("content-digest", "")
-    signature = requete.headers.get("signature", "")
-    entree = requete.headers.get("signature-input", "")
-    if not digest or not signature or not entree:
-        raise HTTPException(status_code=401, detail="Callback non signe")
-    algo = digest.split("=", 1)[0].lower()
-    attendu = hashlib.sha512(brut).digest() if algo == "sha-512" else hashlib.sha256(brut).digest()
-    if not hmac.compare_digest(attendu, _valeur_b64(digest)):
-        raise HTTPException(status_code=401, detail="Digest invalide")
-
-    m = re.search(r"sig-pp=\((.*?)\);(.*)$", entree)
-    if not m:
-        raise HTTPException(status_code=401, detail="Signature-Input invalide")
-    composants, parametres = m.group(1), m.group(2)
-    keyid = re.search(r'keyid="([^"]+)"', parametres)
-    alg = re.search(r'alg="([^"]+)"', parametres)
-    if not keyid or not alg or alg.group(1) != "ecdsa-p256-sha256":
-        raise HTTPException(status_code=401, detail="Parametres de signature refuses")
-    pem = _cles_pawapay.get(keyid.group(1))
-    if not pem:
-        raise HTTPException(status_code=401, detail="Cle de signature inconnue")
-
-    valeurs = {
-        "@method": requete.method,
-        "@authority": requete.headers.get("host", ""),
-        "@path": requete.url.path,
-        "signature-date": requete.headers.get("signature-date", ""),
-        "content-digest": digest,
-        "content-type": requete.headers.get("content-type", ""),
-    }
-    noms = [x.strip().strip('"') for x in composants.split()]
-    base = "\n".join(f'"{n}": {valeurs[n]}' for n in noms if n in valeurs)
-    base += f'\n"@signature-params": ({composants});{parametres}'
-    try:
-        cle = serialization.load_pem_public_key(pem.encode())
-        cle.verify(_valeur_b64(signature), base.encode(), ec.ECDSA(hashes.SHA256()))
-    except Exception as e:
-        logger.warning("Signature PawaPay invalide : %s", e)
-        raise HTTPException(status_code=401, detail="Signature invalide")
-
-
-async def appliquer_etat_final(donnees: Dict[str, Any]) -> None:
-    """Transition atomique : un callback rejoue ne paie jamais deux fois."""
-    etat = donnees.get("status")
-    depot_id = donnees.get("depositId")
-    if not depot_id or etat not in ETATS_FINAUX:
-        return
-    maj = {
-        "statut": etat,
-        "raisonEchec": (donnees.get("failureReason") or {}).get("failureMessage")
-        if isinstance(donnees.get("failureReason"), dict)
-        else donnees.get("failureReason"),
-        "transactionOperateur": donnees.get("providerTransactionId"),
-        "updatedAt": iso(now_utc()),
-    }
-    precedent = await db.paiements.find_one_and_update(
-        {"depositId": depot_id, "statut": {"$nin": list(ETATS_FINAUX)}}, {"$set": maj}
-    )
-    if not precedent:
-        return
-    paye = etat == "COMPLETED"
-    await db.commandes.update_one(
-        {"id": precedent["commandeId"]},
-        {
-            "$set": {
-                "paiement.statut": "paye" if paye else "echoue",
-                "paiement.transactionOperateur": donnees.get("providerTransactionId"),
-                "paiement.updatedAt": iso(now_utc()),
-                "paye": paye,
-            }
-        },
-    )
-    await notifier_paiement(precedent["commandeId"], paye)
-
-
-async def _synchroniser_depot(depot_id: str) -> Dict[str, Any]:
-    """Interrogation de secours (en plus du callback)."""
-    reponse = await _pawapay_appel("GET", f"/v2/deposits/{depot_id}")
-    donnees = reponse.get("data") or {}
-    if reponse.get("status") == "FOUND" and donnees.get("status") in ETATS_FINAUX:
-        await appliquer_etat_final({**donnees, "depositId": depot_id})
     return donnees
 
 
-class PaiementMobileIn(BaseModel):
-    commandeId: str
-    operateur: str
-    telephone: str
-    devise: str = "CDF"
+def transaction_conforme(paiement: Dict[str, Any], tx: Dict[str, Any], numero_sur: bool) -> bool:
+    """La transaction lue par check est bien cette tentative : reference, devise, montant.
+    Sans reference, seul un orderNumber obtenu par notre propre requete fait foi."""
+    reference = str(tx.get("reference") or "")
+    if (reference and reference != paiement["reference"]) or (not reference and not numero_sur):
+        return False
+    if tx.get("currency") and tx["currency"] != paiement["devise"]:
+        return False
+    try:
+        return not tx.get("amount") or abs(float(tx["amount"]) - float(paiement["montant"])) < 0.01
+    except (TypeError, ValueError):
+        return False
 
 
-@api_router.get("/paiements/operateurs")
-async def paiement_operateurs():
-    """Operateurs mobile money disponibles pour la RDC."""
-    return {
-        "operateurs": [{"cle": c, "nom": v["nom"]} for c, v in OPERATEURS.items()],
-        "devises": ["CDF", "USD"],
-        "actif": bool(PAWAPAY_TOKEN),
+async def appliquer_etat_final(paiement: Dict[str, Any], statut: str, champs: Dict[str, Any]) -> None:
+    """Transition atomique : un callback rejoue ne paie jamais deux fois."""
+    precedent = await db.paiements.find_one_and_update(
+        {"id": paiement["id"], "statut": {"$nin": list(ETATS_FINAUX)}},
+        {"$set": {"statut": statut, **champs, "updatedAt": iso(now_utc())}},
+    )
+    if not precedent:
+        return
+    paye = statut == "paye"
+    maj = {
+        "paiement.statut": statut,
+        "paiement.canal": champs.get("canal"),
+        "paiement.transactionOperateur": champs.get("transactionOperateur"),
+        "paiement.updatedAt": iso(now_utc()),
+        "paye": paye,
     }
+    if paye:
+        # Un paiement abouti vaut pour la commande, meme si le client a tente autre chose depuis.
+        filtre = {"id": precedent["commandeId"]}
+        maj.update({
+            "paiement.mode": precedent["mode"],
+            "paiement.paiementId": precedent["id"],
+            "paiement.montant": precedent["montant"],
+            "paiement.devise": precedent["devise"],
+        })
+    else:
+        # Un echec ne touche la commande que s'il s'agit de sa tentative en cours.
+        filtre = {"id": precedent["commandeId"], "paiement.paiementId": precedent["id"]}
+    if (await db.commandes.update_one(filtre, {"$set": maj})).modified_count:
+        await notifier_paiement(precedent["commandeId"], paye)
 
 
-@api_router.post("/paiements/mobile-money")
-async def paiement_mobile_money(body: PaiementMobileIn, user=Depends(get_current_user)):
-    operateur = OPERATEURS.get(body.operateur)
-    if not operateur:
-        raise HTTPException(status_code=400, detail="Operateur inconnu")
-    devise = body.devise.upper()
-    if devise not in {"USD", "CDF"}:
-        raise HTTPException(status_code=400, detail="Devise non supportee")
+async def verifier_paiement(paiement: Dict[str, Any], callback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Etat reel de la transaction (check) ; applique un etat final. Renvoie le paiement a jour.
+    `callback` : donnees recues de Flexpaie, utilisees seulement pour ce que check ne renvoie pas."""
+    numero = paiement.get("orderNumber") or (callback or {}).get("orderNumber")
+    if not numero:
+        return paiement
+    numero = str(numero)
+    try:
+        reponse = await _flexpaie_appel("GET", f"/api/rest/v1/check/{quote(numero, safe='')}")
+    except HTTPException:
+        return paiement  # nouvel essai au prochain appel
+    tx = reponse.get("transaction")
+    if str(reponse.get("code")) != "0" or not isinstance(tx, dict):
+        return paiement
+    if not transaction_conforme(paiement, tx, numero_sur=numero == paiement.get("orderNumber")):
+        logger.error("Flexpaie : transaction %s non conforme au paiement %s : %s", numero, paiement["id"], tx)
+        return paiement
+    statut = STATUTS_FLEXPAIE.get(str(tx.get("status")), "attente")
+    champs = {"orderNumber": numero, "codeFlexpaie": str(tx.get("status"))}
+    if statut in ETATS_FINAUX:
+        infos_callback = callback if callback and str(callback.get("orderNumber")) == numero else {}
+        await appliquer_etat_final(paiement, statut, {
+            **champs,
+            "canal": tx.get("channel") or infos_callback.get("channel"),
+            "transactionOperateur": infos_callback.get("provider_reference") or None,
+            "montantClient": tx.get("amountCustomer"),
+        })
+    else:
+        await db.paiements.update_one({"id": paiement["id"]}, {"$set": champs})
+    return await db.paiements.find_one({"id": paiement["id"]}, {"_id": 0}) or paiement
 
-    commande = await db.commandes.find_one({"id": body.commandeId}, {"_id": 0})
+
+async def commande_a_payer(commande_id: str, user: Dict[str, Any]) -> Dict[str, Any]:
+    commande = await db.commandes.find_one({"id": commande_id}, {"_id": 0})
     if not commande or commande.get("userId") != user["id"]:
         raise HTTPException(status_code=404, detail="Commande introuvable")
     if commande.get("paiement", {}).get("statut") == "paye":
         raise HTTPException(status_code=400, detail="Commande deja payee")
+    return commande
 
+
+async def montant_a_debiter(commande: Dict[str, Any], devise: str) -> str:
+    """Francs entiers, dollars au centime (taux du jour)."""
     total_fc = float(commande["total"])
-    montant = total_fc if devise == "CDF" else total_fc / float((await lire_config())["tauxFC"])
-    decimales = operateur["decimales"][devise]
-    montant_txt = f"{round(montant, decimales):.{decimales}f}" if decimales else str(int(round(montant)))
+    if devise == "CDF":
+        return str(int(round(total_fc)))
+    return f"{total_fc / float((await lire_config())['tauxFC']):.2f}"
 
-    msisdn = normaliser_msisdn(body.telephone)
-    depot_id = str(uuid.uuid4())
-    await db.paiements.insert_one(
-        {
-            "id": depot_id,
-            "depositId": depot_id,
-            "commandeId": commande["id"],
-            "userId": user["id"],
-            "operateur": body.operateur,
-            "provider": operateur["provider"],
-            "telephone": msisdn,
-            "montant": montant_txt,
-            "devise": devise,
-            "statut": "ACCEPTED_PENDING",
-            "createdAt": iso(now_utc()),
-        }
-    )
 
-    charge = {
-        "depositId": depot_id,
-        "amount": montant_txt,
-        "currency": devise,
-        "payer": {"type": "MMO", "accountDetails": {"provider": operateur["provider"], "phoneNumber": msisdn}},
-        "clientReferenceId": commande["numero"],
-        # Uniquement alphanumerique et espaces, 22 caracteres max.
-        "customerMessage": re.sub(r"[^A-Za-z0-9 ]", " ", f"Pinkberry {commande['numero']}")[:22],
+async def demarrer_paiement(
+    commande: Dict[str, Any],
+    user: Dict[str, Any],
+    mode: Literal["mobile", "carte"],
+    devise: str,
+    extra: Callable[[str], Dict[str, Any]],
+    infos: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Enregistre la tentative, l'envoie a Flexpaie et la rattache a la commande.
+    `extra(reference)` : champs propres au mode dans la requete. Renvoie (paiement, reponse Flexpaie)."""
+    devise = devise.upper()
+    if devise not in DEVISES_PAIEMENT:
+        raise HTTPException(status_code=400, detail="Devise non supportee")
+    if not FLEXPAIE_ACTIF:
+        raise HTTPException(status_code=503, detail="Paiement en ligne non configure")
+    reference = "PB" + uuid.uuid4().hex[:14].upper()  # alphanumerique et courte, comme les exemples Flexpaie
+    paiement = {
+        "id": reference,
+        "reference": reference,
+        "mode": mode,
+        "commandeId": commande["id"],
+        "userId": user["id"],
+        "montant": await montant_a_debiter(commande, devise),
+        "devise": devise,
+        "statut": "attente",
+        "langue": _langue(user.get("preferences") or {}),
+        "createdAt": iso(now_utc()),
+        **infos,
     }
-    try:
-        reponse = await _pawapay_appel("POST", "/v2/deposits", json=charge)
-    except HTTPException:
-        await db.paiements.update_one({"depositId": depot_id}, {"$set": {"statut": "UNKNOWN"}})
-        raise
-
-    etat = reponse.get("status")
-    await db.paiements.update_one(
-        {"depositId": depot_id},
-        {"$set": {"statutInitiation": etat, "raisonEchec": reponse.get("failureReason")}},
-    )
+    await db.paiements.insert_one(dict(paiement))
+    charge = {
+        "merchant": FLEXPAIE_MERCHANT,
+        "type": "1" if mode == "mobile" else "2",
+        "reference": reference,
+        "amount": paiement["montant"],
+        "currency": devise,
+        "callback_url": FLEXPAIE_CALLBACK_URL,
+        **extra(reference),
+    }
+    # Sans reponse (delai depasse), la tentative reste en attente : le callback peut encore la confirmer.
+    reponse = await _flexpaie_appel("POST", "/api/rest/v1/paymentService", json=charge)
+    accepte = str(reponse.get("code")) == "0" and bool(reponse.get("orderNumber"))
+    if mode == "carte" and urlparse(str(reponse.get("url") or "")).scheme not in ("http", "https"):
+        accepte = False
+    if accepte:
+        await db.paiements.update_one({"id": reference}, {"$set": {"orderNumber": str(reponse["orderNumber"])}})
+    else:
+        logger.warning("Flexpaie a refuse %s : %s", reference, reponse)
+        await db.paiements.update_one(
+            {"id": reference}, {"$set": {"statut": "echoue", "raisonEchec": reponse.get("message"), "updatedAt": iso(now_utc())}}
+        )
+    telephone = infos.get("telephone")
     await db.commandes.update_one(
         {"id": commande["id"]},
         {
             "$set": {
                 "paiement": {
-                    "mode": "mobile",
-                    "operateur": body.operateur,
-                    "operateurNom": operateur["nom"],
+                    "mode": mode,
+                    "paiementId": reference,
                     "devise": devise,
-                    "montant": montant_txt,
-                    "telephone": msisdn[-4:].rjust(len(msisdn), "*"),
-                    "depositId": depot_id,
-                    "statut": "echoue" if etat == "REJECTED" else "attente",
+                    "montant": paiement["montant"],
+                    **({"telephone": telephone[-4:].rjust(len(telephone), "*")} if telephone else {}),
+                    "statut": "attente" if accepte else "echoue",
                     "updatedAt": iso(now_utc()),
                 },
                 "paye": False,
             }
         },
     )
-    if etat == "REJECTED":
-        raise HTTPException(status_code=400, detail="Paiement refuse par l'operateur")
+    if not accepte:
+        raise HTTPException(
+            status_code=400,
+            detail="Paiement refuse par l'operateur" if mode == "mobile" else "Paiement par carte indisponible",
+        )
+    return paiement, reponse
+
+
+class PaiementMobileIn(BaseModel):
+    commandeId: str
+    telephone: str
+    devise: str = "CDF"
+
+
+class PaiementCarteIn(BaseModel):
+    commandeId: str
+    devise: str = "USD"
+
+
+@api_router.get("/paiements/modes")
+async def paiement_modes():
+    """Modes de paiement en ligne proposes au checkout (le cash l'est toujours)."""
+    return {"mobile": FLEXPAIE_ACTIF, "carte": FLEXPAIE_ACTIF, "devises": list(DEVISES_PAIEMENT)}
+
+
+@api_router.post("/paiements/mobile-money")
+async def paiement_mobile_money(body: PaiementMobileIn, user=Depends(get_current_user)):
+    """Push USSD sur le telephone du client ; Flexpaie deduit l'operateur du numero."""
+    commande = await commande_a_payer(body.commandeId, user)
+    msisdn = normaliser_msisdn(body.telephone)
+    paiement, _ = await demarrer_paiement(
+        commande, user, "mobile", body.devise, lambda _reference: {"phone": msisdn}, {"telephone": msisdn}
+    )
     return {
-        "depositId": depot_id,
+        "paiementId": paiement["id"],
         "statut": "attente",
-        "montant": montant_txt,
-        "devise": devise,
+        "montant": paiement["montant"],
+        "devise": paiement["devise"],
         "message": "Validez la demande avec votre code PIN sur votre telephone.",
     }
 
 
-@api_router.get("/paiements/{depot_id}")
-async def paiement_statut(depot_id: str, user=Depends(get_current_user)):
-    paiement = await db.paiements.find_one({"depositId": depot_id}, {"_id": 0})
+@api_router.post("/paiements/carte")
+async def paiement_carte(body: PaiementCarteIn, user=Depends(get_current_user)):
+    """Page de paiement Flexpaie (Visa, Mastercard) ouverte par l'app ; retour sur /retour."""
+    commande = await commande_a_payer(body.commandeId, user)
+
+    def adresses_retour(reference: str) -> Dict[str, str]:
+        retour = f"{FLEXPAIE_RETOUR_URL}/{reference}/retour?issue="
+        return {"approve_url": f"{retour}approve", "cancel_url": f"{retour}cancel", "decline_url": f"{retour}decline"}
+
+    paiement, reponse = await demarrer_paiement(commande, user, "carte", body.devise, adresses_retour, {})
+    return {
+        "paiementId": paiement["id"],
+        "statut": "attente",
+        "montant": paiement["montant"],
+        "devise": paiement["devise"],
+        "url": reponse["url"],
+        # L'app ferme la page de paiement des que le client arrive sur cette adresse.
+        "retour": f"{FLEXPAIE_RETOUR_URL}/{paiement['id']}/retour",
+    }
+
+
+@api_router.get("/paiements/{paiement_id}")
+async def paiement_statut(paiement_id: str, user=Depends(get_current_user)):
+    paiement = await db.paiements.find_one({"id": paiement_id}, {"_id": 0})
     if not paiement or (paiement["userId"] != user["id"] and user["role"] not in {"admin", "superadmin"}):
         raise HTTPException(status_code=404, detail="Paiement introuvable")
     if paiement["statut"] not in ETATS_FINAUX:
-        await _synchroniser_depot(depot_id)
-        paiement = await db.paiements.find_one({"depositId": depot_id}, {"_id": 0}) or paiement
-
-    statut = statut_public(paiement["statut"])
-    expire = False
-    if statut == "attente":
-        debut = datetime.fromisoformat(paiement["createdAt"])
-        expire = (now_utc() - debut).total_seconds() > PAWAPAY_DELAI_EXPIRATION
+        paiement = await verifier_paiement(paiement)
     return {
-        "depositId": depot_id,
-        "statut": "expire" if expire else statut,
+        "paiementId": paiement_id,
+        "commandeId": paiement["commandeId"],
+        "mode": paiement.get("mode", "mobile"),
+        "statut": statut_public(paiement),
         "montant": paiement["montant"],
         "devise": paiement["devise"],
         "raisonEchec": paiement.get("raisonEchec"),
@@ -1885,12 +1899,8 @@ async def paiement_statut(depot_id: str, user=Depends(get_current_user)):
 
 @api_router.post("/paiements/{commande_id}/cash")
 async def paiement_basculer_cash(commande_id: str, user=Depends(get_current_user)):
-    """Repli demande par le client apres un echec mobile money."""
-    commande = await db.commandes.find_one({"id": commande_id}, {"_id": 0})
-    if not commande or commande.get("userId") != user["id"]:
-        raise HTTPException(status_code=404, detail="Commande introuvable")
-    if commande.get("paiement", {}).get("statut") == "paye":
-        raise HTTPException(status_code=400, detail="Commande deja payee")
+    """Repli demande par le client apres un echec du paiement en ligne."""
+    await commande_a_payer(commande_id, user)
     await db.commandes.update_one(
         {"id": commande_id},
         {"$set": {"paiement": {"mode": "cash", "statut": "a_la_livraison", "updatedAt": iso(now_utc())}, "paye": False}},
@@ -1898,18 +1908,69 @@ async def paiement_basculer_cash(commande_id: str, user=Depends(get_current_user
     return {"ok": True, "mode": "cash"}
 
 
-@api_router.post("/paiements/pawapay/callback", status_code=200)
-async def pawapay_callback(request: Request):
-    brut = await request.body()
-    verifier_callback(request, brut)
+@api_router.post("/paiements/flexpaie/callback", status_code=200)
+async def flexpaie_callback(request: Request):
+    """Resultat annonce par Flexpaie. Non signe : il declenche seulement la verification (check)."""
     try:
-        charge = json.loads(brut.decode())
+        charge = json.loads((await request.body()).decode())
     except Exception:
         raise HTTPException(status_code=400, detail="Callback illisible")
-    if not charge.get("depositId") or charge.get("status") not in ETATS_FINAUX:
+    if not isinstance(charge, dict) or not charge.get("reference"):
         raise HTTPException(status_code=400, detail="Callback invalide")
-    await appliquer_etat_final(charge)
+    paiement = await db.paiements.find_one({"reference": str(charge["reference"])}, {"_id": 0})
+    if not paiement:
+        logger.info("Callback Flexpaie pour une reference inconnue : %s", charge.get("reference"))
+    elif paiement["statut"] not in ETATS_FINAUX:
+        await verifier_paiement(paiement, charge)
     return {"ok": True}
+
+
+TEXTES_RETOUR_CARTE = {
+    "fr": {
+        "paye": ("Paiement confirmé", "Merci ! Votre commande est payée."),
+        "echoue": ("Paiement non abouti", "Aucun montant n'a été débité. Vous pouvez réessayer ou payer à la livraison."),
+        "attente": ("Paiement en cours de vérification", "Nous vous prévenons dès que la banque confirme."),
+        "fermer": "Vous pouvez fermer cette page et revenir sur Pinkberry.",
+        "lien": "Voir ma commande",
+    },
+    "en": {
+        "paye": ("Payment confirmed", "Thank you! Your order is paid."),
+        "echoue": ("Payment not completed", "Nothing was charged. You can try again or pay on delivery."),
+        "attente": ("Payment being verified", "We'll let you know as soon as the bank confirms."),
+        "fermer": "You can close this page and go back to Pinkberry.",
+        "lien": "View my order",
+    },
+}
+
+
+@api_router.get("/paiements/carte/{paiement_id}/retour", response_class=HTMLResponse)
+async def paiement_carte_retour(paiement_id: str, issue: str = ""):
+    """Page ou Flexpaie renvoie le client apres la carte (approve / cancel / decline).
+    L'app ferme sa vue a l'arrivee ici ; sur le web, l'onglet ouvert pour payer se referme."""
+    paiement = await db.paiements.find_one({"id": paiement_id, "mode": "carte"}, {"_id": 0})
+    if not paiement:
+        raise HTTPException(status_code=404, detail="Paiement introuvable")
+    if paiement["statut"] not in ETATS_FINAUX:
+        if issue in {"approve", "cancel", "decline"}:
+            await db.paiements.update_one({"id": paiement_id}, {"$set": {"issueRetour": issue}})
+            paiement["issueRetour"] = issue
+        paiement = await verifier_paiement(paiement)
+    statut = statut_public(paiement)
+    langue = paiement.get("langue") if paiement.get("langue") in TEXTES_RETOUR_CARTE else "fr"
+    textes = TEXTES_RETOUR_CARTE[langue]
+    titre, detail = textes[statut if statut in ("paye", "echoue") else "attente"]
+    lien = (
+        f'<p><a href="{escape(SITE_URL)}/suivi/{escape(paiement["commandeId"])}">{textes["lien"]}</a></p>'
+        if SITE_URL else ""
+    )
+    page = f"""<!doctype html><html lang="{langue}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{titre}</title>
+<style>body{{font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#FFF5F9;color:#2B1A22;text-align:center;padding:24px;box-sizing:border-box}}
+h1{{font-size:20px;color:#E6156F}}p{{font-size:15px;line-height:1.5}}a{{color:#E6156F;font-weight:700}}</style></head>
+<body><main><h1>{titre}</h1><p>{detail}</p><p>{textes["fermer"]}</p>{lien}</main>
+<script>setTimeout(function(){{window.close();}},1500);</script></body></html>"""
+    return HTMLResponse(content=page, headers={"Cache-Control": "no-store"})
 
 
 # --------------------------------------------------- notifications push (relay)
@@ -2106,7 +2167,7 @@ async def notifier_client(cmd: Dict[str, Any], statut: str) -> None:
 
 
 async def notifier_paiement(commande_id: str, paye: bool) -> None:
-    """Paiement Mobile Money confirme (ou echoue) : notification au client."""
+    """Paiement en ligne (mobile money ou carte) confirme ou echoue : notification au client."""
     cmd = await db.commandes.find_one({"id": commande_id}, {"_id": 0})
     if not cmd:
         return
@@ -4017,7 +4078,7 @@ TEXTES_RAPPORT: Dict[str, Dict[str, Any]] = {
             "recue": "Reçue", "en_preparation": "En préparation", "recuperee": "Récupérée", "en_route": "En route",
             "arrivee": "Arrivée", "livree": "Livrée", "annulee": "Annulée",
         },
-        "paiement": {"cash": "À la livraison", "mobile": "Mobile Money"},
+        "paiement": {"cash": "À la livraison", "mobile": "Mobile Money", "carte": "Carte bancaire"},
         "statutPaiement": {"a_la_livraison": "À la livraison", "attente": "En attente", "paye": "Payé", "echoue": "Échoué"},
         "colonnes": {
             "numero": "N° commande", "date": "Date", "client": "Client", "adresse": "Adresse / commune",
@@ -4043,7 +4104,7 @@ TEXTES_RAPPORT: Dict[str, Dict[str, Any]] = {
             "recue": "Received", "en_preparation": "Preparing", "recuperee": "Picked up", "en_route": "On the way",
             "arrivee": "Arrived", "livree": "Delivered", "annulee": "Cancelled",
         },
-        "paiement": {"cash": "Cash on delivery", "mobile": "Mobile Money"},
+        "paiement": {"cash": "Cash on delivery", "mobile": "Mobile Money", "carte": "Bank card"},
         "statutPaiement": {"a_la_livraison": "On delivery", "attente": "Pending", "paye": "Paid", "echoue": "Failed"},
         "colonnes": {
             "numero": "Order no.", "date": "Date", "client": "Customer", "adresse": "Address / commune",
@@ -4266,8 +4327,10 @@ COLONNES_RAPPORT = [
     ("reduction", 12), ("total", 12), ("statut", 14), ("paiement", 18), ("statutPaiement", 16), ("livreur", 18),
 ]
 
-# Noms de marque des operateurs : identiques dans toutes les langues.
-OPERATEURS_PAIEMENT = {"mpesa": "M-Pesa (Vodacom)", "airtel": "Airtel Money", "orange": "Orange Money"}
+# Canaux Flexpaie (noms de marque des operateurs) : identiques dans toutes les langues.
+OPERATEURS_PAIEMENT = {
+    "mpesa": "M-Pesa (Vodacom)", "airtel": "Airtel Money", "orange": "Orange Money", "afrimoney": "Afrimoney",
+}
 
 
 def resume_paiement(commande: Dict[str, Any], textes: Dict[str, Any]) -> tuple:
@@ -4275,10 +4338,12 @@ def resume_paiement(commande: Dict[str, Any], textes: Dict[str, Any]) -> tuple:
     p = commande.get("paiement")
     if not isinstance(p, dict):
         return textes["paiement"]["cash"], textes["statutPaiement"]["a_la_livraison"]
-    if p.get("mode") != "mobile":
-        mode = textes["paiement"]["cash"]
+    if p.get("mode") == "mobile":
+        # `operateur` : commandes mobile money anterieures a Flexpaie.
+        canal = str(p.get("canal") or p.get("operateur") or "").lower()
+        mode = OPERATEURS_PAIEMENT.get(canal, textes["paiement"]["mobile"])
     else:
-        mode = OPERATEURS_PAIEMENT.get(p.get("operateur") or "", textes["paiement"]["mobile"])
+        mode = textes["paiement"]["carte" if p.get("mode") == "carte" else "cash"]
     return mode, textes["statutPaiement"].get(p.get("statut", ""), p.get("statut", ""))
 
 
@@ -4680,8 +4745,8 @@ async def livreur_encaisser(cmd_id: str, user=Depends(require_livreur)):
     if not cmd or cmd.get("livreurId") != user.get("livreurId"):
         raise HTTPException(status_code=404, detail="Course introuvable")
     maj: Dict[str, Any] = {"cashEncaisse": True, "statut": "livree", "termineeAt": iso(now_utc())}
-    # Le cash recu par le livreur solde la commande. Un paiement mobile deja confirme
-    # (callback PawaPay verifie) n'est jamais touche.
+    # Le cash recu par le livreur solde la commande. Un paiement en ligne deja confirme
+    # (verifie aupres de Flexpaie) n'est jamais touche.
     if not cmd.get("paye"):
         maj.update({
             "paye": True,
@@ -5216,7 +5281,6 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup():
     await seed()
-    await charger_cles_pawapay()
     logger.info("Pinkberry Drc API prete")
 
 

@@ -11,39 +11,48 @@ import { useT } from "@/src/i18n";
 type Etat = { statut: "attente" | "paye" | "echoue" | "expire"; montant: string; devise: string; raisonEchec?: string | null };
 
 /**
- * Attente de l'approbation mobile money : la commande n'est jamais marquée payée
- * ici, on ne fait qu'afficher l'état renvoyé par le serveur (callback PawaPay).
+ * Attente du paiement en ligne (mobile money ou carte) : la commande n'est jamais
+ * marquée payée ici, on ne fait qu'afficher l'état vérifié par le serveur auprès
+ * de Flexpaie. Sans `paiementId`, Flexpaie a refusé la demande : échec d'emblée.
  */
 export function AttentePaiement({
-  depositId,
+  paiementId,
+  mode,
   montant,
   devise,
   onPaye,
   onReessayer,
   onCash,
+  onReouvrir,
 }: {
-  depositId: string;
+  paiementId: string | null;
+  mode: "mobile" | "carte";
   montant: string;
   devise: string;
   onPaye: () => void;
   onReessayer: () => void;
   onCash: () => void;
+  /** Carte : rouvre la page de paiement fermée trop tôt. */
+  onReouvrir?: () => void;
 }) {
   const q = useQuery({
-    queryKey: ["paiement", depositId],
-    queryFn: () => apiFetch<Etat>(`/paiements/${depositId}`),
+    queryKey: ["paiement", paiementId],
+    queryFn: () => apiFetch<Etat>(`/paiements/${paiementId}`),
+    enabled: !!paiementId,
     refetchInterval: (r) => ((r.state.data?.statut ?? "attente") === "attente" ? 4000 : false),
     retry: false,
   });
 
   const t = useT();
-  const statut = q.data?.statut ?? "attente";
+  const statut = paiementId ? (q.data?.statut ?? "attente") : "echoue";
+  const carte = mode === "carte";
 
   React.useEffect(() => {
     if (statut === "paye") onPaye();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statut]);
 
+  const params = { montant: q.data?.montant ?? montant, devise: q.data?.devise ?? devise };
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.fond}>
@@ -52,10 +61,22 @@ export function AttentePaiement({
             <>
               <ActivityIndicator color={colors.brandPrimary} size="large" />
               <Text style={styles.titre}>{t("paiement.attente")}</Text>
-              <Text style={styles.detail}>
-                {t("paiement.validerPin", { montant: q.data?.montant ?? montant, devise: q.data?.devise ?? devise })}
-              </Text>
-              <Text style={styles.astuce}>{t("paiement.astuce")}</Text>
+              <Text style={styles.detail}>{t(carte ? "paiement.finaliserCarte" : "paiement.validerPin", params)}</Text>
+              {carte ? (
+                <>
+                  {onReouvrir ? (
+                    <Bouton testID="btn-rouvrir-carte" label={t("paiement.rouvrirCarte")} onPress={onReouvrir} />
+                  ) : null}
+                  <Bouton
+                    testID="btn-basculer-cash"
+                    label={t("paiement.payerLivraison")}
+                    variant="contour"
+                    onPress={onCash}
+                  />
+                </>
+              ) : (
+                <Text style={styles.astuce}>{t("paiement.astuce")}</Text>
+              )}
             </>
           ) : statut === "paye" ? (
             <>
@@ -69,7 +90,11 @@ export function AttentePaiement({
                 {t(statut === "expire" ? "paiement.delaiDepasse" : "paiement.echoue")}
               </Text>
               <Text style={styles.detail}>
-                {t(statut === "expire" ? "paiement.delaiTexte" : "paiement.refuse")}
+                {t(
+                  statut === "expire"
+                    ? carte ? "paiement.delaiTexteCarte" : "paiement.delaiTexte"
+                    : carte ? "paiement.refuseCarte" : "paiement.refuse",
+                )}
               </Text>
               <Bouton testID="btn-reessayer-paiement" label={t("paiement.reessayer")} onPress={onReessayer} />
               <Bouton

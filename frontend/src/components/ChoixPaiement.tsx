@@ -4,24 +4,36 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Icone } from "@/src/components/Icone";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
-import { useT } from "@/src/i18n";
+import { useT, type CleTexte } from "@/src/i18n";
 
-export type ModePaiement = "cash" | "mobile";
-export type Operateur = "mpesa" | "airtel" | "orange";
+export type ModePaiement = "cash" | "mobile" | "carte";
 export type Devise = "USD" | "CDF";
+/** Modes en ligne actifs côté serveur (Flexpaie configuré). */
+export type ModesEnLigne = { mobile: boolean; carte: boolean };
 
-const OPERATEURS: { cle: Operateur; nom: string; logo: number }[] = [
-  { cle: "mpesa", nom: "M-Pesa (Vodacom)", logo: require("@/assets/images/mpesa.png") },
-  { cle: "airtel", nom: "Airtel Money", logo: require("@/assets/images/airtel.png") },
-  { cle: "orange", nom: "Orange Money", logo: require("@/assets/images/orange.png") },
+/** Opérateurs acceptés, à titre indicatif : Flexpaie reconnaît l'opérateur au numéro. */
+const OPERATEURS: { nom: string; logo: number }[] = [
+  { nom: "M-Pesa (Vodacom)", logo: require("@/assets/images/mpesa.png") },
+  { nom: "Airtel Money", logo: require("@/assets/images/airtel.png") },
+  { nom: "Orange Money", logo: require("@/assets/images/orange.png") },
 ];
+
+const MODES: { cle: ModePaiement; icone: string; libelle: CleTexte }[] = [
+  { cle: "cash", icone: "receipt", libelle: "paiement.aLaLivraison" },
+  { cle: "mobile", icone: "smartphone", libelle: "paiement.mobileMoney" },
+  { cle: "carte", icone: "credit-card", libelle: "paiement.carte" },
+];
+
+/** Numéro accepté par le serveur : 9 chiffres, précédés de 0 ou 243 au besoin. */
+export function numeroMobileValide(tel: string): boolean {
+  return /^(00243|243|0)?\d{9}$/.test(tel.replace(/[\s+\-.()]/g, ""));
+}
 
 /** Choix du mode de paiement au checkout. Les noms d'opérateurs sont des marques (non traduits). */
 export function ChoixPaiement({
   mode,
   setMode,
-  operateur,
-  setOperateur,
+  modes,
   telephone,
   setTelephone,
   devise,
@@ -30,8 +42,7 @@ export function ChoixPaiement({
 }: {
   mode: ModePaiement;
   setMode: (m: ModePaiement) => void;
-  operateur: Operateur;
-  setOperateur: (o: Operateur) => void;
+  modes: ModesEnLigne;
   telephone: string;
   setTelephone: (t: string) => void;
   devise: Devise;
@@ -39,6 +50,27 @@ export function ChoixPaiement({
   equivalent: string;
 }) {
   const t = useT();
+  const proposes = MODES.filter((m) => m.cle === "cash" || modes[m.cle]);
+
+  const choixDevise = (
+    <>
+      <Text style={styles.label}>{t("paiement.devise")}</Text>
+      <View style={styles.puces}>
+        {(["CDF", "USD"] as Devise[]).map((d) => (
+          <Pressable
+            key={d}
+            testID={`devise-${d}`}
+            onPress={() => setDevise(d)}
+            style={[styles.puce, devise === d && styles.puceActive]}
+          >
+            <Text style={[styles.puceTexte, devise === d && styles.puceTexteActive]}>{d}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={styles.equivalent}>{equivalent}</Text>
+    </>
+  );
+
   return (
     <View testID="bloc-choix-paiement" style={styles.carte}>
       <View style={styles.titreRow}>
@@ -47,45 +79,29 @@ export function ChoixPaiement({
       </View>
 
       <View style={styles.modes}>
-        <Pressable
-          testID="mode-paiement-cash"
-          onPress={() => setMode("cash")}
-          style={[styles.mode, mode === "cash" && styles.modeActif]}
-        >
-          <Icone name="receipt" size={18} color={mode === "cash" ? colors.onBrandPrimary : colors.onSurface} />
-          <Text style={[styles.modeTexte, mode === "cash" && styles.modeTexteActif]}>{t("paiement.aLaLivraison")}</Text>
-        </Pressable>
-        {/* Mobile Money masqué en attendant les clés PawaPay de production : décommenter ce bouton pour le réactiver.
-        <Pressable
-          testID="mode-paiement-mobile"
-          onPress={() => setMode("mobile")}
-          style={[styles.mode, mode === "mobile" && styles.modeActif]}
-        >
-          <Icone name="smartphone" size={18} color={mode === "mobile" ? colors.onBrandPrimary : colors.onSurface} />
-          <Text style={[styles.modeTexte, mode === "mobile" && styles.modeTexteActif]}>{t("paiement.mobileMoney")}</Text>
-        </Pressable>
-        */}
+        {proposes.map((m) => (
+          <Pressable
+            key={m.cle}
+            testID={`mode-paiement-${m.cle}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: mode === m.cle }}
+            onPress={() => setMode(m.cle)}
+            style={[styles.mode, mode === m.cle && styles.modeActif]}
+          >
+            <Icone name={m.icone} size={20} color={mode === m.cle ? colors.onBrandPrimary : colors.onSurface} />
+            <Text style={[styles.modeTexte, mode === m.cle && styles.modeTexteActif]}>{t(m.libelle)}</Text>
+          </Pressable>
+        ))}
       </View>
 
       {mode === "mobile" ? (
         <View style={styles.bloc}>
-          <Text style={styles.label}>{t("paiement.operateur")}</Text>
+          <Text style={styles.label}>{t("paiement.operateursAcceptes")}</Text>
           <View style={styles.puces}>
             {OPERATEURS.map((o) => (
-              <Pressable
-                key={o.cle}
-                testID={`operateur-${o.cle}`}
-                accessibilityLabel={o.nom}
-                onPress={() => setOperateur(o.cle)}
-                style={[styles.tuile, operateur === o.cle && styles.tuileActive]}
-              >
+              <View key={o.nom} accessibilityLabel={o.nom} style={styles.tuile}>
                 <Image source={o.logo} style={styles.logo} contentFit="contain" />
-                {operateur === o.cle ? (
-                  <View style={styles.coche}>
-                    <Icone name="check" size={11} color={colors.onBrandPrimary} />
-                  </View>
-                ) : null}
-              </Pressable>
+              </View>
             ))}
           </View>
 
@@ -99,21 +115,15 @@ export function ChoixPaiement({
             placeholderTextColor={colors.muted}
             style={styles.saisie}
           />
-
-          <Text style={styles.label}>{t("paiement.devise")}</Text>
-          <View style={styles.puces}>
-            {(["CDF", "USD"] as Devise[]).map((d) => (
-              <Pressable
-                key={d}
-                testID={`devise-${d}`}
-                onPress={() => setDevise(d)}
-                style={[styles.puce, devise === d && styles.puceActive]}
-              >
-                <Text style={[styles.puceTexte, devise === d && styles.puceTexteActive]}>{d}</Text>
-              </Pressable>
-            ))}
+          {choixDevise}
+        </View>
+      ) : mode === "carte" ? (
+        <View style={styles.bloc}>
+          <View style={styles.infoCarte}>
+            <Icone name="lock" size={16} color={colors.brandPrimary} />
+            <Text style={styles.infoCarteTexte}>{t("paiement.carteInfo")}</Text>
           </View>
-          <Text style={styles.equivalent}>{equivalent}</Text>
+          {choixDevise}
         </View>
       ) : (
         <Text style={styles.equivalent}>{t("paiement.especes")}</Text>
@@ -129,18 +139,19 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   modes: { flexDirection: "row", gap: spacing.sm },
   mode: {
     flex: 1,
-    minHeight: 48,
-    flexDirection: "row",
+    minHeight: 64,
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.sm,
+    gap: 4,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceSecondary,
   },
   modeActif: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
-  modeTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.onSurface },
+  modeTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.onSurface, textAlign: "center" },
   modeTexteActif: { color: colors.onBrandPrimary },
   bloc: { gap: spacing.xs },
   label: { fontFamily: fonts.text, fontSize: 12, fontWeight: poids.fort, color: colors.muted, marginTop: spacing.xs },
@@ -156,29 +167,26 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   puceActive: { backgroundColor: colors.brandTertiary, borderColor: colors.brandPrimary },
   tuile: {
-    width: 100,
-    height: 64,
+    width: 84,
+    height: 52,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: "#FFFFFF",
     overflow: "hidden",
   },
-  tuileActive: { borderColor: colors.brandPrimary },
-  logo: { width: 84, height: 46 },
-  coche: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  logo: { width: 70, height: 38 },
+  infoCarte: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.brandPrimary,
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceSecondary,
   },
+  infoCarteTexte: { flex: 1, fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   puceTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.onSurface },
   puceTexteActive: { color: colors.brandPrimary },
   saisie: {
