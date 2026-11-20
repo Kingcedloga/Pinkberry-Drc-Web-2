@@ -842,7 +842,25 @@
     "appAfficherDetails": "Show details",
     "appMasquerDetails": "Hide details"
   },
+  "recu": {
+    "titre": "Payment receipt",
+    "payee": "Paid on {{date}}",
+    "sousTotal": "Subtotal",
+    "livraison": "Delivery",
+    "reduction": "Discount",
+    "total": "Total",
+    "paiement": "Payment",
+    "moyen": "Payment method",
+    "debite": "Amount charged",
+    "frais": "Paid incl. fees",
+    "reference": "Pinkberry reference",
+    "flexpaie": "Flexpaie reference",
+    "operateur": "Operator reference",
+    "telecharger": "Download receipt (PDF)",
+    "indisponible": "Receipt unavailable for now"
+  },
   "suiviPaiement": {
+    "voirRecu": "View receipt",
     "paye": "Order paid",
     "payeDetail": "Paid with {{moyen}} · {{montant}}",
     "attente": "Payment pending",
@@ -898,7 +916,7 @@
   },
   "legal": {
     "majLe": "Last updated: {{date}}",
-    "date": "November 12, 2026",
+    "date": "November 20, 2026",
     "contact": "contact@pinkberrydrc.cd",
     "confidentialite": {
       "titre": "Privacy Policy",
@@ -928,7 +946,7 @@
             "• Create and secure your account and verify your phone or email with a one-time code.",
             "• Prepare, invoice and deliver your orders to the right address.",
             "• Keep you informed about your order (notifications, live map tracking).",
-            "• Process online payments (Mobile Money and bank card) and confirm their outcome.",
+            "• Process online payments (Mobile Money and bank card), confirm their outcome and email you the receipt if you provided an address.",
             "• Provide customer support, prevent fraud and improve the service (aggregated statistics)."
           ]
         },
@@ -944,7 +962,7 @@
           "paragraphes": [
             "• Riders: your first name, phone number, address and landmark, only for the order assigned to them and for the duration of the delivery.",
             "• Flexpaie payment aggregator (Mobile Money: M-Pesa, Airtel Money and Orange Money; Visa and Mastercard cards): amount, payer phone number for Mobile Money and order reference, to initiate and confirm payment. Card details are entered directly on Flexpaie's secure page: we never have access to them.",
-            "• Technical providers: hosting of the app, database, files, sign-in and notifications (Emergent); delivery of push notifications (Google Firebase Cloud Messaging on Android, your browser's notification service on the web); verification emails; map tiles and routing (Mapbox, TomTom for address search).",
+            "• Technical providers: hosting of the app, database, files, sign-in and notifications (Emergent); delivery of push notifications (Google Firebase Cloud Messaging on Android, your browser's notification service on the web); verification and payment receipt emails; map tiles and routing (Mapbox, TomTom for address search).",
             "• Google: if you choose “Continue with Google”, Google shares your name, email address and profile picture with us to create or open your account. We never receive your Google password.",
             "• Competent authorities: only where Congolese law requires it."
           ]

@@ -842,7 +842,25 @@
     "appAfficherDetails": "Afficher les détails",
     "appMasquerDetails": "Masquer les détails"
   },
+  "recu": {
+    "titre": "Reçu de paiement",
+    "payee": "Payée le {{date}}",
+    "sousTotal": "Sous-total",
+    "livraison": "Livraison",
+    "reduction": "Réduction",
+    "total": "Total",
+    "paiement": "Paiement",
+    "moyen": "Moyen de paiement",
+    "debite": "Montant débité",
+    "frais": "Payé frais inclus",
+    "reference": "Référence Pinkberry",
+    "flexpaie": "Référence Flexpaie",
+    "operateur": "Référence opérateur",
+    "telecharger": "Télécharger le reçu (PDF)",
+    "indisponible": "Reçu indisponible pour le moment"
+  },
   "suiviPaiement": {
+    "voirRecu": "Voir le reçu",
     "paye": "Commande payée",
     "payeDetail": "Payée par {{moyen}} · {{montant}}",
     "attente": "Paiement en attente",
@@ -898,7 +916,7 @@
   },
   "legal": {
     "majLe": "Dernière mise à jour : {{date}}",
-    "date": "12 novembre 2026",
+    "date": "20 novembre 2026",
     "contact": "contact@pinkberrydrc.cd",
     "confidentialite": {
       "titre": "Politique de confidentialité",
@@ -928,7 +946,7 @@
             "• Créer et sécuriser votre compte, et vérifier votre numéro ou votre email par code à usage unique.",
             "• Préparer, facturer et livrer vos commandes à la bonne adresse.",
             "• Vous tenir informé de l'avancement de votre commande (notifications, suivi cartographique).",
-            "• Traiter les paiements en ligne (Mobile Money et carte bancaire) et confirmer leur aboutissement.",
+            "• Traiter les paiements en ligne (Mobile Money et carte bancaire), confirmer leur aboutissement et vous envoyer le reçu par email si vous avez renseigné une adresse.",
             "• Assurer le service client, la lutte contre la fraude et l'amélioration du service (statistiques agrégées)."
           ]
         },
@@ -944,7 +962,7 @@
           "paragraphes": [
             "• Livreurs : votre prénom, votre numéro de téléphone, votre adresse et votre point de repère, uniquement pour la commande qui leur est assignée et pendant la durée de la livraison.",
             "• Agrégateur de paiement Flexpaie (Mobile Money M-Pesa, Airtel Money et Orange Money ; cartes Visa et Mastercard) : montant, numéro de téléphone payeur pour le Mobile Money et référence de commande, afin d'initier et de confirmer le paiement. Les données de carte sont saisies directement sur la page sécurisée de Flexpaie : nous n'y avons jamais accès.",
-            "• Prestataires techniques : hébergement de l'application, de la base de données, des fichiers, de la connexion et des notifications (Emergent) ; acheminement des notifications push (Firebase Cloud Messaging de Google sur Android, service de notifications de votre navigateur sur le web) ; envoi des e-mails de vérification ; fonds de carte et calcul d'itinéraire (Mapbox, TomTom pour la recherche d'adresse).",
+            "• Prestataires techniques : hébergement de l'application, de la base de données, des fichiers, de la connexion et des notifications (Emergent) ; acheminement des notifications push (Firebase Cloud Messaging de Google sur Android, service de notifications de votre navigateur sur le web) ; envoi des e-mails de vérification et des reçus de paiement ; fonds de carte et calcul d'itinéraire (Mapbox, TomTom pour la recherche d'adresse).",
             "• Google : si vous choisissez « Continuer avec Google », Google nous transmet votre nom, votre adresse e-mail et votre photo de profil pour créer ou ouvrir votre compte. Nous ne recevons jamais votre mot de passe Google.",
             "• Autorités compétentes : uniquement si la loi congolaise l'exige."
           ]

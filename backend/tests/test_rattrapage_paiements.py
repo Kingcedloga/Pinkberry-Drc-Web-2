@@ -110,6 +110,41 @@ def test_relance_inconnue_404(client):
     assert r.status_code == 404
 
 
+def test_recu_commande_non_payee_400(client):
+    cmd = _commande(client)
+    assert requests.get(f"{BASE_URL}/api/commandes/{cmd['id']}/recu", headers=client, timeout=30).status_code == 400
+
+
+def test_recu_json_et_pdf(client, admin):
+    """Commande marquee payee en base (aucun paiement reel, aucun email) : recu lisible par le client et l'admin."""
+    cmd = _commande(client)
+    reference = _tentative_en_attente(cmd)
+    _mongo().commandes.update_one({"id": cmd["id"]}, {"$set": {
+        "paye": True, "paiement.statut": "paye", "paiement.canal": "airtel", "paiement.transactionOperateur": "OPREF123",
+    }})
+    r = requests.get(f"{BASE_URL}/api/commandes/{cmd['id']}/recu", headers={**client, "Accept-Language": "fr"}, timeout=30)
+    assert r.status_code == 200, r.text[:200]
+    d = r.json()
+    assert d["numero"] == cmd["numero"] and d["articles"]
+    assert d["paiement"]["moyen"] == "Airtel Money" and d["paiement"]["reference"] == reference
+    assert d["paiement"]["referenceOperateur"] == "OPREF123"
+    assert requests.get(f"{BASE_URL}/api/commandes/{cmd['id']}/recu", headers=admin, timeout=30).status_code == 200
+    pdf = requests.get(f"{BASE_URL}/api/commandes/{cmd['id']}/recu", params={"format": "pdf"}, headers=client, timeout=30)
+    assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
+    assert pdf.headers["content-type"].startswith("application/pdf")
+
+
+def test_recu_autre_client_404(client):
+    """Le recu d'une commande n'est lisible que par son client (ou un admin)."""
+    try:
+        autre = _jeton("0990000002", "client123")
+    except AssertionError:
+        pytest.skip("2eme client demo indisponible")
+    cmd = _commande(client)
+    _mongo().commandes.update_one({"id": cmd["id"]}, {"$set": {"paye": True}})
+    assert requests.get(f"{BASE_URL}/api/commandes/{cmd['id']}/recu", headers=autre, timeout=30).status_code == 404
+
+
 def teardown_module(module):
     db = _mongo()
     ids = [c["id"] for c in db.commandes.find({"adresse.label": LABEL}, {"id": 1})]

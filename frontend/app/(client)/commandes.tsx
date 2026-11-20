@@ -112,15 +112,29 @@ export default function Commandes() {
                   </Text>
                   <Text style={styles.total}>{prix(item.total)}</Text>
                 </View>
-                {terminee ? (
-                  <Pressable
-                    testID={`btn-archiver-${item.numero}`}
-                    onPress={() => archiver(item.id)}
-                    style={styles.archiver}
-                  >
-                    <Icone name="archive" size={16} color={colors.brandPrimary} />
-                    <Text style={styles.archiverTexte}>{t("commun.archiver")}</Text>
-                  </Pressable>
+                {terminee || item.paye ? (
+                  <View style={styles.actionsCarte}>
+                    {item.paye ? (
+                      <Pressable
+                        testID={`btn-recu-${item.numero}`}
+                        onPress={() => router.push(`/commande/recu/${item.id}`)}
+                        style={styles.archiver}
+                      >
+                        <Icone name="receipt" size={16} color={colors.brandPrimary} />
+                        <Text style={styles.archiverTexte}>{t("suiviPaiement.voirRecu")}</Text>
+                      </Pressable>
+                    ) : null}
+                    {terminee ? (
+                      <Pressable
+                        testID={`btn-archiver-${item.numero}`}
+                        onPress={() => archiver(item.id)}
+                        style={styles.archiver}
+                      >
+                        <Icone name="archive" size={16} color={colors.brandPrimary} />
+                        <Text style={styles.archiverTexte}>{t("commun.archiver")}</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 ) : null}
               </Pressable>
             );
@@ -184,4 +198,5 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
   },
   archiverTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.brandPrimary },
+  actionsCarte: { gap: spacing.sm },
 }));

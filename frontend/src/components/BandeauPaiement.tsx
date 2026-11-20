@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
@@ -40,6 +41,7 @@ export function BandeauPaiement({
   onPayerLivraison: (commandeId: string) => void;
 }) {
   const t = useT();
+  const router = useRouter();
   const { fc } = useMontant();
   const p = commande?.paiement;
   const enLigne = (p?.mode === "mobile" || p?.mode === "carte") && !!p?.paiementId;
@@ -65,6 +67,15 @@ export function BandeauPaiement({
         <View style={styles.texte}>
           <Text style={styles.titre}>{t("suiviPaiement.paye")}</Text>
           <Text style={styles.detail}>{t("suiviPaiement.payeDetail", { moyen: canal ?? libelleMode, montant })}</Text>
+          <Pressable
+            testID="lien-recu"
+            accessibilityRole="link"
+            onPress={() => router.push(`/commande/recu/${commande.id}`)}
+            style={styles.lien}
+          >
+            <Icone name="receipt" size={14} color={colors.brandPrimary} />
+            <Text style={styles.lienTexte}>{t("suiviPaiement.voirRecu")}</Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -149,4 +160,6 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 16, fontWeight: poids.fort, color: colors.onSurface },
   detail: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
+  lien: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 32, marginTop: 2, alignSelf: "flex-start" },
+  lienTexte: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.brandPrimary },
 }));

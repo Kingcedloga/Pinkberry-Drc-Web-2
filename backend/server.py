@@ -176,6 +176,7 @@ ERREURS_EN: Dict[str, str] = {
     "Paiement refuse par l'operateur": "Payment declined by the operator",
     "Operateur mobile money non pris en charge": "Mobile money operator not supported",
     "Paiement par carte indisponible": "Card payment unavailable",
+    "Commande non payee": "Order not paid",
     "Paiement introuvable": "Payment not found",
     "Callback illisible": "Unreadable callback",
     "Callback invalide": "Invalid callback",
@@ -301,6 +302,7 @@ ERREURS_FR: Dict[str, str] = {
     "Commande deja payee": "Commande déjà payée",
     "Paiement refuse par l'operateur": "Paiement refusé par l'opérateur",
     "Operateur mobile money non pris en charge": "Opérateur mobile money non pris en charge",
+    "Commande non payee": "Commande non payée",
     "Sous-categorie inconnue pour cette categorie": "Sous-catégorie inconnue pour cette catégorie",
     "Nom de categorie trop court": "Nom de catégorie trop court",
     "« Tous » est un filtre reserve": "« Tous » est un filtre réservé",
@@ -1723,6 +1725,11 @@ async def appliquer_etat_final(paiement: Dict[str, Any], statut: str, champs: Di
         filtre = {"id": precedent["commandeId"], "paiement.paiementId": precedent["id"]}
     if (await db.commandes.update_one(filtre, {"$set": maj})).modified_count:
         await notifier_paiement(precedent["commandeId"], paye)
+    if paye:
+        # Hors de la requete : un email lent ne retarde ni le callback ni le rattrapage.
+        tache = asyncio.create_task(envoyer_recu(precedent["commandeId"]))
+        _taches_notif.add(tache)
+        tache.add_done_callback(_taches_notif.discard)
 
 
 async def verifier_paiement(
@@ -4604,6 +4611,227 @@ def construire_pdf(
 
     doc.build(elements)
     return flux.getvalue()
+
+
+# ------------------------------------------------------------------- recu de paiement
+TEXTES_RECU: Dict[str, Dict[str, str]] = {
+    "fr": {
+        "titre": "Reçu de paiement", "commande": "Commande", "date": "Payée le", "client": "Client",
+        "article": "Article", "qte": "Qté", "montant": "Montant", "sousTotal": "Sous-total",
+        "livraison": "Livraison", "reduction": "Réduction", "total": "Total", "paiement": "Paiement",
+        "moyen": "Moyen de paiement", "debite": "Montant débité", "frais": "Payé frais inclus",
+        "reference": "Référence Pinkberry", "flexpaie": "Référence Flexpaie", "operateur": "Référence opérateur",
+        "cash": "Espèces à la livraison", "mobile": "Mobile Money", "carte": "Carte bancaire",
+        "sujet": "Votre reçu Pinkberry — commande {numero}",
+        "intro": "Bonjour {nom}, merci ! Votre paiement est confirmé. Voici votre reçu.",
+        "voir": "Voir le reçu dans l'application",
+    },
+    "en": {
+        "titre": "Payment receipt", "commande": "Order", "date": "Paid on", "client": "Customer",
+        "article": "Item", "qte": "Qty", "montant": "Amount", "sousTotal": "Subtotal",
+        "livraison": "Delivery", "reduction": "Discount", "total": "Total", "paiement": "Payment",
+        "moyen": "Payment method", "debite": "Amount charged", "frais": "Paid incl. fees",
+        "reference": "Pinkberry reference", "flexpaie": "Flexpaie reference", "operateur": "Operator reference",
+        "cash": "Cash on delivery", "mobile": "Mobile Money", "carte": "Bank card",
+        "sujet": "Your Pinkberry receipt — order {numero}",
+        "intro": "Hello {nom}, thank you! Your payment is confirmed. Here is your receipt.",
+        "voir": "View the receipt in the app",
+    },
+}
+NOMS_CANAUX = {**OPERATEURS_PAIEMENT, "visa": "Visa", "mastercard": "Mastercard"}
+
+
+def _montant_devise(montant: Any, devise: str) -> str:
+    """« 21 000 FC » ou « $9.13 », comme dans l'app."""
+    try:
+        valeur = float(montant)
+    except (TypeError, ValueError):
+        return f"{montant} {devise}".strip()
+    return f"${valeur:.2f}" if devise == "USD" else fc_txt(valeur)
+
+
+async def donnees_recu(cmd: Dict[str, Any], langue: str) -> Dict[str, Any]:
+    """Contenu du recu d'une commande payee : articles, totaux et references de paiement."""
+    textes = TEXTES_RECU[langue]
+    p = cmd.get("paiement") or {}
+    tentative = await db.paiements.find_one({"id": p.get("paiementId")}, {"_id": 0}) if p.get("paiementId") else None
+    tentative = tentative or {}
+    mode = p.get("mode") if p.get("mode") in ("mobile", "carte") else "cash"
+    canal = str(p.get("canal") or tentative.get("canal") or "").lower()
+    devise = p.get("devise") or tentative.get("devise") or "CDF"
+    debite = p.get("montant") or tentative.get("montant")
+    return {
+        "numero": cmd.get("numero"),
+        "commandeId": cmd["id"],
+        "client": cmd.get("clientNom"),
+        "payeLe": tentative.get("updatedAt") or p.get("updatedAt") or cmd.get("createdAt"),
+        "articles": [
+            {
+                "nom": (i.get("nomEn") if langue == "en" else None) or i.get("nom"),
+                "quantite": i.get("quantite", 1),
+                "total": en_fc(float(i.get("prixUnitaire") or 0) * int(i.get("quantite") or 1)),
+            }
+            for i in cmd.get("items") or []
+        ],
+        "sousTotal": en_fc(cmd.get("sousTotal")),
+        "fraisLivraison": en_fc(cmd.get("fraisLivraison")),
+        "reduction": en_fc(cmd.get("reduction")),
+        "total": en_fc(cmd.get("total")),
+        "paiement": {
+            "mode": mode,
+            "moyen": NOMS_CANAUX.get(canal) or textes[mode],
+            "montant": _montant_devise(debite, devise) if debite and mode != "cash" else fc_txt(cmd.get("total")),
+            # Montant reellement paye par le client, frais Flexpaie compris, s'il differe.
+            "montantClient": (
+                _montant_devise(tentative["montantClient"], devise)
+                if tentative.get("montantClient") and debite
+                and abs(float(tentative["montantClient"]) - float(debite)) >= 0.01 else None
+            ),
+            "reference": p.get("paiementId"),
+            "orderNumber": p.get("orderNumber") or tentative.get("orderNumber"),
+            "referenceOperateur": p.get("transactionOperateur") or tentative.get("transactionOperateur"),
+        },
+    }
+
+
+def _date_recu(valeur: Optional[str]) -> str:
+    try:
+        # Heure de Kinshasa (UTC+1, sans heure d'ete).
+        return datetime.fromisoformat(valeur or "").astimezone(timezone(timedelta(hours=1))).strftime("%d/%m/%Y %H:%M")
+    except ValueError:
+        return valeur or ""
+
+
+def _lignes_paiement_recu(recu: Dict[str, Any], textes: Dict[str, str]) -> List[Tuple[str, str]]:
+    p = recu["paiement"]
+    lignes = [(textes["moyen"], p["moyen"]), (textes["debite"], p["montant"])]
+    for cle, valeur in (("frais", p["montantClient"]), ("reference", p["reference"]),
+                        ("flexpaie", p["orderNumber"]), ("operateur", p["referenceOperateur"])):
+        if valeur:
+            lignes.append((textes[cle], str(valeur)))
+    return lignes
+
+
+def construire_pdf_recu(recu: Dict[str, Any], langue: str) -> bytes:
+    from reportlab.lib import colors as pdfcolors
+    from reportlab.lib.pagesizes import A5
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    textes = TEXTES_RECU[langue]
+    flux = io.BytesIO()
+    doc = SimpleDocTemplate(flux, pagesize=A5, leftMargin=10 * mm, rightMargin=10 * mm,
+                            topMargin=10 * mm, bottomMargin=10 * mm, title=f"{textes['titre']} {recu['numero']}")
+    styles = getSampleStyleSheet()
+    grille = pdfcolors.HexColor("#E8D7DE")
+    rose_pale = pdfcolors.HexColor("#FDF3F7")
+    largeur = 128 * mm
+
+    def bloc(lignes: List[Tuple[str, str]]) -> Table:
+        t = Table([[a, escape(b)] for a, b in lignes], colWidths=[48 * mm, largeur - 48 * mm])
+        t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.3, grille), ("BACKGROUND", (0, 0), (0, -1), rose_pale),
+                               ("FONTSIZE", (0, 0), (-1, -1), 8.5)]))
+        return t
+
+    articles = Table(
+        [[textes["article"], textes["qte"], textes["montant"]]]
+        + [[Paragraph(escape(a["nom"] or ""), styles["BodyText"]), str(a["quantite"]), fc_txt(a["total"])]
+           for a in recu["articles"]],
+        colWidths=[largeur - 46 * mm, 12 * mm, 34 * mm],
+    )
+    articles.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), pdfcolors.HexColor("#E6156F")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), pdfcolors.white),
+        ("GRID", (0, 0), (-1, -1), 0.3, grille), ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("ALIGN", (1, 0), (-1, -1), "RIGHT"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    totaux = [(textes["sousTotal"], fc_txt(recu["sousTotal"])), (textes["livraison"], fc_txt(recu["fraisLivraison"]))]
+    if recu["reduction"]:
+        totaux.append((textes["reduction"], f"- {fc_txt(recu['reduction'])}"))
+    totaux.append((f"<b>{textes['total']}</b>", fc_txt(recu["total"])))
+
+    doc.build([
+        Paragraph(f"<font color='#E6156F'><b>Pinkberry Drc</b></font> — {textes['titre']}", styles["Title"]),
+        bloc([(textes["commande"], recu["numero"] or ""), (textes["date"], _date_recu(recu["payeLe"])),
+              (textes["client"], recu["client"] or "")]),
+        Spacer(1, 8), articles, Spacer(1, 6),
+        Table([[Paragraph(a, styles["BodyText"]), b] for a, b in totaux], colWidths=[largeur - 34 * mm, 34 * mm],
+              style=TableStyle([("ALIGN", (1, 0), (1, -1), "RIGHT"), ("FONTSIZE", (0, 0), (-1, -1), 9)])),
+        Spacer(1, 8), Paragraph(f"<b>{textes['paiement']}</b>", styles["Heading4"]),
+        bloc(_lignes_paiement_recu(recu, textes)),
+    ])
+    return flux.getvalue()
+
+
+def _recu_email_html(recu: Dict[str, Any], nom: str, langue: str) -> str:
+    textes = TEXTES_RECU[langue]
+    lignes = [(textes["commande"], recu["numero"] or ""), (textes["date"], _date_recu(recu["payeLe"])),
+              (textes["total"], fc_txt(recu["total"])), *_lignes_paiement_recu(recu, textes)]
+    tableau = "".join(
+        f'<tr><td style="padding:6px 12px 6px 0;color:#9A8E94">{escape(a)}</td>'
+        f'<td style="padding:6px 0;font-weight:bold">{escape(b)}</td></tr>'
+        for a, b in lignes
+    )
+    lien = (
+        f'<p><a href="{escape(SITE_URL)}/commande/recu/{escape(recu["commandeId"])}" '
+        f'style="color:#E6156F;font-weight:bold">{escape(textes["voir"])}</a></p>'
+        if SITE_URL.startswith("https://") else ""
+    )
+    return (
+        '<table role="presentation" width="100%"><tr><td style="padding:24px;'
+        'font-family:Arial,sans-serif;color:#2A1721">'
+        f'{_entete_email()}'
+        f'<p>{escape(textes["intro"].format(nom=nom))}</p>'
+        f'<table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px">{tableau}</table>'
+        f'{lien}'
+        f'<p style="font-size:12px;color:#9A8E94">Pinkberry Drc · {escape(EMAIL_FROM_NAME)}</p>'
+        '</td></tr></table>'
+    )
+
+
+async def envoyer_recu(commande_id: str) -> None:
+    """Email de recu apres un paiement en ligne, une seule fois par commande, si le client a un email."""
+    cmd = await db.commandes.find_one_and_update(
+        {"id": commande_id, "paye": True, "recuEnvoyeAt": {"$exists": False}},
+        {"$set": {"recuEnvoyeAt": iso(now_utc())}},
+        projection={"_id": 0},
+    )
+    if not cmd:
+        return
+    client_doc = await db.users.find_one({"id": cmd["userId"]}, {"_id": 0, "email": 1, "nom": 1, "preferences": 1})
+    if not client_doc or not client_doc.get("email"):
+        return
+    langue = _langue(client_doc.get("preferences") or {})
+    recu = await donnees_recu(cmd, langue)
+    try:
+        await send_email(
+            to=client_doc["email"],
+            subject=TEXTES_RECU[langue]["sujet"].format(numero=cmd.get("numero", "")),
+            html=_recu_email_html(recu, client_doc.get("nom") or "", langue),
+        )
+    except Exception:  # un recu non envoye ne doit jamais casser le paiement
+        logger.exception("Envoi du recu %s", commande_id)
+
+
+@api_router.get("/commandes/{cmd_id}/recu")
+async def recu_commande(cmd_id: str, request: Request, format: str = "json", user=Depends(get_current_user)):
+    """Recu d'une commande payee, pour son client ou un admin : JSON (app) ou PDF."""
+    cmd = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
+    if not cmd or not (cmd["userId"] == user["id"] or est_admin(user)):
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+    if not cmd.get("paye"):
+        raise HTTPException(status_code=400, detail="Commande non payee")
+    langue = langue_requete(request)
+    recu = await donnees_recu(cmd, langue)
+    if format == "pdf":
+        nom = f"recu-{cmd.get('numero') or cmd_id}.pdf"
+        return Response(
+            content=construire_pdf_recu(recu, langue),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{nom}"'},
+        )
+    return recu
 
 
 @api_router.get("/admin/stats")
