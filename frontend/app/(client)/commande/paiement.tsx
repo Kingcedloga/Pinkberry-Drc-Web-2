@@ -10,7 +10,6 @@ import { useAuth } from "@/src/auth";
 import { Bouton } from "@/src/components/Bouton";
 import {
   ChoixPaiement,
-  numeroMobileValide,
   type Devise,
   type ModePaiement,
   type ModesEnLigne,
@@ -21,7 +20,9 @@ import { useLibelle } from "@/src/catalogue-i18n";
 import { champsAdresse, cleNomAdresse, useT } from "@/src/i18n";
 import { preparerPaiementCarte, type SessionCarte } from "@/src/plateforme/paiement-carte";
 import { usePaiementEnLigne, type EnLigne, type ReponsePaiement } from "@/src/paiement-en-ligne";
+import { numeroMobileValide, operateurDuNumero } from "@/src/operateurs";
 import { usePanier } from "@/src/panier";
+import { storage } from "@/src/utils/storage";
 import { useMessageCode, type Totaux } from "@/src/promotions";
 import { TitrePage } from "@/src/components/TitrePage";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
@@ -29,6 +30,8 @@ import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/
 import { useTheme } from "@/src/theme-contexte";
 import { useConfigApp, useMontant } from "@/src/taux";
 import { useToast } from "@/src/toast";
+
+const CLE_DERNIER_NUMERO = "paiement.dernierNumeroMobile";
 
 export default function Confirmation() {
   useTheme();
@@ -47,11 +50,26 @@ export default function Confirmation() {
   const [choix, setMode] = useState<ModePaiement>("cash");
   const [telephone, setTelephone] = useState(user?.telephone ?? "");
   const [devise, setDevise] = useState<Devise>("CDF");
+  // Dernier numéro Mobile Money qui a payé sur cet appareil, proposé avant celui du compte.
+  useEffect(() => {
+    void storage.getItem<string>(CLE_DERNIER_NUMERO, "").then((n) => {
+      if (n) setTelephone(n);
+    });
+  }, []);
+  /** Changement de mode : la carte part en dollars (cartes RDC), le Mobile Money en francs. */
+  const choisirMode = (m: ModePaiement) => {
+    setMode(m);
+    if (m === "carte") setDevise("USD");
+    else if (m === "mobile") setDevise("CDF");
+  };
 
   // La commande est enregistrée avant le paiement : en cas d'échec, le client peut
   // réessayer ou payer à la livraison ; dans tous les cas il finit sur le suivi.
   const suivi = usePaiementEnLigne({
-    onPaye: (id) => router.replace(`/suivi/${id}`),
+    onPaye: (id) => {
+      if (paiement?.mode === "mobile") void storage.setItem(CLE_DERNIER_NUMERO, telephone);
+      router.replace(`/suivi/${id}`);
+    },
     onCash: (id) => router.replace(`/suivi/${id}`),
     reessayerSansReference: (p) => {
       void lancerPaiement(p.commandeId, p.mode, p.mode === "carte" ? preparerPaiementCarte() : undefined);
@@ -140,7 +158,7 @@ export default function Confirmation() {
       return;
     }
     if (mode === "mobile" && !numeroMobileValide(telephone)) {
-      toast.show(t("paiement.numeroInvalide"), "erreur");
+      toast.show(t(operateurDuNumero(telephone) === null ? "paiement.operateurInconnu" : "paiement.numeroInvalide"), "erreur");
       return;
     }
     // Web : l'onglet de paiement s'ouvre dans le geste du client, sinon le navigateur le bloque.
@@ -223,7 +241,7 @@ export default function Confirmation() {
 
         <ChoixPaiement
           mode={mode}
-          setMode={setMode}
+          setMode={choisirMode}
           modes={modes}
           telephone={telephone}
           setTelephone={setTelephone}

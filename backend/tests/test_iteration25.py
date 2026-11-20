@@ -140,6 +140,15 @@ class TestModes:
 
 # ===================================================================== initiation
 class TestInitiation:
+    @pytest.mark.parametrize("numero", ["0861234567", "0751234567"])
+    def test_operateur_non_pris_en_charge_400(self, sess, tokens, numero):
+        """Prefixe hors M-Pesa / Airtel / Orange / Afrimoney : refuse avant tout appel a Flexpaie."""
+        cmd = _creer_commande(sess, tokens["client"], "mobile")
+        r = sess.post(f"{BASE_URL}/api/paiements/mobile-money", json={"commandeId": cmd["id"], "telephone": numero},
+                      headers={**_h(tokens["client"]), "Accept-Language": "fr"}, timeout=15)
+        assert r.status_code == 400 and r.json()["detail"] == "Opérateur mobile money non pris en charge"
+        assert _mongo().paiements.count_documents({"commandeId": cmd["id"]}) == 0
+
     def test_telephone_invalide_400(self, sess, tokens):
         cmd = _creer_commande(sess, tokens["client"], "mobile")
         r = sess.post(f"{BASE_URL}/api/paiements/mobile-money",
@@ -207,6 +216,12 @@ class TestStatut:
         p = _tentative(cmd)
         r = sess.get(f"{BASE_URL}/api/paiements/{p['id']}", headers=_h(tokens["client_alt"]), timeout=30)
         assert r.status_code == 404
+
+    def test_operateur_deduit_du_numero(self, sess, tokens):
+        cmd = _creer_commande(sess, tokens["client"], "mobile")
+        p = _tentative(cmd, telephone="243971234567")
+        r = sess.get(f"{BASE_URL}/api/paiements/{p['id']}", headers=_h(tokens["client"]), timeout=30)
+        assert r.json()["operateur"] == "airtel" and r.json()["createdAt"] == p["createdAt"]
 
     def test_expire_apres_delai(self, sess, tokens):
         cmd = _creer_commande(sess, tokens["client"], "mobile")

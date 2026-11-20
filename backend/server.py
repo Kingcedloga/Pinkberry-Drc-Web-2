@@ -174,6 +174,7 @@ ERREURS_EN: Dict[str, str] = {
     "Devise non supportee": "Unsupported currency",
     "Commande deja payee": "Order already paid",
     "Paiement refuse par l'operateur": "Payment declined by the operator",
+    "Operateur mobile money non pris en charge": "Mobile money operator not supported",
     "Paiement par carte indisponible": "Card payment unavailable",
     "Paiement introuvable": "Payment not found",
     "Callback illisible": "Unreadable callback",
@@ -299,6 +300,7 @@ ERREURS_FR: Dict[str, str] = {
     "Devise non supportee": "Devise non prise en charge",
     "Commande deja payee": "Commande déjà payée",
     "Paiement refuse par l'operateur": "Paiement refusé par l'opérateur",
+    "Operateur mobile money non pris en charge": "Opérateur mobile money non pris en charge",
     "Sous-categorie inconnue pour cette categorie": "Sous-catégorie inconnue pour cette catégorie",
     "Nom de categorie trop court": "Nom de catégorie trop court",
     "« Tous » est un filtre reserve": "« Tous » est un filtre réservé",
@@ -1630,8 +1632,22 @@ def statut_public(paiement: Dict[str, Any]) -> str:
     return "attente"
 
 
+# Prefixes nationaux (2 chiffres apres 243 / 0) des operateurs mobile money acceptes.
+# Meme table que frontend/src/operateurs.ts.
+PREFIXES_OPERATEURS = {
+    "81": "mpesa", "82": "mpesa", "83": "mpesa",
+    "97": "airtel", "98": "airtel", "99": "airtel",
+    "80": "orange", "84": "orange", "85": "orange", "89": "orange",
+    "90": "afrimoney", "91": "afrimoney",
+}
+
+
+def operateur_du_msisdn(msisdn: Optional[str]) -> Optional[str]:
+    return PREFIXES_OPERATEURS.get((msisdn or "")[3:5])
+
+
 def normaliser_msisdn(tel: str) -> str:
-    """Format international sans '+' ni zero initial : 243XXXXXXXXX."""
+    """Format international sans '+' ni zero initial : 243XXXXXXXXX, operateur accepte."""
     chiffres = re.sub(r"\D", "", tel or "")
     if chiffres.startswith("00"):
         chiffres = chiffres[2:]
@@ -1641,6 +1657,8 @@ def normaliser_msisdn(tel: str) -> str:
         chiffres = "243" + chiffres
     if len(chiffres) != 12:
         raise HTTPException(status_code=400, detail="Numero mobile money invalide (ex. 0812345678)")
+    if not operateur_du_msisdn(chiffres):
+        raise HTTPException(status_code=400, detail="Operateur mobile money non pris en charge")
     return chiffres
 
 
@@ -2000,6 +2018,8 @@ async def paiement_statut(paiement_id: str, user=Depends(get_current_user)):
         "montant": paiement["montant"],
         "devise": paiement["devise"],
         "canal": paiement.get("canal"),
+        # Mobile : operateur deduit du numero, pour l'aide et le logo pendant l'attente.
+        "operateur": operateur_du_msisdn(paiement.get("telephone")),
         "createdAt": paiement["createdAt"],
         "raisonEchec": paiement.get("raisonEchec"),
         # Carte en attente : la page Flexpaie peut etre rouverte depuis le suivi.

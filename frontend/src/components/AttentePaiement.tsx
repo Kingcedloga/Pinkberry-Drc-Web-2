@@ -8,9 +8,32 @@ import { Icone } from "@/src/components/Icone";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useT } from "@/src/i18n";
 import { montantDebite } from "@/src/money";
+import { CODES_USSD, nomOperateur, type CleOperateur } from "@/src/operateurs";
 import { useMontant } from "@/src/taux";
 
-type Etat = { statut: "attente" | "paye" | "echoue" | "expire"; montant: string; devise: string; raisonEchec?: string | null };
+type Etat = {
+  statut: "attente" | "paye" | "echoue" | "expire";
+  montant: string;
+  devise: string;
+  operateur?: CleOperateur | null;
+  createdAt?: string;
+  raisonEchec?: string | null;
+};
+
+/** Délai de validation côté serveur (DELAI_EXPIRATION) avant « délai dépassé ». */
+const DELAI_SECONDES = { mobile: 10 * 60, carte: 20 * 60 };
+
+/** Temps restant avant l'expiration, mis à jour chaque seconde ; null sans date de départ. */
+function useTempsRestant(createdAt: string | undefined, delai: number): number | null {
+  const [maintenant, setMaintenant] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (!createdAt) return;
+    const minuteur = setInterval(() => setMaintenant(Date.now()), 1000);
+    return () => clearInterval(minuteur);
+  }, [createdAt]);
+  if (!createdAt) return null;
+  return Math.max(0, Math.round(delai - (maintenant - Date.parse(createdAt)) / 1000));
+}
 
 /**
  * Attente du paiement en ligne (mobile money ou carte) : la commande n'est jamais
@@ -49,6 +72,9 @@ export function AttentePaiement({
   const { fc } = useMontant();
   const statut = paiementId ? (q.data?.statut ?? "attente") : "echoue";
   const carte = mode === "carte";
+  const restant = useTempsRestant(statut === "attente" ? q.data?.createdAt : undefined, DELAI_SECONDES[mode]);
+  const operateur = nomOperateur(q.data?.operateur);
+  const ussd = q.data?.operateur ? CODES_USSD[q.data.operateur] : undefined;
 
   React.useEffect(() => {
     if (statut === "paye") onPaye();
@@ -65,6 +91,13 @@ export function AttentePaiement({
               <ActivityIndicator color={colors.brandPrimary} size="large" />
               <Text style={styles.titre}>{t("paiement.attente")}</Text>
               <Text style={styles.detail}>{t(carte ? "paiement.finaliserCarte" : "paiement.validerPin", params)}</Text>
+              {restant !== null && restant > 0 ? (
+                <Text testID="compte-a-rebours" accessibilityLiveRegion="polite" style={styles.rebours}>
+                  {t(carte ? "paiement.resteCarte" : "paiement.resteMobile", {
+                    temps: `${Math.floor(restant / 60)}:${String(restant % 60).padStart(2, "0")}`,
+                  })}
+                </Text>
+              ) : null}
               {carte ? (
                 <>
                   {onReouvrir ? (
@@ -78,7 +111,11 @@ export function AttentePaiement({
                   />
                 </>
               ) : (
-                <Text style={styles.astuce}>{t("paiement.astuce")}</Text>
+                <Text testID="astuce-operateur" style={styles.astuce}>
+                  {operateur
+                    ? t(ussd ? "paiement.astuceUssd" : "paiement.astuceOperateur", { operateur, code: ussd ?? "" })
+                    : t("paiement.astuce")}
+                </Text>
               )}
             </>
           ) : statut === "paye" ? (
@@ -128,4 +165,5 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   titre: { fontFamily: fonts.display, fontSize: 18, fontWeight: poids.fort, color: colors.onSurface, textAlign: "center" },
   detail: { fontFamily: fonts.text, fontSize: 13, color: colors.muted, textAlign: "center" },
   astuce: { fontFamily: fonts.text, fontSize: 11, color: colors.muted, textAlign: "center" },
+  rebours: { fontFamily: fonts.text, fontSize: 13, fontWeight: poids.fort, color: colors.brandPrimary, textAlign: "center" },
 }));

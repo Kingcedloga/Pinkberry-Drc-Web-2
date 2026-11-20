@@ -5,29 +5,18 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Icone } from "@/src/components/Icone";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useT, type CleTexte } from "@/src/i18n";
+import { OPERATEURS_MOBILE, operateurDuNumero } from "@/src/operateurs";
 
 export type ModePaiement = "cash" | "mobile" | "carte";
 export type Devise = "USD" | "CDF";
 /** Modes en ligne actifs côté serveur (Flexpaie configuré). */
 export type ModesEnLigne = { mobile: boolean; carte: boolean };
 
-/** Opérateurs acceptés, à titre indicatif : Flexpaie reconnaît l'opérateur au numéro. */
-const OPERATEURS: { nom: string; logo: number }[] = [
-  { nom: "M-Pesa (Vodacom)", logo: require("@/assets/images/mpesa.png") },
-  { nom: "Airtel Money", logo: require("@/assets/images/airtel.png") },
-  { nom: "Orange Money", logo: require("@/assets/images/orange.png") },
-];
-
 const MODES: { cle: ModePaiement; icone: string; libelle: CleTexte }[] = [
   { cle: "cash", icone: "receipt", libelle: "paiement.aLaLivraison" },
   { cle: "mobile", icone: "smartphone", libelle: "paiement.mobileMoney" },
   { cle: "carte", icone: "credit-card", libelle: "paiement.carte" },
 ];
-
-/** Numéro accepté par le serveur : 9 chiffres, précédés de 0 ou 243 au besoin. */
-export function numeroMobileValide(tel: string): boolean {
-  return /^(00243|243|0)?\d{9}$/.test(tel.replace(/[\s+\-.()]/g, ""));
-}
 
 /** Choix du mode de paiement au checkout. Les noms d'opérateurs sont des marques (non traduits). */
 export function ChoixPaiement({
@@ -51,6 +40,9 @@ export function ChoixPaiement({
 }) {
   const t = useT();
   const proposes = MODES.filter((m) => m.cle === "cash" || modes[m.cle]);
+  // Opérateur reconnu au préfixe du numéro : son logo ressort, les autres s'effacent.
+  const operateur = operateurDuNumero(telephone);
+  const nomOperateur = OPERATEURS_MOBILE.find((o) => o.cle === operateur)?.nom;
 
   const choixDevise = (
     <>
@@ -98,9 +90,24 @@ export function ChoixPaiement({
         <View style={styles.bloc}>
           <Text style={styles.label}>{t("paiement.operateursAcceptes")}</Text>
           <View style={styles.puces}>
-            {OPERATEURS.map((o) => (
-              <View key={o.nom} accessibilityLabel={o.nom} style={styles.tuile}>
-                <Image source={o.logo} style={styles.logo} contentFit="contain" />
+            {OPERATEURS_MOBILE.map((o) => (
+              <View
+                key={o.cle}
+                testID={`operateur-${o.cle}`}
+                accessibilityLabel={o.nom}
+                accessibilityState={{ selected: operateur === o.cle }}
+                style={[styles.tuile, operateur === o.cle && styles.tuileActive, !!operateur && operateur !== o.cle && styles.tuileEteinte]}
+              >
+                {o.logo ? (
+                  <Image source={o.logo} style={styles.logo} contentFit="contain" />
+                ) : (
+                  <Text style={styles.tuileTexte}>{o.nom}</Text>
+                )}
+                {operateur === o.cle ? (
+                  <View style={styles.coche}>
+                    <Icone name="check" size={11} color={colors.onBrandPrimary} />
+                  </View>
+                ) : null}
               </View>
             ))}
           </View>
@@ -113,8 +120,17 @@ export function ChoixPaiement({
             keyboardType="phone-pad"
             placeholder="0812345678"
             placeholderTextColor={colors.muted}
-            style={styles.saisie}
+            style={[styles.saisie, operateur === null && styles.saisieErreur]}
           />
+          {operateur === null ? (
+            <Text testID="operateur-inconnu" accessibilityLiveRegion="polite" style={styles.messageErreur}>
+              {t("paiement.operateurInconnu")}
+            </Text>
+          ) : nomOperateur ? (
+            <Text testID="operateur-reconnu" style={styles.messageOk}>
+              {t("paiement.operateurReconnu", { operateur: nomOperateur })}
+            </Text>
+          ) : null}
           {choixDevise}
         </View>
       ) : mode === "carte" ? (
@@ -167,17 +183,32 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   puceActive: { backgroundColor: colors.brandTertiary, borderColor: colors.brandPrimary },
   tuile: {
-    width: 84,
-    height: 52,
+    flex: 1,
+    minWidth: 64,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.lg,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: "#FFFFFF",
     overflow: "hidden",
   },
-  logo: { width: 70, height: 38 },
+  tuileActive: { borderColor: colors.brandPrimary },
+  tuileEteinte: { opacity: 0.35 },
+  tuileTexte: { fontFamily: fonts.text, fontSize: 12, fontWeight: poids.fort, color: "#2B1A22" },
+  logo: { width: "86%", height: 34 },
+  coche: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.brandPrimary,
+  },
   infoCarte: {
     flexDirection: "row",
     alignItems: "center",
@@ -200,5 +231,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
     fontSize: 15,
     color: colors.onSurface,
   },
+  saisieErreur: { borderColor: colors.error },
+  messageErreur: { fontFamily: fonts.text, fontSize: 12, fontWeight: poids.fort, color: colors.error },
+  messageOk: { fontFamily: fonts.text, fontSize: 12, fontWeight: poids.fort, color: colors.success },
   equivalent: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
 }));
