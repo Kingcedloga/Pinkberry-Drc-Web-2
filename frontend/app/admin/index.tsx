@@ -46,6 +46,7 @@ const LIBELLES_STATUT_PAIEMENT: Record<string, CleTexte> = {
   attente: "admin.paiementAttente",
   paye: "admin.paiementPaye",
   echoue: "admin.paiementEchoue",
+  non_confirme: "admin.paiementNonConfirme",
 };
 
 /** Mode et statut de paiement d'une commande, pour l'admin. */
@@ -66,7 +67,7 @@ export default function Dashboard() {
   const toast = useToast();
   const qc = useQueryClient();
   const { usd, fc, prix } = useMontant();
-  const { t } = useLangue();
+  const { t, langue } = useLangue();
   const libelle = useLibelle();
   const detail = useDetailLigne();
   const { bureau } = useEcran();
@@ -109,6 +110,22 @@ export default function Dashboard() {
       toast.show(t("admin.livreurAssigne"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
+    }
+  };
+
+  // Litige client : l'état réel est redemandé à Flexpaie pour la tentative en cours.
+  const [verification, setVerification] = useState(false);
+  const reverifierPaiement = async () => {
+    setVerification(true);
+    try {
+      const maj = await apiFetch<any>(`/admin/paiements/${ouverte.id}/verifier`, { method: "POST" });
+      setOuverte(maj);
+      rafraichir();
+      toast.show(t("admin.paiementVerifie", { statut: resumePaiement(maj, t).statut }), "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    } finally {
+      setVerification(false);
     }
   };
 
@@ -492,6 +509,39 @@ export default function Dashboard() {
                 <Text style={styles.blocTexte}>
                   {resumePaiement(ouverte, t).mode} — {resumePaiement(ouverte, t).statut}
                 </Text>
+                {ouverte?.paiement?.paiementId ? (
+                  <Text testID="paiement-references" selectable style={styles.blocDetail}>
+                    {t("admin.paiementReferences", {
+                      reference: ouverte.paiement.paiementId,
+                      orderNumber: ouverte.paiement.orderNumber ?? "—",
+                    })}
+                  </Text>
+                ) : null}
+                {ouverte?.paiement?.canal ? (
+                  <Text selectable style={styles.blocDetail}>
+                    {t("admin.paiementOperateur", {
+                      canal: ouverte.paiement.canal,
+                      reference: ouverte.paiement.transactionOperateur ?? "—",
+                    })}
+                  </Text>
+                ) : null}
+                {ouverte?.paiement?.verifieAt ? (
+                  <Text style={styles.blocDetail}>
+                    {t("admin.paiementVerifieA", { date: new Date(ouverte.paiement.verifieAt).toLocaleString(langue === "en" ? "en-GB" : "fr-FR") })}
+                  </Text>
+                ) : null}
+                {ouverte?.paiement?.paiementId && ouverte.paiement.statut !== "paye" ? (
+                  <View style={styles.reverifier}>
+                    <Bouton
+                      testID="btn-reverifier-paiement"
+                      label={t("admin.reverifierPaiement")}
+                      icone="refresh-cw"
+                      variant="contour"
+                      loading={verification}
+                      onPress={reverifierPaiement}
+                    />
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.blocInfo}>
@@ -801,6 +851,8 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   },
   blocTitre: { fontFamily: fonts.display, fontSize: 15, color: colors.onSurface, marginBottom: spacing.xs },
   blocTexte: { fontFamily: fonts.text, fontSize: 13, color: colors.onSurface },
+  blocDetail: { fontFamily: fonts.text, fontSize: 12, color: colors.muted, marginTop: 2 },
+  reverifier: { marginTop: spacing.sm, alignSelf: "flex-start" },
   blocRepere: { fontFamily: fonts.text, fontSize: 13, fontWeight: "800", color: colors.brandPrimary },
   blocTotal: { fontFamily: fonts.display, fontSize: 16, color: colors.brandPrimary, marginTop: spacing.sm },
   livreursRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },

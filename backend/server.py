@@ -1707,9 +1707,12 @@ async def appliquer_etat_final(paiement: Dict[str, Any], statut: str, champs: Di
         await notifier_paiement(precedent["commandeId"], paye)
 
 
-async def verifier_paiement(paiement: Dict[str, Any], callback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def verifier_paiement(
+    paiement: Dict[str, Any], callback: Optional[Dict[str, Any]] = None, silencieux: bool = True
+) -> Dict[str, Any]:
     """Etat reel de la transaction (check) ; applique un etat final. Renvoie le paiement a jour.
-    `callback` : donnees recues de Flexpaie, utilisees seulement pour ce que check ne renvoie pas."""
+    `callback` : donnees recues de Flexpaie, utilisees seulement pour ce que check ne renvoie pas.
+    `silencieux=False` : Flexpaie injoignable leve l'erreur au lieu de laisser l'etat tel quel."""
     numero = paiement.get("orderNumber") or (callback or {}).get("orderNumber")
     if not numero:
         return paiement
@@ -1717,6 +1720,8 @@ async def verifier_paiement(paiement: Dict[str, Any], callback: Optional[Dict[st
     try:
         reponse = await _flexpaie_appel("GET", f"{FLEXPAIE_CHECK_URL}/api/rest/v1/check/{quote(numero, safe='')}")
     except HTTPException:
+        if not silencieux:
+            raise
         return paiement  # nouvel essai au prochain appel
     tx = reponse.get("transaction")
     if str(reponse.get("code")) != "0" or not isinstance(tx, dict):
@@ -1737,6 +1742,70 @@ async def verifier_paiement(paiement: Dict[str, Any], callback: Optional[Dict[st
     else:
         await db.paiements.update_one({"id": paiement["id"]}, {"$set": champs})
     return await db.paiements.find_one({"id": paiement["id"]}, {"_id": 0}) or paiement
+
+
+# Rattrapage en arriere-plan : callback perdu, client parti avant la confirmation.
+INTERVALLE_RATTRAPAGE = int(os.environ.get("FLEXPAIE_RATTRAPAGE_SECONDES") or 90)
+RATTRAPAGE_LOT = 50  # tentatives verifiees au plus par passage
+DELAI_NON_CONFIRME = 24 * 3600  # sans etat final passe ce delai : controle manuel
+_tache_rattrapage: Optional[asyncio.Task] = None
+
+
+async def rattraper_paiements() -> int:
+    """Un passage : verifie les tentatives en attente (toutes les 90 s pendant 15 min, puis
+    toutes les 10 min) et classe « non confirme » celles de plus de 24 h. Chaque tentative est
+    reservee atomiquement : plusieurs processus serveur ne la verifient pas en meme temps."""
+    maintenant = now_utc()
+    limite = iso(maintenant - timedelta(seconds=DELAI_NON_CONFIRME))
+    verifiees = 0
+    for _ in range(RATTRAPAGE_LOT):
+        paiement = await db.paiements.find_one_and_update(
+            {
+                "statut": "attente",
+                "orderNumber": {"$exists": True},
+                "nonConfirme": {"$ne": True},
+                "createdAt": {"$gte": limite},
+                "$or": [
+                    {"prochaineVerificationAt": {"$exists": False}},
+                    {"prochaineVerificationAt": {"$lte": iso(maintenant)}},
+                ],
+            },
+            {"$set": {"prochaineVerificationAt": iso(maintenant + timedelta(seconds=INTERVALLE_RATTRAPAGE))}},
+            projection={"_id": 0},
+            return_document=ReturnDocument.AFTER,
+        )
+        if not paiement:
+            break
+        if (maintenant - datetime.fromisoformat(paiement["createdAt"])).total_seconds() > 15 * 60:
+            await db.paiements.update_one(
+                {"id": paiement["id"]}, {"$set": {"prochaineVerificationAt": iso(maintenant + timedelta(minutes=10))}}
+            )
+        await verifier_paiement(paiement)
+        verifiees += 1
+
+    # Tentative restee sans etat final : la commande est signalee a l'admin. Le paiement
+    # reste ouvert en base, une confirmation tardive de Flexpaie s'applique encore.
+    async for p in db.paiements.find(
+        {"statut": "attente", "nonConfirme": {"$ne": True}, "createdAt": {"$lt": limite}},
+        {"_id": 0, "id": 1, "commandeId": 1},
+    ):
+        await db.paiements.update_one({"id": p["id"]}, {"$set": {"nonConfirme": True, "updatedAt": iso(maintenant)}})
+        await db.commandes.update_one(
+            {"id": p["commandeId"], "paiement.paiementId": p["id"], "paiement.statut": "attente"},
+            {"$set": {"paiement.statut": "non_confirme", "paiement.updatedAt": iso(maintenant)}},
+        )
+    return verifiees
+
+
+async def boucle_rattrapage() -> None:
+    while True:
+        await asyncio.sleep(INTERVALLE_RATTRAPAGE)
+        if not FLEXPAIE_ACTIF:
+            continue
+        try:
+            await rattraper_paiements()
+        except Exception:  # la boucle ne doit jamais s'arreter
+            logger.exception("Rattrapage des paiements Flexpaie")
 
 
 async def commande_a_payer(commande_id: str, user: Dict[str, Any]) -> Dict[str, Any]:
@@ -1815,6 +1884,7 @@ async def demarrer_paiement(
                 "paiement": {
                     "mode": mode,
                     "paiementId": reference,
+                    **({"orderNumber": str(reponse["orderNumber"])} if accepte else {}),
                     "devise": devise,
                     "montant": paiement["montant"],
                     **({"telephone": telephone[-4:].rjust(len(telephone), "*")} if telephone else {}),
@@ -1915,6 +1985,22 @@ async def paiement_basculer_cash(commande_id: str, user=Depends(get_current_user
         {"$set": {"paiement": {"mode": "cash", "statut": "a_la_livraison", "updatedAt": iso(now_utc())}, "paye": False}},
     )
     return {"ok": True, "mode": "cash"}
+
+
+@api_router.post("/admin/paiements/{commande_id}/verifier")
+async def admin_verifier_paiement(commande_id: str, _=Depends(require_admin)):
+    """Interroge Flexpaie pour la tentative en cours d'une commande (litige client)."""
+    commande = await db.commandes.find_one({"id": commande_id}, {"_id": 0})
+    paiement_id = ((commande or {}).get("paiement") or {}).get("paiementId")
+    paiement = await db.paiements.find_one({"id": paiement_id}, {"_id": 0}) if paiement_id else None
+    if not paiement:
+        raise HTTPException(status_code=404, detail="Paiement introuvable")
+    if paiement["statut"] not in ETATS_FINAUX:
+        if not FLEXPAIE_ACTIF:
+            raise HTTPException(status_code=503, detail="Paiement en ligne non configure")
+        await verifier_paiement(paiement, silencieux=False)
+    await db.commandes.update_one({"id": commande_id}, {"$set": {"paiement.verifieAt": iso(now_utc())}})
+    return (await enrichir_lot([await db.commandes.find_one({"id": commande_id}, {"_id": 0})]))[0]
 
 
 @api_router.post("/paiements/flexpaie/callback", status_code=200)
@@ -4088,7 +4174,10 @@ TEXTES_RAPPORT: Dict[str, Dict[str, Any]] = {
             "arrivee": "Arrivée", "livree": "Livrée", "annulee": "Annulée",
         },
         "paiement": {"cash": "À la livraison", "mobile": "Mobile Money", "carte": "Carte bancaire"},
-        "statutPaiement": {"a_la_livraison": "À la livraison", "attente": "En attente", "paye": "Payé", "echoue": "Échoué"},
+        "statutPaiement": {
+            "a_la_livraison": "À la livraison", "attente": "En attente", "paye": "Payé", "echoue": "Échoué",
+            "non_confirme": "Non confirmé",
+        },
         "colonnes": {
             "numero": "N° commande", "date": "Date", "client": "Client", "adresse": "Adresse / commune",
             "articles": "Articles", "promotion": "Promotion", "reduction": "Réduction FC", "total": "Total FC",
@@ -4114,7 +4203,10 @@ TEXTES_RAPPORT: Dict[str, Dict[str, Any]] = {
             "arrivee": "Arrived", "livree": "Delivered", "annulee": "Cancelled",
         },
         "paiement": {"cash": "Cash on delivery", "mobile": "Mobile Money", "carte": "Bank card"},
-        "statutPaiement": {"a_la_livraison": "On delivery", "attente": "Pending", "paye": "Paid", "echoue": "Failed"},
+        "statutPaiement": {
+            "a_la_livraison": "On delivery", "attente": "Pending", "paye": "Paid", "echoue": "Failed",
+            "non_confirme": "Unconfirmed",
+        },
         "colonnes": {
             "numero": "Order no.", "date": "Date", "client": "Customer", "adresse": "Address / commune",
             "articles": "Items", "promotion": "Promotion", "reduction": "Discount FC", "total": "Total FC",
@@ -5289,7 +5381,9 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def on_startup():
+    global _tache_rattrapage
     await seed()
+    _tache_rattrapage = asyncio.create_task(boucle_rattrapage())
     logger.info("Pinkberry Drc API prete")
 
 
