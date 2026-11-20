@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
 import { useAuth } from "@/src/auth";
-import { AttentePaiement } from "@/src/components/AttentePaiement";
 import { Bouton } from "@/src/components/Bouton";
 import {
   ChoixPaiement,
@@ -16,12 +15,12 @@ import {
   type ModePaiement,
   type ModesEnLigne,
 } from "@/src/components/ChoixPaiement";
-import { PageCarte } from "@/src/components/PageCarte";
 import { PhotoProduit } from "@/src/components/PhotoProduit";
 import { RecapTotaux } from "@/src/components/RecapTotaux";
 import { useLibelle } from "@/src/catalogue-i18n";
 import { champsAdresse, cleNomAdresse, useT } from "@/src/i18n";
 import { preparerPaiementCarte, type SessionCarte } from "@/src/plateforme/paiement-carte";
+import { usePaiementEnLigne, type EnLigne, type ReponsePaiement } from "@/src/paiement-en-ligne";
 import { usePanier } from "@/src/panier";
 import { useMessageCode, type Totaux } from "@/src/promotions";
 import { TitrePage } from "@/src/components/TitrePage";
@@ -48,17 +47,17 @@ export default function Confirmation() {
   const [choix, setMode] = useState<ModePaiement>("cash");
   const [telephone, setTelephone] = useState(user?.telephone ?? "");
   const [devise, setDevise] = useState<Devise>("CDF");
-  // Paiement en ligne en cours ; `id` nul : Flexpaie a refusé la demande (la commande existe).
-  const [paiement, setPaiement] = useState<{
-    id: string | null;
-    commandeId: string;
-    mode: "mobile" | "carte";
-    montant: string;
-    devise: string;
-    url?: string;
-    retour?: string;
-  } | null>(null);
-  const [pageCarte, setPageCarte] = useState(false);
+
+  // La commande est enregistrée avant le paiement : en cas d'échec, le client peut
+  // réessayer ou payer à la livraison ; dans tous les cas il finit sur le suivi.
+  const suivi = usePaiementEnLigne({
+    onPaye: (id) => router.replace(`/suivi/${id}`),
+    onCash: (id) => router.replace(`/suivi/${id}`),
+    reessayerSansReference: (p) => {
+      void lancerPaiement(p.commandeId, p.mode, p.mode === "carte" ? preparerPaiementCarte() : undefined);
+    },
+  });
+  const paiement = suivi.paiement;
 
   // Modes en ligne proposés seulement si le serveur est configuré pour Flexpaie.
   const modesQ = useQuery({
@@ -120,29 +119,20 @@ export default function Confirmation() {
   };
 
   /** Demande le paiement à Flexpaie. `session` (carte) : préparée pendant le geste du client. */
-  const lancerPaiement = async (commandeId: string, enLigne: "mobile" | "carte", session?: SessionCarte) => {
-    try {
-      if (enLigne === "carte") {
-        const r = await apiFetch<{ paiementId: string; montant: string; devise: string; url: string; retour: string }>(
-          "/paiements/carte",
-          { method: "POST", body: { commandeId, devise } },
-        );
-        setPaiement({ id: r.paiementId, commandeId, mode: "carte", montant: r.montant, devise: r.devise, url: r.url, retour: r.retour });
-        if ((session ?? preparerPaiementCarte()).ouvrir(r.url)) setPageCarte(true);
-      } else {
-        const r = await apiFetch<{ paiementId: string; montant: string; devise: string }>("/paiements/mobile-money", {
-          method: "POST",
-          body: { commandeId, telephone, devise },
-        });
-        setPaiement({ id: r.paiementId, commandeId, mode: "mobile", montant: r.montant, devise: r.devise });
-      }
-    } catch (e: any) {
-      session?.annuler();
-      toast.show(e.message, "erreur");
-      // La commande est enregistrée : le client peut réessayer ou payer à la livraison.
-      setPaiement({ id: null, commandeId, mode: enLigne, montant: "", devise });
-    }
-  };
+  const lancerPaiement = (commandeId: string, enLigne: EnLigne, session?: SessionCarte) =>
+    suivi.suivre(
+      commandeId,
+      enLigne,
+      devise,
+      () =>
+        enLigne === "carte"
+          ? apiFetch<ReponsePaiement>("/paiements/carte", { method: "POST", body: { commandeId, devise } })
+          : apiFetch<ReponsePaiement>("/paiements/mobile-money", {
+              method: "POST",
+              body: { commandeId, telephone, devise },
+            }),
+      session,
+    );
 
   const passerCommande = async () => {
     if (!adresse) {
@@ -300,47 +290,7 @@ export default function Confirmation() {
         </View>
       </ScrollView>
 
-      {paiement && pageCarte && paiement.url && paiement.retour ? (
-        <PageCarte url={paiement.url} retour={paiement.retour} onFermee={() => setPageCarte(false)} />
-      ) : paiement ? (
-        <AttentePaiement
-          paiementId={paiement.id}
-          mode={paiement.mode}
-          montant={paiement.montant}
-          devise={paiement.devise}
-          onPaye={() => {
-            qc.invalidateQueries({ queryKey: ["mes-commandes"] });
-            const id = paiement.commandeId;
-            setPaiement(null);
-            toast.show(t("confirmation.paiementConfirme"), "succes");
-            router.replace(`/suivi/${id}`);
-          }}
-          onReessayer={() => {
-            const { commandeId, mode: enLigne } = paiement;
-            const session = enLigne === "carte" ? preparerPaiementCarte() : undefined;
-            setPaiement(null);
-            void lancerPaiement(commandeId, enLigne, session);
-          }}
-          onReouvrir={
-            paiement.url
-              ? () => {
-                  if (preparerPaiementCarte().ouvrir(paiement.url!)) setPageCarte(true);
-                }
-              : undefined
-          }
-          onCash={async () => {
-            const id = paiement.commandeId;
-            try {
-              await apiFetch(`/paiements/${id}/cash`, { method: "POST" });
-              toast.show(t("confirmation.cashLivraison"), "succes");
-            } catch (e: any) {
-              toast.show(e.message, "erreur");
-            }
-            setPaiement(null);
-            router.replace(`/suivi/${id}`);
-          }}
-        />
-      ) : null}
+      {suivi.fenetre}
 
       {!bureau ? (
         <View style={[styles.pied, { paddingBottom: insets.bottom + spacing.lg }]}>{cta}</View>

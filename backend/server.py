@@ -1920,16 +1920,15 @@ async def paiement_modes():
     return {"mobile": FLEXPAIE_ACTIF, "carte": FLEXPAIE_ACTIF, "devises": list(DEVISES_PAIEMENT)}
 
 
-@api_router.post("/paiements/mobile-money")
-async def paiement_mobile_money(body: PaiementMobileIn, user=Depends(get_current_user)):
+async def lancer_mobile(commande: Dict[str, Any], user: Dict[str, Any], telephone: str, devise: str) -> Dict[str, Any]:
     """Push USSD sur le telephone du client ; Flexpaie deduit l'operateur du numero."""
-    commande = await commande_a_payer(body.commandeId, user)
-    msisdn = normaliser_msisdn(body.telephone)
+    msisdn = normaliser_msisdn(telephone)
     paiement, _ = await demarrer_paiement(
-        commande, user, "mobile", body.devise, lambda _reference: {"phone": msisdn}, {"telephone": msisdn}
+        commande, user, "mobile", devise, lambda _reference: {"phone": msisdn}, {"telephone": msisdn}
     )
     return {
         "paiementId": paiement["id"],
+        "mode": "mobile",
         "statut": "attente",
         "montant": paiement["montant"],
         "devise": paiement["devise"],
@@ -1937,18 +1936,19 @@ async def paiement_mobile_money(body: PaiementMobileIn, user=Depends(get_current
     }
 
 
-@api_router.post("/paiements/carte")
-async def paiement_carte(body: PaiementCarteIn, user=Depends(get_current_user)):
+async def lancer_carte(commande: Dict[str, Any], user: Dict[str, Any], devise: str) -> Dict[str, Any]:
     """Page de paiement Flexpaie (Visa, Mastercard) ouverte par l'app ; retour sur /retour."""
-    commande = await commande_a_payer(body.commandeId, user)
 
     def adresses_retour(reference: str) -> Dict[str, str]:
         retour = f"{FLEXPAIE_RETOUR_URL}/{reference}/retour?issue="
         return {"approve_url": f"{retour}approve", "cancel_url": f"{retour}cancel", "decline_url": f"{retour}decline"}
 
-    paiement, reponse = await demarrer_paiement(commande, user, "carte", body.devise, adresses_retour, {})
+    paiement, reponse = await demarrer_paiement(commande, user, "carte", devise, adresses_retour, {})
+    # Gardee pour rouvrir la page depuis le suivi de commande.
+    await db.paiements.update_one({"id": paiement["id"]}, {"$set": {"url": reponse["url"]}})
     return {
         "paiementId": paiement["id"],
+        "mode": "carte",
         "statut": "attente",
         "montant": paiement["montant"],
         "devise": paiement["devise"],
@@ -1958,6 +1958,31 @@ async def paiement_carte(body: PaiementCarteIn, user=Depends(get_current_user)):
     }
 
 
+@api_router.post("/paiements/mobile-money")
+async def paiement_mobile_money(body: PaiementMobileIn, user=Depends(get_current_user)):
+    commande = await commande_a_payer(body.commandeId, user)
+    return await lancer_mobile(commande, user, body.telephone, body.devise)
+
+
+@api_router.post("/paiements/carte")
+async def paiement_carte(body: PaiementCarteIn, user=Depends(get_current_user)):
+    commande = await commande_a_payer(body.commandeId, user)
+    return await lancer_carte(commande, user, body.devise)
+
+
+@api_router.post("/paiements/{paiement_id}/relancer")
+async def paiement_relancer(paiement_id: str, user=Depends(get_current_user)):
+    """Nouvelle tentative avec le mode, le numero et la devise de la precedente :
+    le suivi de commande n'a que le numero masque."""
+    precedent = await db.paiements.find_one({"id": paiement_id, "userId": user["id"]}, {"_id": 0})
+    if not precedent:
+        raise HTTPException(status_code=404, detail="Paiement introuvable")
+    commande = await commande_a_payer(precedent["commandeId"], user)
+    if precedent.get("mode") == "carte":
+        return await lancer_carte(commande, user, precedent["devise"])
+    return await lancer_mobile(commande, user, precedent.get("telephone") or "", precedent["devise"])
+
+
 @api_router.get("/paiements/{paiement_id}")
 async def paiement_statut(paiement_id: str, user=Depends(get_current_user)):
     paiement = await db.paiements.find_one({"id": paiement_id}, {"_id": 0})
@@ -1965,14 +1990,20 @@ async def paiement_statut(paiement_id: str, user=Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Paiement introuvable")
     if paiement["statut"] not in ETATS_FINAUX:
         paiement = await verifier_paiement(paiement)
+    statut = statut_public(paiement)
+    carte_ouverte = paiement.get("mode") == "carte" and statut == "attente" and paiement.get("url")
     return {
         "paiementId": paiement_id,
         "commandeId": paiement["commandeId"],
         "mode": paiement.get("mode", "mobile"),
-        "statut": statut_public(paiement),
+        "statut": statut,
         "montant": paiement["montant"],
         "devise": paiement["devise"],
+        "canal": paiement.get("canal"),
+        "createdAt": paiement["createdAt"],
         "raisonEchec": paiement.get("raisonEchec"),
+        # Carte en attente : la page Flexpaie peut etre rouverte depuis le suivi.
+        **({"url": paiement["url"], "retour": f"{FLEXPAIE_RETOUR_URL}/{paiement_id}/retour"} if carte_ouverte else {}),
     }
 
 

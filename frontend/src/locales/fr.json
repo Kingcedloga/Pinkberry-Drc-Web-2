@@ -842,9 +842,21 @@
     "appAfficherDetails": "Afficher les détails",
     "appMasquerDetails": "Masquer les détails"
   },
+  "suiviPaiement": {
+    "paye": "Commande payée",
+    "payeDetail": "Payée par {{moyen}} · {{montant}}",
+    "attente": "Paiement en attente",
+    "attenteMobile": "Nous attendons la validation de {{montant}} sur votre téléphone.",
+    "attenteCarte": "Nous attendons la confirmation de la banque pour {{montant}}.",
+    "echoue": "Paiement {{mode}} non abouti",
+    "expire": "Paiement {{mode}} non confirmé",
+    "echoueDetail": "Votre commande est bien enregistrée. Réessayez, ou payez en espèces à la livraison.",
+    "dejaPaye": "Votre commande est déjà payée : rien à remettre au livreur.",
+    "noter": "Noter ma livraison"
+  },
   "paiement": {
     "attente": "En attente de confirmation…",
-    "validerPin": "Validez la demande de {{montant}} {{devise}} avec votre code PIN sur votre téléphone.",
+    "validerPin": "Validez la demande de {{montant}} avec votre code PIN sur votre téléphone.",
     "astuce": "Pas de demande reçue ? Composez *501# (Vodacom) ou consultez vos approbations en attente.",
     "confirme": "Paiement confirmé",
     "delaiDepasse": "Délai dépassé",
@@ -853,7 +865,7 @@
     "refuse": "L'opérateur a refusé la transaction.",
     "refuseCarte": "La banque n'a pas validé la transaction.",
     "delaiTexteCarte": "Nous n'avons pas reçu la confirmation de la banque. Réessayez ou payez à la livraison.",
-    "finaliserCarte": "Finalisez le paiement de {{montant}} {{devise}} sur la page sécurisée.",
+    "finaliserCarte": "Finalisez le paiement de {{montant}} sur la page sécurisée.",
     "rouvrirCarte": "Rouvrir la page de paiement",
     "pageCarte": "Paiement sécurisé",
     "fermer": "Fermer",

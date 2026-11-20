@@ -9,6 +9,7 @@ import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiFetch } from "@/src/api";
+import { BandeauPaiement } from "@/src/components/BandeauPaiement";
 import { Bouton } from "@/src/components/Bouton";
 import { Carte } from "@/src/components/Carte";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
@@ -17,6 +18,7 @@ import { champsAdresse, useT } from "@/src/i18n";
 import { distanceLisible, dureeLisible, useItineraire } from "@/src/itineraire";
 import { Etoiles } from "@/src/components/Etoiles";
 import { TitrePage } from "@/src/components/TitrePage";
+import { usePaiementEnLigne } from "@/src/paiement-en-ligne";
 import { LARGEUR_CONTENU, useEcran } from "@/src/reactif";
 import { colors, fonts, radius, softShadow, spacing, stylesDynamiques } from "@/src/theme";
 import { useTheme } from "@/src/theme-contexte";
@@ -39,6 +41,8 @@ export default function SuiviCommande() {
   const [confirmAnnuler, setConfirmAnnuler] = useState(false);
   const [notationOuverte, setNotationOuverte] = useState(false);
   const [note, setNote] = useState(5);
+  // Paiement en ligne relancé depuis le suivi : on reste sur cette page.
+  const paiementEnLigne = usePaiementEnLigne({ onPaye: () => undefined, onCash: () => undefined });
 
   const q = useQuery({
     queryKey: ["commande", id],
@@ -76,6 +80,8 @@ export default function SuiviCommande() {
   const annulable = !["en_route", "livree", "annulee"].includes(cmd.statut);
   const arrive = cmd.statut === "livree" || (cmd.statut === "en_route" && (cmd.etaMinutes ?? 99) <= 3);
   const peutPayer = (cmd.statut === "en_route" || cmd.statut === "livree") && !cmd.clientAPaye;
+  // Déjà payée par Mobile Money ou carte : rien à remettre au livreur.
+  const payeEnLigne = !!cmd.paye && ["mobile", "carte"].includes(cmd.paiement?.mode);
 
   const annuler = async () => {
     try {
@@ -117,6 +123,13 @@ export default function SuiviCommande() {
           retour="/commandes"
         />
 
+        <BandeauPaiement
+          commande={cmd}
+          onRelancer={paiementEnLigne.relancer}
+          onReouvrir={paiementEnLigne.reouvrir}
+          onPayerLivraison={(commandeId) => void paiementEnLigne.payerLivraison(commandeId)}
+        />
+
         <View style={bureau ? styles.colonnes : styles.pile}>
           <View style={bureau ? styles.colGauche : styles.pile}>
         <View style={styles.carteWrap}>
@@ -154,16 +167,22 @@ export default function SuiviCommande() {
         {arrive && peutPayer ? (
           <View testID="bloc-livraison" style={styles.blocLivraison}>
             <Text style={styles.livraisonTitre}>{t("suivi.arrive")}</Text>
-            <Text style={styles.livraisonLabel}>{t("suivi.montantEspeces")}</Text>
-            <Text testID="montant-cash" style={styles.montant}>
-              {fc(cmd.total)}
-            </Text>
-            <Text testID="montant-cash-fc" style={styles.montantFc}>
-              ≈ {usd(cmd.total)}
-            </Text>
+            {payeEnLigne ? (
+              <Text style={styles.livraisonLabel}>{t("suiviPaiement.dejaPaye")}</Text>
+            ) : (
+              <>
+                <Text style={styles.livraisonLabel}>{t("suivi.montantEspeces")}</Text>
+                <Text testID="montant-cash" style={styles.montant}>
+                  {fc(cmd.total)}
+                </Text>
+                <Text testID="montant-cash-fc" style={styles.montantFc}>
+                  ≈ {usd(cmd.total)}
+                </Text>
+              </>
+            )}
             <Bouton
               testID="btn-jai-paye"
-              label={t("suivi.jaiPaye")}
+              label={t(payeEnLigne ? "suiviPaiement.noter" : "suivi.jaiPaye")}
               variant="succes"
               icone="check-circle"
               onPress={() => setNotationOuverte(true)}
@@ -251,6 +270,8 @@ export default function SuiviCommande() {
           </View>
         </View>
       </ScrollView>
+
+      {paiementEnLigne.fenetre}
 
       <Modal visible={confirmAnnuler} transparent animationType="fade" onRequestClose={() => setConfirmAnnuler(false)}>
         <View style={styles.voile}>

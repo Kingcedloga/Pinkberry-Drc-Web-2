@@ -97,6 +97,19 @@ def test_reverification_transaction_introuvable(client, admin):
         assert d["paiement"]["verifieAt"]
 
 
+def test_relance_par_un_autre_compte_404(client, admin):
+    """La relance reprend le numero de la tentative : reservee a son proprietaire."""
+    cmd = _commande(client)
+    reference = _tentative_en_attente(cmd)
+    r = requests.post(f"{BASE_URL}/api/paiements/{reference}/relancer", headers=admin, timeout=30)
+    assert r.status_code == 404
+
+
+def test_relance_inconnue_404(client):
+    r = requests.post(f"{BASE_URL}/api/paiements/PBINCONNU/relancer", headers=client, timeout=30)
+    assert r.status_code == 404
+
+
 def teardown_module(module):
     db = _mongo()
     ids = [c["id"] for c in db.commandes.find({"adresse.label": LABEL}, {"id": 1})]

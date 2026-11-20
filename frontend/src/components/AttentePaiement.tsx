@@ -7,6 +7,8 @@ import { Bouton } from "@/src/components/Bouton";
 import { Icone } from "@/src/components/Icone";
 import { colors, fonts, poids, radius, spacing, stylesDynamiques } from "@/src/theme";
 import { useT } from "@/src/i18n";
+import { montantDebite } from "@/src/money";
+import { useMontant } from "@/src/taux";
 
 type Etat = { statut: "attente" | "paye" | "echoue" | "expire"; montant: string; devise: string; raisonEchec?: string | null };
 
@@ -44,6 +46,7 @@ export function AttentePaiement({
   });
 
   const t = useT();
+  const { fc } = useMontant();
   const statut = paiementId ? (q.data?.statut ?? "attente") : "echoue";
   const carte = mode === "carte";
 
@@ -52,7 +55,7 @@ export function AttentePaiement({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statut]);
 
-  const params = { montant: q.data?.montant ?? montant, devise: q.data?.devise ?? devise };
+  const params = { montant: montantDebite(q.data?.montant ?? montant, q.data?.devise ?? devise, fc) };
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.fond}>

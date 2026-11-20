@@ -31,3 +31,10 @@ export function fc(n: number): string {
 export function prix(n: number): string {
   return `${fc(n)} ≈ ${usd(n)}`;
 }
+
+/** Montant débité tel que Flexpaie le reçoit (« 21000 » CDF, « 9.13 » USD), lisible. */
+export function montantDebite(montant: string, devise: string, fc: (n: number) => string): string {
+  const n = Number(montant);
+  if (!montant || Number.isNaN(n)) return `${montant} ${devise}`.trim();
+  return devise === "USD" ? `$${n.toFixed(2)}` : fc(n);
+}

@@ -842,9 +842,21 @@
     "appAfficherDetails": "Show details",
     "appMasquerDetails": "Hide details"
   },
+  "suiviPaiement": {
+    "paye": "Order paid",
+    "payeDetail": "Paid with {{moyen}} · {{montant}}",
+    "attente": "Payment pending",
+    "attenteMobile": "We're waiting for you to approve {{montant}} on your phone.",
+    "attenteCarte": "We're waiting for the bank to confirm {{montant}}.",
+    "echoue": "{{mode}} payment didn't go through",
+    "expire": "{{mode}} payment not confirmed",
+    "echoueDetail": "Your order is saved. Try again, or pay cash on delivery.",
+    "dejaPaye": "Your order is already paid: nothing to hand over to the courier.",
+    "noter": "Rate my delivery"
+  },
   "paiement": {
     "attente": "Waiting for confirmation…",
-    "validerPin": "Approve the {{montant}} {{devise}} request with your PIN on your phone.",
+    "validerPin": "Approve the {{montant}} request with your PIN on your phone.",
     "astuce": "No request received? Dial *501# (Vodacom) or check your pending approvals.",
     "confirme": "Payment confirmed",
     "delaiDepasse": "Time limit exceeded",
@@ -853,7 +865,7 @@
     "refuse": "The operator declined the transaction.",
     "refuseCarte": "The bank didn't approve the transaction.",
     "delaiTexteCarte": "We didn't receive the bank's confirmation. Try again or pay on delivery.",
-    "finaliserCarte": "Complete the {{montant}} {{devise}} payment on the secure page.",
+    "finaliserCarte": "Complete the {{montant}} payment on the secure page.",
     "rouvrirCarte": "Reopen the payment page",
     "pageCarte": "Secure payment",
     "fermer": "Close",
