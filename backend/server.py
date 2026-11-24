@@ -126,6 +126,7 @@ ERREURS_EN: Dict[str, str] = {
     "Acces reserve au super admin": "Restricted to the super admin",
     "Action réservée au Super Admin": "Action reserved for the Super Admin",
     "Acces reserve au livreur": "Restricted to couriers",
+    "Acces reserve au mode caisse": "Restricted to the checkout (POS) mode",
     "Acces refuse": "Access denied",
     "Patientez une minute avant de demander un nouveau code": "Please wait a minute before requesting a new code",
     "Numero de telephone invalide": "Invalid phone number",
@@ -273,6 +274,7 @@ ERREURS_FR: Dict[str, str] = {
     "Acces reserve a l'administrateur": "Accès réservé à l'administrateur",
     "Acces reserve au super admin": "Accès réservé au Super Admin",
     "Acces reserve au livreur": "Accès réservé au livreur",
+    "Acces reserve au mode caisse": "Accès réservé au mode caisse",
     "Acces refuse": "Accès refusé",
     "Numero de telephone invalide": "Numéro de téléphone invalide",
     "Mot de passe trop court (6 caracteres minimum)": "Mot de passe trop court (6 caractères minimum)",
@@ -601,6 +603,17 @@ async def require_livreur(user=Depends(get_current_user)) -> Dict[str, Any]:
     return user
 
 
+def a_droit_caisse(u: Dict[str, Any]) -> bool:
+    """Mode caisse (impression des tickets sur le POS) : le super admin, ou un admin autorise par lui."""
+    return u.get("role") == "superadmin" or (u.get("role") == "admin" and bool(u.get("modeCaisse")))
+
+
+async def require_caisse(user=Depends(get_current_user)) -> Dict[str, Any]:
+    if not a_droit_caisse(user):
+        raise HTTPException(status_code=403, detail="Acces reserve au mode caisse")
+    return user
+
+
 PREFS_DEFAUT = {
     "langue": "fr",
     "theme": "systeme",
@@ -622,6 +635,7 @@ def public_user(u: Dict[str, Any]) -> Dict[str, Any]:
         "verifie": u.get("verifie", False),
         "livreurId": u.get("livreurId"),
         "actif": u.get("actif", True),
+        "modeCaisse": a_droit_caisse(u),
         "preferences": {**PREFS_DEFAUT, **(u.get("preferences") or {})},
     }
 
@@ -3812,6 +3826,7 @@ def compte_public(u: Dict[str, Any]) -> Dict[str, Any]:
         "email": u.get("email"),
         "role": u.get("role"),
         "actif": u.get("actif", True),
+        "modeCaisse": a_droit_caisse(u),
         "livreurId": u.get("livreurId"),
         "createdAt": u.get("createdAt"),
     }
@@ -3871,6 +3886,16 @@ async def basculer_compte(user_id: str, body: ActifIn, _=Depends(require_gestion
     if cible.get("livreurId"):
         await db.livreurs.update_one({"id": cible["livreurId"]}, {"$set": {"actif": body.actif}})
     cible["actif"] = body.actif
+    return compte_public(cible)
+
+
+@api_router.patch("/superadmin/comptes/{user_id}/caisse")
+async def basculer_caisse(user_id: str, body: ActifIn, _=Depends(require_gestion)):
+    cible = await db.users.find_one({"id": user_id, "role": "admin"}, {"_id": 0})
+    if not cible:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    await db.users.update_one({"id": user_id}, {"$set": {"modeCaisse": body.actif}})
+    cible["modeCaisse"] = body.actif
     return compte_public(cible)
 
 
@@ -4834,6 +4859,118 @@ async def recu_commande(cmd_id: str, request: Request, format: str = "json", use
     return recu
 
 
+# ------------------------------------------------------------------- caisse (POS)
+# Le poste caisse (terminal ZKTeco sous Windows, admin web en Chrome --kiosk-printing)
+# vient chercher les tickets a imprimer : le serveur heberge ne peut pas joindre une
+# imprimante du reseau local. File : ticketAImprimer sur la commande.
+TEXTES_TICKET: Dict[str, Dict[str, str]] = {
+    "fr": {
+        "titre": "Ticket de vente", "duplicata": "DUPLICATA", "date": "Date", "telephone": "Tél.",
+        "adresse": "Livraison", "repere": "Repère", "paye": "PAYÉ", "aEncaisser": "À ENCAISSER",
+        "merci": "Merci pour votre commande !",
+    },
+    "en": {
+        "titre": "Sales ticket", "duplicata": "DUPLICATE", "date": "Date", "telephone": "Phone",
+        "adresse": "Delivery", "repere": "Landmark", "paye": "PAID", "aEncaisser": "TO COLLECT",
+        "merci": "Thank you for your order!",
+    },
+}
+
+
+def _libelle(valeur: Optional[str], valeur_en: Optional[str], langue: str) -> str:
+    return ((valeur_en if langue == "en" else None) or valeur or "").strip()
+
+
+def construire_ticket_html(cmd: Dict[str, Any], recu: Dict[str, Any], langue: str, largeur: int) -> str:
+    """Ticket thermique (58 ou 80 mm), imprime tel quel par le navigateur du poste caisse."""
+    textes, textes_t = TEXTES_RECU[langue], TEXTES_TICKET[langue]
+    e = lambda v: escape(str(v or ""))  # noqa: E731
+
+    def ligne(gauche: str, droite: str = "", classe: str = "") -> str:
+        return f'<div class="l {classe}"><span>{gauche}</span><span>{droite}</span></div>'
+
+    articles = []
+    for item, article in zip(cmd.get("items") or [], recu["articles"]):
+        articles.append(ligne(f"{article['quantite']}× {e(article['nom'])}", e(fc_txt(article["total"]))))
+        options = " · ".join(filter(None, [
+            _libelle(item.get("taille"), item.get("tailleEn"), langue),
+            _libelle(item.get("contenant"), item.get("contenantEn"), langue),
+        ]))
+        garnitures = ", ".join(_libelle(g.get("nom"), g.get("nomEn"), langue) for g in item.get("garnitures") or [])
+        for detail in filter(None, [options, garnitures]):
+            articles.append(f'<div class="d">{e(detail)}</div>')
+
+    totaux = [ligne(textes["sousTotal"], e(fc_txt(recu["sousTotal"]))),
+              ligne(textes["livraison"], e(fc_txt(recu["fraisLivraison"])))]
+    if recu["reduction"]:
+        totaux.append(ligne(textes["reduction"], f"- {e(fc_txt(recu['reduction']))}"))
+    totaux.append(ligne(textes["total"], e(fc_txt(recu["total"])), "t"))
+
+    a = cmd.get("adresse") or {}
+    paye = bool(cmd.get("paye"))
+    entete = [f'<div class="c g">PINKBERRY</div><div class="c">{e(textes_t["titre"])}</div>']
+    if int(cmd.get("impressions") or 0) > 1:
+        entete.append(f'<div class="c g">*** {e(textes_t["duplicata"])} ***</div>')
+    corps = [
+        *entete, '<hr>',
+        ligne(textes["commande"], f"<b>{e(recu['numero'])}</b>"),
+        ligne(textes_t["date"], e(_date_recu(cmd.get("createdAt")))),
+        ligne(textes["client"], e(cmd.get("clientNom"))),
+        ligne(textes_t["telephone"], e(a.get("telephone") or cmd.get("clientTelephone"))),
+        '<hr>', *articles, '<hr>', *totaux, '<hr>',
+        ligne(textes["moyen"], e(recu["paiement"]["moyen"])),
+        f'<div class="c g">{e(textes_t["paye"] if paye else textes_t["aEncaisser"])}</div>',
+        '<hr>',
+        f'<div>{e(textes_t["adresse"])} : {e(a.get("commune"))}, {e(a.get("avenue"))} {e(a.get("numero"))}</div>',
+        f'<div>{e(textes_t["repere"])} : {e(a.get("repere"))}</div>' if a.get("repere") else "",
+        '<hr>', f'<div class="c">{e(textes_t["merci"])}</div>',
+    ]
+    police = 11 if largeur == 58 else 12
+    return (
+        f'<!doctype html><html lang="{langue}"><head><meta charset="utf-8"><title>{e(recu["numero"])}</title><style>'
+        f"@page{{size:{largeur}mm auto;margin:0}}"
+        f"body{{width:{largeur - 6}mm;margin:0 3mm;font:{police}px/1.35 'Courier New',monospace;color:#000}}"
+        ".l{display:flex;justify-content:space-between;gap:2mm}.l span:last-child{text-align:right;white-space:nowrap}"
+        ".d{padding-left:3mm;font-size:.9em}.c{text-align:center}.g{font-weight:bold;font-size:1.15em}"
+        ".t{font-weight:bold;font-size:1.15em}hr{border:0;border-top:1px dashed #000;margin:1.5mm 0}"
+        f'</style></head><body>{"".join(corps)}</body></html>'
+    )
+
+
+@api_router.post("/caisse/tickets/suivant")
+async def caisse_ticket_suivant(request: Request, largeur: int = 80, user=Depends(require_caisse)):
+    """Prend le prochain ticket de la file (atomique : deux postes n'impriment jamais le meme)."""
+    cmd = await db.commandes.find_one_and_update(
+        {"ticketAImprimer": True, "statut": {"$ne": "annulee"}},
+        {"$set": {"ticketAImprimer": False, "ticketImprimeAt": iso(now_utc()), "ticketImprimePar": user["id"]},
+         "$inc": {"impressions": 1}},
+        sort=[("ticketDemandeAt", 1)],
+        projection={"_id": 0},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not cmd:
+        return {"ticket": None}
+    langue = langue_requete(request)
+    recu = await donnees_recu(cmd, langue)
+    return {"ticket": {
+        "commandeId": cmd["id"],
+        "numero": cmd.get("numero"),
+        "impressions": cmd["impressions"],
+        "html": construire_ticket_html(cmd, recu, langue, 58 if largeur == 58 else 80),
+    }}
+
+
+@api_router.post("/caisse/commandes/{cmd_id}/imprimer")
+async def caisse_imprimer(cmd_id: str, _=Depends(require_caisse)):
+    """Remet une vente dans la file du poste caisse (reimpression : le ticket porte « DUPLICATA »)."""
+    res = await db.commandes.update_one(
+        {"id": cmd_id}, {"$set": {"ticketAImprimer": True, "ticketDemandeAt": iso(now_utc())}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+    return {"ok": True}
+
+
 @api_router.get("/admin/stats")
 async def admin_stats(_=Depends(require_admin)):
     cmds = await db.commandes.find({}, {"_id": 0}).to_list(1000)
@@ -4876,6 +5013,12 @@ async def admin_statut(cmd_id: str, body: StatutIn, user=Depends(require_admin))
         raise HTTPException(status_code=404, detail="Commande introuvable")
     if body.statut == "annulee":
         await liberer_promotions(cmd_id)
+    if body.statut == "en_preparation":
+        # Vente acceptee : ticket a imprimer au POS (une seule fois, la reimpression est manuelle).
+        await db.commandes.update_one(
+            {"id": cmd_id, "ticketDemandeAt": {"$exists": False}},
+            {"$set": {"ticketAImprimer": True, "ticketDemandeAt": iso(now_utc())}},
+        )
     maj = await db.commandes.find_one({"id": cmd_id}, {"_id": 0})
     await notifier_client(maj, body.statut)
     return await detail_commande(cmd_id, user)

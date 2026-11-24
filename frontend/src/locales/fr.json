@@ -19,7 +19,8 @@
     "deconnexion": "Déconnexion",
     "backOffice": "Back office",
     "promotions": "Promotions",
-    "bannieres": "Bannières"
+    "bannieres": "Bannières",
+    "caisse": "Caisse"
   },
   "livreur": {
     "courses": "Mes courses",
@@ -226,7 +227,14 @@
     "exempleCommune": "Ex. Ngaliema",
     "vehiculeDefaut": "Moto",
     "livreurActif": "Actif",
-    "livreurInactif": "Inactif"
+    "livreurInactif": "Inactif",
+    "imprimerTicket": "Imprimer le ticket",
+    "reimprimerTicket": "Réimprimer le ticket",
+    "ticketEnvoye": "Ticket envoyé au poste caisse",
+    "ticketImprime": "Ticket imprimé le {{date}}",
+    "droitCaisse": "Mode caisse",
+    "caisseAccordee": "{{nom}} peut utiliser le mode caisse",
+    "caisseRetiree": "Mode caisse retiré à {{nom}}"
   },
   "archives": {
     "titre": "Archives",
@@ -858,6 +866,24 @@
     "operateur": "Référence opérateur",
     "telecharger": "Télécharger le reçu (PDF)",
     "indisponible": "Reçu indisponible pour le moment"
+  },
+  "caisse": {
+    "titre": "Mode caisse",
+    "sousTitre": "Impression des tickets de vente sur le POS",
+    "webSeulement": "Le mode caisse s'utilise sur le poste caisse, dans le navigateur (terminal Windows).",
+    "impressionAuto": "Imprimer automatiquement sur ce poste",
+    "inactif": "Désactivé sur ce poste",
+    "demarrage": "Connexion à la file des ventes…",
+    "enAttente": "En attente de ventes · vérifié à {{heure}}",
+    "erreur": "Problème de connexion : {{message}}. Nouvel essai dans quelques secondes.",
+    "largeur": "Largeur du papier",
+    "ticketTest": "Imprimer un ticket test",
+    "ticketTestContenu": "Ticket test — imprimante prête",
+    "imprimes": "Tickets imprimés sur ce poste",
+    "aucunImprime": "Aucun ticket imprimé depuis l'ouverture de cette page.",
+    "duplicata": "Duplicata",
+    "installation": "Installation du poste",
+    "installationDetail": "1. Définissez l'imprimante du terminal comme imprimante par défaut de Windows.\n2. Ouvrez Chrome avec l'option --kiosk-printing (raccourci : chrome.exe --kiosk-printing https://pinkberrydrc.app/admin/caisse) pour imprimer sans boîte de dialogue.\n3. Connectez-vous, activez l'impression automatique et laissez cette page ouverte.\nChaque commande passée « En préparation » sort ici ; « Réimprimer » depuis le détail d'une commande imprime un duplicata."
   },
   "suiviPaiement": {
     "voirRecu": "Voir le reçu",

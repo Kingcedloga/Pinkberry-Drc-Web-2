@@ -31,7 +31,8 @@ ECRITURES = [
     ("post", "/admin/zones"), ("put", "/admin/zones/x"), ("delete", "/admin/zones/x"), ("delete", "/admin/zones/bulk/delete"),
     ("post", "/admin/livreurs"), ("put", "/admin/livreurs/x"), ("delete", "/admin/livreurs/x"),
     ("delete", "/admin/livreurs/bulk/delete"),
-    ("post", "/superadmin/admins"), ("patch", "/superadmin/comptes/x/actif"), ("delete", "/superadmin/comptes/x"),
+    ("post", "/superadmin/admins"), ("patch", "/superadmin/comptes/x/actif"), ("patch", "/superadmin/comptes/x/caisse"),
+    ("delete", "/superadmin/comptes/x"),
     ("delete", "/superadmin/comptes/bulk/delete"),
     ("put", "/admin/config"),
 ]

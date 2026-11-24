@@ -29,6 +29,7 @@ visuel (une police) reste toléré. Les types communs sont dans `types.ts`.
 | `lecture-immediate` | rien (stockage asynchrone) | localStorage |
 | `VuePage` | WebView | iframe |
 | `paiement-carte` | page Flexpaie dans l'app (WebView) | nouvel onglet, réservé au clic |
+| `impression` | indisponible (poste caisse = admin web) | iframe + `print()` (Chrome `--kiosk-printing`) |
 
 Contrôle : la suite Jest (`npx jest`, iOS et Android) contient
 `__tests__/regle-plateforme.test.tsx`, qui échoue si un `Platform.OS` apparaît

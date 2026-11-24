@@ -10,6 +10,8 @@ export type LienNav = {
   icone: string;
   /** Réservé au super admin. */
   superadmin?: boolean;
+  /** Réservé aux comptes autorisés au mode caisse. */
+  caisse?: boolean;
 };
 
 export const NAV_CLIENT: LienNav[] = [
@@ -23,6 +25,7 @@ export const NAV_ADMIN: LienNav[] = [
   { href: "/admin/catalogue", id: "catalogue", cle: "nav.catalogue", icone: "package" },
   { href: "/admin/zones", id: "zones", cle: "nav.zones", icone: "map" },
   { href: "/admin/livreurs", id: "livreurs", cle: "nav.livreurs", icone: "users" },
+  { href: "/admin/caisse", id: "caisse", cle: "nav.caisse", icone: "printer", caisse: true },
   { href: "/admin/personnel", id: "personnel", cle: "nav.personnel", icone: "key", superadmin: true },
 ];
 

@@ -18,12 +18,14 @@ export function useDroits() {
   const t = useT();
   const toast = useToast();
   const peutGerer = user?.role === "superadmin";
+  /** Poste caisse : impression des tickets de vente (le serveur l'exige aussi). */
+  const peutCaisse = peutGerer || !!user?.modeCaisse;
   /** À appeler en tête d'une action de gestion : false (et message) si elle est réservée. */
   const exiger = useCallback(() => {
     if (!peutGerer) toast.show(t("droits.reserve"), "erreur");
     return peutGerer;
   }, [peutGerer, t, toast]);
-  return { peutGerer, exiger };
+  return { peutGerer, peutCaisse, exiger };
 }
 
 /**

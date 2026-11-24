@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch } from "@/src/api";
 import { Bouton } from "@/src/components/Bouton";
 import { CarteNotifications } from "@/src/components/CarteNotifications";
+import { useDroits } from "@/src/droits";
 import { TitrePage } from "@/src/components/TitrePage";
 import { champsAdresse, useLangue, type CleTexte } from "@/src/i18n";
 import { LARGEUR_LARGE, useEcran } from "@/src/reactif";
@@ -71,6 +72,7 @@ export default function Dashboard() {
   const libelle = useLibelle();
   const detail = useDetailLigne();
   const { bureau } = useEcran();
+  const { peutCaisse } = useDroits();
   const [ouverte, setOuverte] = useState<any>(null);
   const [filtreStatut, setFiltreStatut] = useState("tous");
   const [recherche, setRecherche] = useState("");
@@ -138,6 +140,16 @@ export default function Dashboard() {
       setOuverte(maj);
       rafraichir();
       toast.show(t("admin.statutChange", { statut: t(`statut.${statut}` as CleTexte) }), "succes");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
+  // Remet la vente dans la file du poste caisse (le ticket ressort en « DUPLICATA »).
+  const imprimerTicket = async () => {
+    try {
+      await apiFetch(`/caisse/commandes/${ouverte.id}/imprimer`, { method: "POST" });
+      toast.show(t("admin.ticketEnvoye"), "succes");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -562,6 +574,24 @@ export default function Dashboard() {
                   </Text>
                 ))}
                 <Text style={styles.blocTotal}>{t("admin.totalCash", { montant: prix(ouverte?.total ?? 0) })}</Text>
+                {peutCaisse ? (
+                  <View style={styles.reverifier}>
+                    {ouverte?.ticketImprimeAt ? (
+                      <Text testID="ticket-imprime" style={styles.blocDetail}>
+                        {t("admin.ticketImprime", {
+                          date: new Date(ouverte.ticketImprimeAt).toLocaleString(langue === "en" ? "en-GB" : "fr-FR"),
+                        })}
+                      </Text>
+                    ) : null}
+                    <Bouton
+                      testID="btn-imprimer-ticket"
+                      label={t(ouverte?.ticketImprimeAt ? "admin.reimprimerTicket" : "admin.imprimerTicket")}
+                      icone="printer"
+                      variant="contour"
+                      onPress={imprimerTicket}
+                    />
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.blocInfo}>

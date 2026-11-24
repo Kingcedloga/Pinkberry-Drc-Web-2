@@ -20,6 +20,8 @@ export type Utilisateur = {
   verifie: boolean;
   livreurId?: string | null;
   actif?: boolean;
+  /** Mode caisse (impression des tickets au POS) : accordé par le super admin. */
+  modeCaisse?: boolean;
 };
 
 type AuthValue = {

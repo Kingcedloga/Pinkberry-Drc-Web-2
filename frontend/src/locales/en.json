@@ -19,7 +19,8 @@
     "deconnexion": "Sign out",
     "backOffice": "Back office",
     "promotions": "Promotions",
-    "bannieres": "Banners"
+    "bannieres": "Banners",
+    "caisse": "Checkout"
   },
   "livreur": {
     "courses": "My deliveries",
@@ -226,7 +227,14 @@
     "exempleCommune": "e.g. Ngaliema",
     "vehiculeDefaut": "Motorbike",
     "livreurActif": "Active",
-    "livreurInactif": "Inactive"
+    "livreurInactif": "Inactive",
+    "imprimerTicket": "Print ticket",
+    "reimprimerTicket": "Reprint ticket",
+    "ticketEnvoye": "Ticket sent to the checkout station",
+    "ticketImprime": "Ticket printed on {{date}}",
+    "droitCaisse": "Checkout mode",
+    "caisseAccordee": "{{nom}} can use checkout mode",
+    "caisseRetiree": "Checkout mode removed for {{nom}}"
   },
   "archives": {
     "titre": "Archives",
@@ -858,6 +866,24 @@
     "operateur": "Operator reference",
     "telecharger": "Download receipt (PDF)",
     "indisponible": "Receipt unavailable for now"
+  },
+  "caisse": {
+    "titre": "Checkout mode",
+    "sousTitre": "Print sales tickets on the POS",
+    "webSeulement": "Checkout mode runs on the checkout station, in the browser (Windows terminal).",
+    "impressionAuto": "Print automatically on this station",
+    "inactif": "Turned off on this station",
+    "demarrage": "Connecting to the sales queue…",
+    "enAttente": "Waiting for sales · checked at {{heure}}",
+    "erreur": "Connection problem: {{message}}. Retrying in a few seconds.",
+    "largeur": "Paper width",
+    "ticketTest": "Print a test ticket",
+    "ticketTestContenu": "Test ticket — printer ready",
+    "imprimes": "Tickets printed on this station",
+    "aucunImprime": "No ticket printed since this page was opened.",
+    "duplicata": "Duplicate",
+    "installation": "Station setup",
+    "installationDetail": "1. Set the terminal's printer as the Windows default printer.\n2. Open Chrome with the --kiosk-printing option (shortcut: chrome.exe --kiosk-printing https://pinkberrydrc.app/admin/caisse) to print without a dialog.\n3. Sign in, turn on automatic printing and leave this page open.\nEvery order moved to \"Preparing\" prints here; \"Reprint\" from an order's details prints a duplicate."
   },
   "suiviPaiement": {
     "voirRecu": "View receipt",

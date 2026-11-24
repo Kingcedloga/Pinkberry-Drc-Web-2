@@ -28,6 +28,7 @@ type Compte = {
   role: "admin" | "livreur";
   actif: boolean;
   livreurId?: string | null;
+  modeCaisse?: boolean;
   vehicule?: string;
   plaque?: string;
 };
@@ -108,6 +109,16 @@ export default function Personnel() {
       qc.invalidateQueries({ queryKey: ["superadmin-comptes"] });
       qc.invalidateQueries({ queryKey: ["admin-livreurs"] });
       toast.show(t(actif ? "admin.compteActive" : "admin.compteDesactiveNom", { nom: c.nom }), "info");
+    } catch (e: any) {
+      toast.show(e.message, "erreur");
+    }
+  };
+
+  const basculerCaisse = async (c: Compte, actif: boolean) => {
+    try {
+      await apiFetch(`/superadmin/comptes/${c.id}/caisse`, { method: "PATCH", body: { actif } });
+      qc.invalidateQueries({ queryKey: ["superadmin-comptes"] });
+      toast.show(t(actif ? "admin.caisseAccordee" : "admin.caisseRetiree", { nom: c.nom }), "info");
     } catch (e: any) {
       toast.show(e.message, "erreur");
     }
@@ -224,6 +235,18 @@ export default function Personnel() {
                 {item.vehicule ? ` · ${item.vehicule} ${item.plaque ?? ""}` : ""}
               </Text>
               {!item.actif ? <Text style={styles.desactive}>{t("admin.compteDesactive")}</Text> : null}
+              {item.role === "admin" ? (
+                <View style={styles.droitCaisse}>
+                  <Icone name="printer" size={16} color={colors.muted} />
+                  <Text style={styles.droitCaisseTexte}>{t("admin.droitCaisse")}</Text>
+                  <Switch
+                    testID={`switch-caisse-${item.nom}`}
+                    value={!!item.modeCaisse}
+                    onValueChange={(v) => basculerCaisse(item, v)}
+                    trackColor={{ true: colors.success, false: colors.border }}
+                  />
+                </View>
+              ) : null}
             </View>
             )
           }
@@ -370,6 +393,16 @@ const styles = stylesDynamiques(() => StyleSheet.create({
   nom: { fontFamily: fonts.display, fontSize: 17, color: colors.onSurface },
   detail: { fontFamily: fonts.text, fontSize: 12, color: colors.muted },
   desactive: { fontFamily: fonts.text, fontSize: 12, color: colors.error, marginTop: 2 },
+  droitCaisse: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  droitCaisseTexte: { flex: 1, fontFamily: fonts.text, fontSize: 13, fontWeight: "700", color: colors.onSurface },
   voile: { flex: 1, backgroundColor: "rgba(42,23,33,0.45)", justifyContent: "flex-end" },
   feuille: {
     ...LARGEUR_FEUILLE,
